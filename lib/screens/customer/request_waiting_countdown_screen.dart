@@ -6,18 +6,15 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/firestore_collections.dart';
-import '../shared/chat_screen.dart';
+import '../../data/models/service_request_model.dart';
+import '../shared/map_tracking_screen.dart';
 
 class RequestWaitingCountdownScreen extends StatefulWidget {
-  final String requestId;
-  final String workerName;
-  final String workerPhone;
+  final ServiceRequestModel request;
 
   const RequestWaitingCountdownScreen({
     super.key,
-    required this.requestId,
-    required this.workerName,
-    required this.workerPhone,
+    required this.request,
   });
 
   @override
@@ -56,7 +53,7 @@ class _RequestWaitingCountdownScreenState
   void _listenToRequestStatus() {
     _subscription = FirebaseFirestore.instance
         .collection(FirestoreCollections.serviceRequests)
-        .doc(widget.requestId)
+        .doc(widget.request.id)
         .snapshots()
         .listen((doc) {
       if (!doc.exists || _isHandled) return;
@@ -69,7 +66,9 @@ class _RequestWaitingCountdownScreenState
       if (status == AppConstants.statusAccepted) {
         _isHandled = true;
         _timer?.cancel();
-        _navigateToChat();
+        ServiceRequestModel updated = ServiceRequestModel.fromMap(
+            data as Map<String, dynamic>, doc.id);
+        _navigateToMapTracking(updated);
       } else if (status == AppConstants.statusRejected) {
         _isHandled = true;
         _timer?.cancel();
@@ -90,7 +89,7 @@ class _RequestWaitingCountdownScreenState
             size: 48, color: AppColors.statusPending),
         title: const Text('No Response (30s)'),
         content: Text(
-          '${widget.workerName} did not respond within 30 seconds.\n\nYou can call the worker directly or try another available worker.',
+          '${widget.request.workerName} did not respond within 30 seconds.\n\nYou can call the worker directly or try another available worker.',
           textAlign: TextAlign.center,
         ),
         actions: [
@@ -109,7 +108,8 @@ class _RequestWaitingCountdownScreenState
             label: const Text('Call Worker'),
             onPressed: () async {
               Navigator.pop(ctx);
-              final Uri telUri = Uri(scheme: 'tel', path: widget.workerPhone);
+              final Uri telUri =
+                  Uri(scheme: 'tel', path: widget.request.workerPhone);
               if (await canLaunchUrl(telUri)) {
                 await launchUrl(telUri);
               }
@@ -129,7 +129,7 @@ class _RequestWaitingCountdownScreenState
             size: 48, color: AppColors.statusRejected),
         title: const Text('Request Declined'),
         content: Text(
-          '${widget.workerName} is currently busy and declined the request.',
+          '${widget.request.workerName} is currently busy and declined the request.',
           textAlign: TextAlign.center,
         ),
         actions: [
@@ -145,16 +145,11 @@ class _RequestWaitingCountdownScreenState
     );
   }
 
-  void _navigateToChat() {
+  void _navigateToMapTracking(ServiceRequestModel updatedRequest) {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => ChatScreen(
-          requestId: widget.requestId,
-          peerName: widget.workerName,
-          peerRole: 'worker',
-          peerPhone: widget.workerPhone,
-        ),
+        builder: (_) => MapTrackingScreen(request: updatedRequest),
       ),
     );
   }
@@ -187,14 +182,22 @@ class _RequestWaitingCountdownScreenState
               ),
               const SizedBox(height: 8),
               Text(
-                widget.workerName,
+                widget.request.workerName,
                 style: const TextStyle(
                   color: AppColors.pureWhite,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 6),
+              Text(
+                widget.request.categoryName,
+                style: const TextStyle(
+                  color: AppColors.textLight,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 36),
 
               // 30-Second Live Timer Circle
               Stack(
@@ -238,7 +241,7 @@ class _RequestWaitingCountdownScreenState
               const SizedBox(height: 40),
 
               const Text(
-                'Request sent successfully.\nIf the worker accepts within 30 seconds, chat and call options will open automatically!',
+                'Direct Hiring Offer Sent!\nWhen worker accepts within 30s, live map route, distance, and ETA will open immediately.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppColors.textLight,

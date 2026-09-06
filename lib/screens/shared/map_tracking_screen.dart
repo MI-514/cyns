@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/services/location_service.dart';
 import '../../data/models/service_request_model.dart';
+import 'chat_screen.dart';
 
 class MapTrackingScreen extends StatefulWidget {
   final ServiceRequestModel request;
@@ -32,7 +34,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         markerId: const MarkerId('customer'),
         position: LatLng(req.customerLat, req.customerLng),
         infoWindow: InfoWindow(
-          title: 'Customer Location',
+          title: 'Your Location',
           snippet: req.customerAddress,
         ),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
@@ -75,7 +77,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Live Route & Map Tracking'),
+        title: Text('Live Location & Arrival - ${req.workerName}'),
       ),
       body: Stack(
         children: [
@@ -122,7 +124,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Status: ${req.status}',
+                            'Status: ${req.status.toUpperCase()}',
                             style: const TextStyle(
                               color: AppColors.pureWhite,
                               fontWeight: FontWeight.bold,
@@ -132,14 +134,76 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                           const SizedBox(height: 4),
                           Text(
                             req.workerLat != null
-                                ? 'Distance: ${dist.toStringAsFixed(1)} km  •  ETA: $eta'
+                                ? 'Distance: ${LocationService.formatDistance(dist)}  •  ETA: $eta'
                                 : 'Awaiting worker location updates...',
                             style: const TextStyle(
                               color: AppColors.textLight,
                               fontSize: 13,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Bottom Action Bar for Chat & Phone Call
+          Positioned(
+            bottom: 20,
+            left: 16,
+            right: 16,
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryNavy,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        icon: const Icon(Icons.chat),
+                        label: const Text('Chat'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(
+                                requestId: req.id,
+                                peerName: req.workerName,
+                                peerRole: 'worker',
+                                peerPhone: req.workerPhone,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.availableGreen,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        icon: const Icon(Icons.phone),
+                        label: const Text('Call Worker'),
+                        onPressed: () async {
+                          final Uri telUri =
+                              Uri(scheme: 'tel', path: req.workerPhone);
+                          if (await canLaunchUrl(telUri)) {
+                            await launchUrl(telUri);
+                          }
+                        },
                       ),
                     ),
                   ],

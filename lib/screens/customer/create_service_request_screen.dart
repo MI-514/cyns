@@ -119,14 +119,31 @@ class _CreateServiceRequestScreenState
     if (!mounted) return;
 
     if (reqId != null) {
+      ServiceRequestModel createdReq = ServiceRequestModel(
+        id: reqId,
+        customerId: request.customerId,
+        customerName: request.customerName,
+        customerPhone: request.customerPhone,
+        workerId: request.workerId,
+        workerName: request.workerName,
+        workerPhone: request.workerPhone,
+        categoryId: request.categoryId,
+        categoryName: request.categoryName,
+        problemDescription: request.problemDescription,
+        customerLat: request.customerLat,
+        customerLng: request.customerLng,
+        customerAddress: request.customerAddress,
+        workerLat: request.workerLat,
+        workerLng: request.workerLng,
+        status: request.status,
+      );
+
       // Transition to 30-Second Countdown Waiting Screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => RequestWaitingCountdownScreen(
-            requestId: reqId,
-            workerName: widget.worker.name,
-            workerPhone: widget.worker.phoneNumber,
+            request: createdReq,
           ),
         ),
       );

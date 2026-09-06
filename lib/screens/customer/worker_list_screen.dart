@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/services/location_service.dart';
+import '../../data/models/worker_profile_model.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/worker_provider.dart';
 import 'worker_profile_view_screen.dart';
@@ -47,6 +48,111 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
       customerLat: loc.currentPosition?.latitude,
       customerLng: loc.currentPosition?.longitude,
       query: _searchController.text,
+    );
+  }
+
+  Widget _buildWorkerLocationBanner(BuildContext context,
+      WorkerProfileModel worker, double? dist, bool hasValidGps) {
+    String distanceText = hasValidGps
+        ? LocationService.formatDistance(dist!)
+        : "GPS OFF (Tap to enable)";
+    String etaText = hasValidGps ? LocationService.calculateETA(dist!) : "";
+
+    return GestureDetector(
+      onTap: () {
+        if (!hasValidGps) {
+          LocationService.promptEnableGps(context);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        margin: const EdgeInsets.only(top: 8, bottom: 8),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primaryNavy.withValues(alpha: 0.08),
+              AppColors.accentBlue.withValues(alpha: 0.06),
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: AppColors.primaryNavy.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: AppColors.primaryNavy,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                hasValidGps ? Icons.location_on : Icons.location_off,
+                size: 16,
+                color: AppColors.pureWhite,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        distanceText.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryNavy,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      if (etaText.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.availableGreen
+                                .withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '⚡ ~$etaText ETA',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.availableGreen,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (worker.workingArea.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '🏡 Area: ${worker.workingArea}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -208,10 +314,6 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                 worker.latitude!, worker.longitude!);
                           }
 
-                          String distanceText = hasValidGps
-                              ? LocationService.formatDistance(dist)
-                              : "GPS OFF (Tap to enable)";
-
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
                             child: ListTile(
@@ -268,65 +370,11 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                       fontSize: 13,
                                     ),
                                   ),
-                                  const SizedBox(height: 6),
-                                  // Real Location & Distance Display
-                                  GestureDetector(
-                                    onTap: () {
-                                      if (!hasValidGps) {
-                                        LocationService.promptEnableGps(context);
-                                      }
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: hasValidGps
-                                            ? AppColors.accentBlue
-                                                .withValues(alpha: 0.08)
-                                            : AppColors.statusPending
-                                                .withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            hasValidGps
-                                                ? Icons.location_on
-                                                : Icons.location_off,
-                                            size: 14,
-                                            color: hasValidGps
-                                                ? AppColors.accentBlue
-                                                : AppColors.statusPending,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            distanceText,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: hasValidGps
-                                                  ? AppColors.accentBlue
-                                                  : AppColors.statusPending,
-                                            ),
-                                          ),
-                                          if (worker.workingArea.isNotEmpty) ...[
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              '• ${worker.workingArea}',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                color: AppColors.textSecondary,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
+
+                                  // Prominent Location & Distance Banner
+                                  _buildWorkerLocationBanner(
+                                      context, worker, dist, hasValidGps),
+
                                   Text(
                                     worker.serviceDescription,
                                     maxLines: 2,
