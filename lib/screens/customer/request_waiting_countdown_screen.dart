@@ -84,6 +84,33 @@ class _RequestWaitingCountdownScreenState
     });
   }
 
+  void _simulateWorkerAccept() {
+    _timer?.cancel();
+    _subscription?.cancel();
+    _isHandled = true;
+
+    ServiceRequestModel acceptedReq = ServiceRequestModel(
+      id: widget.request.id,
+      customerId: widget.request.customerId,
+      customerName: widget.request.customerName,
+      customerPhone: widget.request.customerPhone,
+      workerId: widget.request.workerId,
+      workerName: widget.request.workerName,
+      workerPhone: widget.request.workerPhone,
+      categoryId: widget.request.categoryId,
+      categoryName: widget.request.categoryName,
+      problemDescription: widget.request.problemDescription,
+      customerLat: widget.request.customerLat,
+      customerLng: widget.request.customerLng,
+      customerAddress: widget.request.customerAddress,
+      workerLat: widget.request.workerLat,
+      workerLng: widget.request.workerLng,
+      status: AppConstants.statusAccepted,
+    );
+
+    _navigateToMapTracking(acceptedReq);
+  }
+
   void _handleTimeout() async {
     if (_isHandled) return;
     _isHandled = true;
@@ -385,7 +412,7 @@ class _RequestWaitingCountdownScreenState
                   ),
                 ],
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
 
               const Text(
                 'Requesting nearest worker...\nIf worker doesn\'t accept in 30s, request will automatically dispatch to the next nearest worker!',
@@ -396,7 +423,7 @@ class _RequestWaitingCountdownScreenState
                   height: 1.4,
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
 
               // Cancel Request Button
               OutlinedButton.icon(
@@ -413,6 +440,20 @@ class _RequestWaitingCountdownScreenState
                   _subscription?.cancel();
                   Navigator.pop(context);
                 },
+              ),
+              const SizedBox(height: 16),
+
+              // Test Simulation Button
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.availableGreen,
+                ),
+                icon: const Icon(Icons.check_circle_outline, size: 18),
+                label: const Text(
+                  '🧪 Simulate Worker Acceptance (Test Mode)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                onPressed: _simulateWorkerAccept,
               ),
             ],
           ),
