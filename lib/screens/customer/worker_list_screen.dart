@@ -3,10 +3,15 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/services/location_service.dart';
+import '../../data/models/service_request_model.dart';
 import '../../data/models/worker_profile_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
+import '../../providers/service_request_provider.dart';
 import '../../providers/worker_provider.dart';
+import 'request_waiting_countdown_screen.dart';
 import 'worker_profile_view_screen.dart';
 
 class WorkerListScreen extends StatefulWidget {
@@ -27,17 +32,18 @@ class WorkerListScreen extends StatefulWidget {
 
 class _WorkerListScreenState extends State<WorkerListScreen> {
   late TextEditingController _searchController;
+  bool _isAutoDispatching = false;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController(text: widget.searchQuery ?? '');
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchWorkers();
+      _fetchAndAutoDispatchNearestWorker();
     });
   }
 
-  void _fetchWorkers() async {
+  void _fetchWorkersOnly() async {
     final loc = Provider.of<LocationProvider>(context, listen: false);
     await loc.fetchCurrentLocation(context: context);
 
@@ -49,6 +55,97 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
       customerLng: loc.currentPosition?.longitude,
       query: _searchController.text,
     );
+  }
+
+  void _fetchAndAutoDispatchNearestWorker() async {
+    setState(() => _isAutoDispatching = true);
+
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final loc = Provider.of<LocationProvider>(context, listen: false);
+    final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
+    final requestProvider =
+        Provider.of<ServiceRequestProvider>(context, listen: false);
+
+    await loc.fetchCurrentLocation(context: context);
+
+    if (!mounted) return;
+
+    await workerProvider.searchWorkers(
+      categoryId: widget.selectedCategoryId,
+      customerLat: loc.currentPosition?.latitude,
+      customerLng: loc.currentPosition?.longitude,
+      query: _searchController.text,
+    );
+
+    if (!mounted) return;
+
+    if (workerProvider.searchResults.isNotEmpty) {
+      final nearestWorker = workerProvider.searchResults.first;
+
+      double cLat = loc.currentPosition?.latitude ?? 31.5204;
+      double cLng = loc.currentPosition?.longitude ?? 74.3587;
+
+      ServiceRequestModel autoRequest = ServiceRequestModel(
+        id: '',
+        customerId: auth.userModel?.uid ?? 'c1',
+        customerName: auth.userModel?.fullName ?? 'Customer',
+        customerPhone: auth.userModel?.phoneNumber ?? '',
+        workerId: nearestWorker.workerId,
+        workerName: nearestWorker.name,
+        workerPhone: nearestWorker.phoneNumber,
+        categoryId: widget.selectedCategoryId,
+        categoryName: widget.categoryName,
+        problemDescription:
+            'Instant Location-Based Hiring Request for ${widget.categoryName}',
+        customerLat: cLat,
+        customerLng: cLng,
+        customerAddress: loc.currentAddress,
+        workerLat: nearestWorker.latitude ?? cLat,
+        workerLng: nearestWorker.longitude ?? cLng,
+        status: AppConstants.statusPending,
+      );
+
+      String? reqId = await requestProvider.createRequest(autoRequest);
+
+      setState(() => _isAutoDispatching = false);
+
+      if (!mounted) return;
+
+      if (reqId != null) {
+        ServiceRequestModel createdReq = ServiceRequestModel(
+          id: reqId,
+          customerId: autoRequest.customerId,
+          customerName: autoRequest.customerName,
+          customerPhone: autoRequest.customerPhone,
+          workerId: autoRequest.workerId,
+          workerName: autoRequest.workerName,
+          workerPhone: autoRequest.workerPhone,
+          categoryId: autoRequest.categoryId,
+          categoryName: autoRequest.categoryName,
+          problemDescription: autoRequest.problemDescription,
+          customerLat: autoRequest.customerLat,
+          customerLng: autoRequest.customerLng,
+          customerAddress: autoRequest.customerAddress,
+          workerLat: autoRequest.workerLat,
+          workerLng: autoRequest.workerLng,
+          status: autoRequest.status,
+        );
+
+        // Auto transition to 30s Live Timer Screen for Nearest Worker
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RequestWaitingCountdownScreen(
+              request: createdReq,
+              attemptedWorkerIds: [nearestWorker.workerId],
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    setState(() => _isAutoDispatching = false);
   }
 
   Widget _buildWorkerLocationBanner(BuildContext context,
@@ -172,9 +269,9 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
             _LocationRadarWidget(
               categoryName: widget.categoryName,
               address: location.currentAddress,
-              isSearching: workerProvider.isLoading,
+              isSearching: workerProvider.isLoading || _isAutoDispatching,
               isGpsDisabled: location.isGpsDisabled,
-              onSearch: _fetchWorkers,
+              onSearch: _fetchAndAutoDispatchNearestWorker,
               onCancel: () {
                 Navigator.pop(context);
               },
@@ -230,10 +327,10 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                       const Icon(Icons.search, color: AppColors.primaryNavy),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.arrow_forward),
-                    onPressed: _fetchWorkers,
+                    onPressed: _fetchWorkersOnly,
                   ),
                 ),
-                onSubmitted: (_) => _fetchWorkers(),
+                onSubmitted: (_) => _fetchWorkersOnly(),
               ),
             ),
             const SizedBox(height: 16),
@@ -266,7 +363,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
             const SizedBox(height: 12),
 
             // Workers List
-            workerProvider.isLoading
+            workerProvider.isLoading || _isAutoDispatching
                 ? const Padding(
                     padding: EdgeInsets.all(32.0),
                     child: CircularProgressIndicator(),
@@ -656,7 +753,7 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
                           ),
                         )
                       : const Icon(Icons.search, size: 18),
-                  label: Text(widget.isSearching ? 'Searching...' : 'Search Nearby'),
+                  label: Text(widget.isSearching ? 'Searching...' : 'Search & Dispatch'),
                   onPressed: widget.isSearching ? null : widget.onSearch,
                 ),
               ),
