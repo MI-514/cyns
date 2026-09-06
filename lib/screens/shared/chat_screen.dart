@@ -58,7 +58,7 @@ class _ChatScreenState extends State<ChatScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         icon:
-            const Icon(Icons.videocam, size: 48, color: AppColors.primaryNavy),
+            const Icon(Icons.videocam, size: 52, color: AppColors.primaryNavy),
         title: Text('Video Call - ${widget.peerName}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -66,26 +66,28 @@ class _ChatScreenState extends State<ChatScreen> {
             const Text(
               'Show your problem live on video camera to explain the issue clearly to the worker!',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
             if (widget.peerPhone != null)
               Text(
                 'Phone: ${widget.peerPhone}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
+            child: const Text('Close', style: TextStyle(fontSize: 15)),
           ),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.availableGreen),
-            icon: const Icon(Icons.call),
-            label: const Text('Call Direct'),
+              backgroundColor: AppColors.availableGreen,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+            icon: const Icon(Icons.call, size: 20),
+            label: const Text('Call Direct', style: TextStyle(fontSize: 15)),
             onPressed: () {
               Navigator.pop(ctx);
               _makePhoneCall();
@@ -129,12 +131,37 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
+    final picked = await picker.pickImage(source: source);
     if (picked != null) {
       setState(() => _selectedImage = File(picked.path));
     }
+  }
+
+  void _viewFullImage(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              child: Center(
+                child: Image.network(imageUrl, fit: BoxFit.contain),
+              ),
+            ),
+            IconButton(
+              padding: const EdgeInsets.all(16),
+              icon: const Icon(Icons.close, color: Colors.white, size: 30),
+              onPressed: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -144,46 +171,51 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 64,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Chat with ${widget.peerName}'),
+            Text(
+              'Chat with ${widget.peerName}',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const Text(
-              'Tap phone/video icon to call & explain problem',
-              style: TextStyle(fontSize: 10, color: AppColors.textLight),
+              'Tap phone or video icon to call directly',
+              style: TextStyle(fontSize: 11, color: AppColors.textLight),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.phone_in_talk),
+            icon: const Icon(Icons.phone_in_talk, size: 26),
             tooltip: 'Phone Call',
             onPressed: _makePhoneCall,
           ),
           IconButton(
-            icon: const Icon(Icons.videocam),
+            icon: const Icon(Icons.videocam, size: 28),
             tooltip: 'Video Call',
             onPressed: _startVideoCall,
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
           // Banner for Verbal Explanation
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             color: AppColors.accentBlue.withValues(alpha: 0.1),
             child: Row(
               children: [
                 const Icon(Icons.info_outline,
-                    size: 18, color: AppColors.primaryNavy),
-                const SizedBox(width: 8),
+                    size: 20, color: AppColors.primaryNavy),
+                const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
-                    'Worker unlettered or prefer voice? Tap phone or video icon above to call directly.',
+                    'Send photos or tap phone/video icon above to call and explain issues verbally!',
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                       color: AppColors.primaryNavy,
                     ),
                   ),
@@ -205,8 +237,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (messages.isEmpty) {
                   return const Center(
                     child: Text(
-                      'No messages yet. Send a message or call directly above!',
-                      style: TextStyle(color: AppColors.textLight),
+                      'No messages yet. Type a message, attach photo, or call directly above!',
+                      style: TextStyle(color: AppColors.textLight, fontSize: 15),
+                      textAlign: TextAlign.center,
                     ),
                   );
                 }
@@ -224,20 +257,27 @@ class _ChatScreenState extends State<ChatScreen> {
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
+                            horizontal: 16, vertical: 12),
                         constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.75,
+                          maxWidth: MediaQuery.of(context).size.width * 0.78,
                         ),
                         decoration: BoxDecoration(
                           color: isMe
                               ? AppColors.primaryNavy
                               : AppColors.pureWhite,
                           borderRadius: BorderRadius.only(
-                            topLeft: const Radius.circular(14),
-                            topRight: const Radius.circular(14),
-                            bottomLeft: Radius.circular(isMe ? 14 : 2),
-                            bottomRight: Radius.circular(isMe ? 2 : 14),
+                            topLeft: const Radius.circular(16),
+                            topRight: const Radius.circular(16),
+                            bottomLeft: Radius.circular(isMe ? 16 : 4),
+                            bottomRight: Radius.circular(isMe ? 4 : 16),
                           ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                           border: isMe
                               ? null
                               : Border.all(color: AppColors.dividerColor),
@@ -252,18 +292,23 @@ class _ChatScreenState extends State<ChatScreen> {
                                   color: isMe
                                       ? AppColors.pureWhite
                                       : AppColors.textPrimary,
-                                  fontSize: 14,
+                                  fontSize: 16, // Larger readable font
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             if (msg.attachmentUrl != null) ...[
                               if (msg.message.isNotEmpty)
                                 const SizedBox(height: 8),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  msg.attachmentUrl!,
-                                  height: 140,
-                                  fit: BoxFit.cover,
+                              GestureDetector(
+                                onTap: () => _viewFullImage(msg.attachmentUrl!),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.network(
+                                    msg.attachmentUrl!,
+                                    height: 180, // Larger image attachment preview
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                             ],
@@ -277,58 +322,103 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
 
+          // Selected Image Preview Banner
           if (_selectedImage != null)
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
               color: Colors.black12,
               child: Row(
                 children: [
-                  Image.file(_selectedImage!, height: 50, width: 50, fit: BoxFit.cover),
-                  const SizedBox(width: 8),
-                  const Text('Photo selected'),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(_selectedImage!,
+                        height: 60, width: 60, fit: BoxFit.cover),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Photo Attached',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close, color: Colors.red, size: 24),
                     onPressed: () => setState(() => _selectedImage = null),
                   )
                 ],
               ),
             ),
 
-          // Message Input Field
+          // Larger Bottom Input & Buttons Bar
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: const BoxDecoration(
               color: AppColors.pureWhite,
-              border: Border(top: BorderSide(color: AppColors.dividerColor)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 8,
+                  offset: Offset(0, -2),
+                ),
+              ],
             ),
             child: Row(
               children: [
+                // Camera Button
                 IconButton(
-                  icon: const Icon(Icons.attach_file, color: AppColors.primaryNavy),
-                  onPressed: _pickImage,
+                  icon: const Icon(Icons.add_a_photo,
+                      color: AppColors.primaryNavy, size: 26),
+                  tooltip: 'Take Photo',
+                  onPressed: () => _pickImage(ImageSource.camera),
+                ),
+                // Gallery Button
+                IconButton(
+                  icon: const Icon(Icons.photo_library,
+                      color: AppColors.primaryNavy, size: 26),
+                  tooltip: 'Pick Gallery Photo',
+                  onPressed: () => _pickImage(ImageSource.gallery),
                 ),
                 Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: const InputDecoration(
-                      hintText: 'Type a message...',
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.offWhite,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColors.dividerColor),
+                    ),
+                    child: TextField(
+                      controller: _messageController,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: const InputDecoration(
+                        hintText: 'Type a message...',
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 10),
+                      ),
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: _isSending
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.send, color: AppColors.primaryNavy),
-                  onPressed: _isSending ? null : _sendMessage,
+                const SizedBox(width: 8),
+                // Send Button Container
+                Container(
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryNavy,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: _isSending
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(Icons.send,
+                            color: AppColors.pureWhite, size: 22),
+                    onPressed: _isSending ? null : _sendMessage,
+                  ),
                 ),
               ],
             ),
