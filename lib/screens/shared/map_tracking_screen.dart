@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -23,6 +25,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   late double _cLng;
   final Set<Marker> _markers = {};
   final Set<Polyline> _polylines = {};
+  StreamSubscription<Position>? _positionSubscription;
 
   @override
   void initState() {
@@ -32,6 +35,30 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     _wLat = widget.request.workerLat ?? (_cLat + 0.015);
     _wLng = widget.request.workerLng ?? (_cLng + 0.015);
     _updateMarkersAndPolylines();
+    _startLiveGpsStream();
+  }
+
+  void _startLiveGpsStream() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return;
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) return;
+
+    _positionSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5, // Auto-update every 5 meters moved
+      ),
+    ).listen((Position position) {
+      if (!mounted) return;
+      setState(() {
+        _cLat = position.latitude;
+        _cLng = position.longitude;
+        _updateMarkersAndPolylines();
+      });
+    });
   }
 
   void _updateMarkersAndPolylines() {
@@ -82,7 +109,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   }
 
   void _simulateWorkerMovement() {
-    // Step worker 25% closer to customer's exact lat/lng
+    // Step worker 35% closer to customer's exact lat/lng
     double latDiff = _cLat - _wLat;
     double lngDiff = _cLng - _wLng;
 
@@ -101,6 +128,12 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     }
 
     _updateMarkersAndPolylines();
+  }
+
+  @override
+  void dispose() {
+    _positionSubscription?.cancel();
+    super.dispose();
   }
 
   @override
