@@ -2,11 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/firestore_collections.dart';
+import '../../core/services/location_service.dart';
 import '../../data/models/service_request_model.dart';
 import '../../data/models/worker_profile_model.dart';
 import '../../providers/auth_provider.dart';
@@ -16,10 +16,12 @@ import '../shared/map_tracking_screen.dart';
 
 class RequestWaitingCountdownScreen extends StatefulWidget {
   final ServiceRequestModel request;
+  final List<String> attemptedWorkerIds;
 
   const RequestWaitingCountdownScreen({
     super.key,
     required this.request,
+    this.attemptedWorkerIds = const [],
   });
 
   @override
@@ -88,90 +90,132 @@ class _RequestWaitingCountdownScreenState
 
     final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
 
-    // Fetch next available workers in the same category
+    // Fetch available workers in the category sorted by distance
     await workerProvider.searchWorkers(
       categoryId: widget.request.categoryId,
       customerLat: widget.request.customerLat,
       customerLng: widget.request.customerLng,
     );
 
+    List<String> updatedAttempted = List.from(widget.attemptedWorkerIds);
+    if (!updatedAttempted.contains(widget.request.workerId)) {
+      updatedAttempted.add(widget.request.workerId);
+    }
+
     // Filter out workers that were already requested
     List<WorkerProfileModel> nextWorkers = workerProvider.searchResults
-        .where((w) => w.workerId != widget.request.workerId && w.isAvailable)
+        .where((w) => !updatedAttempted.contains(w.workerId) && w.isAvailable)
         .toList();
 
-    WorkerProfileModel? nextWorker =
-        nextWorkers.isNotEmpty ? nextWorkers.first : null;
+    if (nextWorkers.isNotEmpty) {
+      WorkerProfileModel nextWorker = nextWorkers.first;
+      if (!mounted) return;
 
-    if (!mounted) return;
+      double dist = LocationService.calculateDistanceKm(
+        widget.request.customerLat,
+        widget.request.customerLng,
+        nextWorker.latitude ?? widget.request.customerLat,
+        nextWorker.longitude ?? widget.request.customerLng,
+      );
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.timer_off_outlined,
-            size: 48, color: AppColors.statusPending),
-        title: const Text('No Response (30s Timeout)'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${widget.request.workerName} did not respond in 30 seconds.',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              nextWorker != null
-                  ? 'Would you like to send a hiring request to the next nearby available worker (${nextWorker.name} • ${nextWorker.profession})?'
-                  : 'No other available workers found in this category right now. You can call ${widget.request.workerName} directly or view other categories.',
-              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '${widget.request.workerName} didn\'t respond in 30s. Auto-dispatching to next nearest worker: ${nextWorker.name} (${LocationService.formatDistance(dist)})...'),
+          backgroundColor: AppColors.primaryNavy,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      _sendRequestToNextWorker(nextWorker, updatedAttempted);
+    } else {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.timer_off_outlined,
+              size: 48, color: AppColors.statusPending),
+          title: const Text('All Nearby Workers Requested'),
+          content: const Text(
+            'All available nearby workers in this category were requested. No other workers are available nearby right now.',
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.pop(context);
+              },
+              child: const Text('Back to Categories'),
             ),
           ],
         ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsOverflowDirection: VerticalDirection.down,
-        actions: [
-          if (nextWorker != null)
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryNavy,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              icon: const Icon(Icons.send_rounded),
-              label: Text('Try Next Worker (${nextWorker.name})'),
-              onPressed: () {
-                Navigator.pop(ctx);
-                _sendRequestToNextWorker(nextWorker);
-              },
-            ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.phone),
-            label: Text('Call ${widget.request.workerName} Directly'),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final Uri telUri =
-                  Uri(scheme: 'tel', path: widget.request.workerPhone);
-              if (await canLaunchUrl(telUri)) {
-                await launchUrl(telUri);
-              }
-            },
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context);
-            },
-            child: const Text('Cancel & View Worker List'),
-          ),
-        ],
-      ),
-    );
+      );
+    }
   }
 
-  void _sendRequestToNextWorker(WorkerProfileModel nextWorker) async {
+  void _handleRejection() async {
+    final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
+
+    await workerProvider.searchWorkers(
+      categoryId: widget.request.categoryId,
+      customerLat: widget.request.customerLat,
+      customerLng: widget.request.customerLng,
+    );
+
+    List<String> updatedAttempted = List.from(widget.attemptedWorkerIds);
+    if (!updatedAttempted.contains(widget.request.workerId)) {
+      updatedAttempted.add(widget.request.workerId);
+    }
+
+    List<WorkerProfileModel> nextWorkers = workerProvider.searchResults
+        .where((w) => !updatedAttempted.contains(w.workerId) && w.isAvailable)
+        .toList();
+
+    if (nextWorkers.isNotEmpty) {
+      WorkerProfileModel nextWorker = nextWorkers.first;
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '${widget.request.workerName} was busy. Auto-dispatching to next worker (${nextWorker.name})...'),
+          backgroundColor: AppColors.statusPending,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      _sendRequestToNextWorker(nextWorker, updatedAttempted);
+    } else {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.cancel_outlined,
+              size: 48, color: AppColors.statusRejected),
+          title: const Text('All Workers Requested'),
+          content: Text(
+            '${widget.request.workerName} declined and no other workers are available nearby right now.',
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel & View Worker List'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _sendRequestToNextWorker(
+      WorkerProfileModel nextWorker, List<String> updatedAttempted) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final requestProvider =
         Provider.of<ServiceRequestProvider>(context, listen: false);
@@ -188,20 +232,13 @@ class _RequestWaitingCountdownScreenState
       categoryId: widget.request.categoryId,
       categoryName: nextWorker.profession,
       problemDescription:
-          'Direct Location Hiring Offer for ${nextWorker.profession}',
+          'InDrive-Style Auto Hiring Offer for ${nextWorker.profession}',
       customerLat: widget.request.customerLat,
       customerLng: widget.request.customerLng,
       customerAddress: widget.request.customerAddress,
       workerLat: nextWorker.latitude ?? widget.request.customerLat,
       workerLng: nextWorker.longitude ?? widget.request.customerLng,
       status: AppConstants.statusPending,
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Sending hiring request to ${nextWorker.name}...'),
-        duration: const Duration(seconds: 1),
-      ),
     );
 
     String? reqId = await requestProvider.createRequest(nextRequest);
@@ -228,81 +265,17 @@ class _RequestWaitingCountdownScreenState
         status: nextRequest.status,
       );
 
-      // Replace with new 30-second countdown screen for the next worker!
+      // Auto-restart 30s countdown screen for the next nearest worker!
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => RequestWaitingCountdownScreen(request: newReq),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(requestProvider.errorMessage.isNotEmpty
-              ? requestProvider.errorMessage
-              : 'Failed to send offer to next worker.'),
-          backgroundColor: AppColors.statusRejected,
+          builder: (_) => RequestWaitingCountdownScreen(
+            request: newReq,
+            attemptedWorkerIds: updatedAttempted,
+          ),
         ),
       );
     }
-  }
-
-  void _handleRejection() async {
-    final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
-
-    await workerProvider.searchWorkers(
-      categoryId: widget.request.categoryId,
-      customerLat: widget.request.customerLat,
-      customerLng: widget.request.customerLng,
-    );
-
-    List<WorkerProfileModel> nextWorkers = workerProvider.searchResults
-        .where((w) => w.workerId != widget.request.workerId && w.isAvailable)
-        .toList();
-
-    WorkerProfileModel? nextWorker =
-        nextWorkers.isNotEmpty ? nextWorkers.first : null;
-
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.cancel_outlined,
-            size: 48, color: AppColors.statusRejected),
-        title: const Text('Request Declined'),
-        content: Text(
-          nextWorker != null
-              ? '${widget.request.workerName} is currently busy and declined the request.\n\nWould you like to try the next available worker (${nextWorker.name})?'
-              : '${widget.request.workerName} is currently busy and declined the request.',
-          textAlign: TextAlign.center,
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsOverflowDirection: VerticalDirection.down,
-        actions: [
-          if (nextWorker != null)
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryNavy,
-              ),
-              icon: const Icon(Icons.send_rounded),
-              label: Text('Try Next Worker (${nextWorker.name})'),
-              onPressed: () {
-                Navigator.pop(ctx);
-                _sendRequestToNextWorker(nextWorker);
-              },
-            ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context);
-            },
-            child: const Text('Cancel & View Worker List'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _navigateToMapTracking(ServiceRequestModel updatedRequest) {
@@ -331,16 +304,30 @@ class _RequestWaitingCountdownScreenState
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'WAITING FOR WORKER RESPONSE',
-                style: TextStyle(
-                  color: AppColors.textLight,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.pureWhite.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.autorenew, color: AppColors.pureWhite, size: 16),
+                    SizedBox(width: 6),
+                    Text(
+                      'INDRIVE-STYLE AUTO DISPATCH',
+                      style: TextStyle(
+                        color: AppColors.pureWhite,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               Text(
                 widget.request.workerName,
                 style: const TextStyle(
@@ -351,7 +338,7 @@ class _RequestWaitingCountdownScreenState
               ),
               const SizedBox(height: 6),
               Text(
-                widget.request.categoryName,
+                'Searching Nearest ${widget.request.categoryName}',
                 style: const TextStyle(
                   color: AppColors.textLight,
                   fontSize: 14,
@@ -401,7 +388,7 @@ class _RequestWaitingCountdownScreenState
               const SizedBox(height: 40),
 
               const Text(
-                'Direct Hiring Offer Sent!\nWhen worker accepts within 30s, live map route, distance, and ETA will open immediately.',
+                'Requesting nearest worker...\nIf worker doesn\'t accept in 30s, request will automatically dispatch to the next nearest worker!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppColors.textLight,
@@ -420,7 +407,7 @@ class _RequestWaitingCountdownScreenState
                       horizontal: 24, vertical: 12),
                 ),
                 icon: const Icon(Icons.close),
-                label: const Text('Cancel Request'),
+                label: const Text('Cancel Auto-Search'),
                 onPressed: () {
                   _timer?.cancel();
                   _subscription?.cancel();
