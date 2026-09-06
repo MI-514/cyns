@@ -22,6 +22,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   late double _cLat;
   late double _cLng;
   final Set<Marker> _markers = {};
+  final Set<Polyline> _polylines = {};
 
   @override
   void initState() {
@@ -30,11 +31,12 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     _cLng = widget.request.customerLng;
     _wLat = widget.request.workerLat ?? (_cLat + 0.015);
     _wLng = widget.request.workerLng ?? (_cLng + 0.015);
-    _updateMarkers();
+    _updateMarkersAndPolylines();
   }
 
-  void _updateMarkers() {
+  void _updateMarkersAndPolylines() {
     _markers.clear();
+    _polylines.clear();
 
     // Customer Location Marker (Red Pin)
     _markers.add(
@@ -62,6 +64,20 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       ),
     );
 
+    // Live Route Polyline connecting Worker and Customer
+    _polylines.add(
+      Polyline(
+        polylineId: const PolylineId('route_line'),
+        points: [
+          LatLng(_wLat, _wLng),
+          LatLng(_cLat, _cLng),
+        ],
+        color: AppColors.primaryNavy,
+        width: 5,
+        patterns: [PatternItem.dash(20), PatternItem.gap(10)],
+      ),
+    );
+
     if (mounted) setState(() {});
   }
 
@@ -84,7 +100,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       _wLng += lngDiff * 0.35;
     }
 
-    _updateMarkers();
+    _updateMarkersAndPolylines();
   }
 
   @override
@@ -103,7 +119,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Live Two-Way Tracking - ${req.workerName}'),
+        title: Text('Live Google Map Route - ${req.workerName}'),
       ),
       body: Stack(
         children: [
@@ -113,6 +129,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
               zoom: 14.5,
             ),
             markers: _markers,
+            polylines: _polylines,
             myLocationEnabled: true,
             myLocationButtonEnabled: true,
           ),
