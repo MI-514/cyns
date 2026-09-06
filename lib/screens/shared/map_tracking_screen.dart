@@ -17,74 +17,100 @@ class MapTrackingScreen extends StatefulWidget {
 }
 
 class _MapTrackingScreenState extends State<MapTrackingScreen> {
+  late double _wLat;
+  late double _wLng;
+  late double _cLat;
+  late double _cLng;
   final Set<Marker> _markers = {};
 
   @override
   void initState() {
     super.initState();
-    _initMarkers();
+    _cLat = widget.request.customerLat;
+    _cLng = widget.request.customerLng;
+    _wLat = widget.request.workerLat ?? (_cLat + 0.015);
+    _wLng = widget.request.workerLng ?? (_cLng + 0.015);
+    _updateMarkers();
   }
 
-  void _initMarkers() {
-    final req = widget.request;
+  void _updateMarkers() {
+    _markers.clear();
 
-    // Customer Location Marker
+    // Customer Location Marker (Red Pin)
     _markers.add(
       Marker(
         markerId: const MarkerId('customer'),
-        position: LatLng(req.customerLat, req.customerLng),
+        position: LatLng(_cLat, _cLng),
         infoWindow: InfoWindow(
-          title: 'Your Location',
-          snippet: req.customerAddress,
+          title: 'Employer Doorstep Location',
+          snippet: widget.request.customerAddress,
         ),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
       ),
     );
 
-    // Worker Location Marker if available
-    if (req.workerLat != null && req.workerLng != null) {
-      _markers.add(
-        Marker(
-          markerId: const MarkerId('worker'),
-          position: LatLng(req.workerLat!, req.workerLng!),
-          infoWindow: InfoWindow(
-            title: 'Worker Location (${req.workerName})',
-            snippet: 'Status: ${req.status}',
-          ),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+    // Worker Location Marker (Blue Pin)
+    _markers.add(
+      Marker(
+        markerId: const MarkerId('worker'),
+        position: LatLng(_wLat, _wLng),
+        infoWindow: InfoWindow(
+          title: 'Worker Location (${widget.request.workerName})',
+          snippet: 'En Route to Employer',
+        ),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      ),
+    );
+
+    if (mounted) setState(() {});
+  }
+
+  void _simulateWorkerMovement() {
+    // Step worker 25% closer to customer's exact lat/lng
+    double latDiff = _cLat - _wLat;
+    double lngDiff = _cLng - _wLng;
+
+    if (latDiff.abs() < 0.0005 && lngDiff.abs() < 0.0005) {
+      _wLat = _cLat;
+      _wLng = _cLng;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${widget.request.workerName} has arrived at employer doorstep!'),
+          backgroundColor: AppColors.availableGreen,
         ),
       );
+    } else {
+      _wLat += latDiff * 0.35;
+      _wLng += lngDiff * 0.35;
     }
+
+    _updateMarkers();
   }
 
   @override
   Widget build(BuildContext context) {
     final req = widget.request;
 
-    double dist = 0.0;
-    String eta = 'Calculating...';
+    double dist = LocationService.calculateDistanceKm(
+      _wLat,
+      _wLng,
+      _cLat,
+      _cLng,
+    );
 
-    if (req.workerLat != null && req.workerLng != null) {
-      dist = LocationService.calculateDistanceKm(
-        req.workerLat!,
-        req.workerLng!,
-        req.customerLat,
-        req.customerLng,
-      );
-      eta = req.estimatedArrivalTime ?? LocationService.calculateETA(dist);
-    }
+    String distanceFormatted = LocationService.formatDistance(dist);
+    String etaFormatted = LocationService.calculateETA(dist);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Live Arrival - ${req.workerName}'),
+        title: Text('Live Two-Way Tracking - ${req.workerName}'),
       ),
       body: Stack(
         children: [
           GoogleMap(
             initialCameraPosition: CameraPosition(
-              target: LatLng(req.customerLat, req.customerLng),
-              zoom: 14.0,
+              target: LatLng(_cLat, _cLng),
+              zoom: 14.5,
             ),
             markers: _markers,
             myLocationEnabled: true,
@@ -163,12 +189,14 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: AppColors.availableGreen,
+                                      color: dist < 0.05
+                                          ? AppColors.availableGreen
+                                          : AppColors.statusInProgress,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Text(
-                                      'ACCEPTED',
-                                      style: TextStyle(
+                                    child: Text(
+                                      dist < 0.05 ? 'ARRIVED' : 'EN ROUTE',
+                                      style: const TextStyle(
                                         color: AppColors.pureWhite,
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
@@ -180,10 +208,12 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                req.categoryName,
+                                'Doorstep: ${req.customerAddress}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: AppColors.textLight,
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -194,7 +224,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Inner Prominent Box for Distance & ETA
+                    // Inner Prominent Box for Real-Time Distance & ETA
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -213,7 +243,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                                   color: AppColors.pureWhite, size: 20),
                               const SizedBox(width: 6),
                               Text(
-                                LocationService.formatDistance(dist),
+                                distanceFormatted,
                                 style: const TextStyle(
                                   color: AppColors.pureWhite,
                                   fontSize: 16,
@@ -233,7 +263,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                                   color: AppColors.starGold, size: 20),
                               const SizedBox(width: 6),
                               Text(
-                                'ETA: $eta',
+                                'ETA: $etaFormatted',
                                 style: const TextStyle(
                                   color: AppColors.starGold,
                                   fontSize: 16,
@@ -251,64 +281,89 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             ),
           ),
 
-          // Bottom Action Bar for Chat & Phone Call
+          // Bottom Action Bar for Chat, Phone Call, and Live Simulation
           Positioned(
             bottom: 20,
-            left: 16,
-            right: 16,
-            child: Card(
-              elevation: 8,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryNavy,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        icon: const Icon(Icons.chat),
-                        label: const Text('Chat'),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChatScreen(
-                                requestId: req.id,
-                                peerName: req.workerName,
-                                peerRole: 'worker',
-                                peerPhone: req.workerPhone,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+            left: 14,
+            right: 14,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Test Simulation Button for Worker Moving
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.starGold,
+                    foregroundColor: AppColors.primaryNavy,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.availableGreen,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        icon: const Icon(Icons.phone),
-                        label: const Text('Call Worker'),
-                        onPressed: () async {
-                          final Uri telUri =
-                              Uri(scheme: 'tel', path: req.workerPhone);
-                          if (await canLaunchUrl(telUri)) {
-                            await launchUrl(telUri);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
+                  ),
+                  icon: const Icon(Icons.directions_run_rounded, size: 20),
+                  label: const Text(
+                    '🧪 Test Worker Moving Closer (Simulation)',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  onPressed: _simulateWorkerMovement,
                 ),
-              ),
+                const SizedBox(height: 8),
+
+                Card(
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryNavy,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            icon: const Icon(Icons.chat),
+                            label: const Text('Chat'),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ChatScreen(
+                                    requestId: req.id,
+                                    peerName: req.workerName,
+                                    peerRole: 'worker',
+                                    peerPhone: req.workerPhone,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.availableGreen,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            icon: const Icon(Icons.phone),
+                            label: const Text('Call Worker'),
+                            onPressed: () async {
+                              final Uri telUri =
+                                  Uri(scheme: 'tel', path: req.workerPhone);
+                              if (await canLaunchUrl(telUri)) {
+                                await launchUrl(telUri);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

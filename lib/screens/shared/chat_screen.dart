@@ -1,14 +1,18 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/firestore_collections.dart';
 import '../../core/services/storage_service.dart';
 import '../../data/models/message_model.dart';
+import '../../data/models/service_request_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/chat_provider.dart';
+import 'map_tracking_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String requestId;
@@ -94,6 +98,56 @@ class _ChatScreenState extends State<ChatScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  void _openLiveMapTracking() async {
+    try {
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(widget.requestId)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        ServiceRequestModel req = ServiceRequestModel.fromMap(
+            doc.data() as Map<String, dynamic>, doc.id);
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MapTrackingScreen(request: req),
+          ),
+        );
+        return;
+      }
+    } catch (_) {}
+
+    // Fallback if doc is not in firestore
+    if (!mounted) return;
+    ServiceRequestModel dummyReq = ServiceRequestModel(
+      id: widget.requestId,
+      customerId: 'c1',
+      customerName: 'Customer',
+      customerPhone: widget.peerPhone ?? '',
+      workerId: 'w1',
+      workerName: widget.peerName,
+      workerPhone: widget.peerPhone ?? '',
+      categoryId: 'cat',
+      categoryName: 'Service',
+      problemDescription: '',
+      customerLat: 31.5204,
+      customerLng: 74.3587,
+      customerAddress: 'Gulberg III, Lahore',
+      workerLat: 31.5050,
+      workerLng: 74.3450,
+      status: 'accepted',
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MapTrackingScreen(request: dummyReq),
       ),
     );
   }
@@ -201,7 +255,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // Banner for Verbal Explanation
+          // Banner for Verbal Explanation & Live Map Button
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             color: AppColors.accentBlue.withValues(alpha: 0.1),
@@ -209,16 +263,27 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 const Icon(Icons.info_outline,
                     size: 20, color: AppColors.primaryNavy),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
-                    'Send photos or tap phone/video icon above to call and explain issues verbally!',
+                    'Explain problem via chat/call, then track live map!',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primaryNavy,
                     ),
                   ),
+                ),
+                const SizedBox(width: 6),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryNavy,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  ),
+                  icon: const Icon(Icons.map, size: 16),
+                  label: const Text('Live Map', style: TextStyle(fontSize: 12)),
+                  onPressed: _openLiveMapTracking,
                 ),
               ],
             ),
@@ -292,7 +357,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   color: isMe
                                       ? AppColors.pureWhite
                                       : AppColors.textPrimary,
-                                  fontSize: 16, // Larger readable font
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -305,7 +370,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   borderRadius: BorderRadius.circular(10),
                                   child: Image.network(
                                     msg.attachmentUrl!,
-                                    height: 180, // Larger image attachment preview
+                                    height: 180,
                                     width: double.infinity,
                                     fit: BoxFit.cover,
                                   ),
