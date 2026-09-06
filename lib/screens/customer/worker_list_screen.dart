@@ -1,0 +1,621 @@
+import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/constants/app_colors.dart';
+import '../../core/services/location_service.dart';
+import '../../providers/location_provider.dart';
+import '../../providers/worker_provider.dart';
+import 'worker_profile_view_screen.dart';
+
+class WorkerListScreen extends StatefulWidget {
+  final String selectedCategoryId;
+  final String categoryName;
+  final String? searchQuery;
+
+  const WorkerListScreen({
+    super.key,
+    required this.selectedCategoryId,
+    required this.categoryName,
+    this.searchQuery,
+  });
+
+  @override
+  State<WorkerListScreen> createState() => _WorkerListScreenState();
+}
+
+class _WorkerListScreenState extends State<WorkerListScreen> {
+  late TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(text: widget.searchQuery ?? '');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchWorkers();
+    });
+  }
+
+  void _fetchWorkers() async {
+    final loc = Provider.of<LocationProvider>(context, listen: false);
+    await loc.fetchCurrentLocation(context: context);
+
+    if (!mounted) return;
+
+    Provider.of<WorkerProvider>(context, listen: false).searchWorkers(
+      categoryId: widget.selectedCategoryId,
+      customerLat: loc.currentPosition?.latitude,
+      customerLng: loc.currentPosition?.longitude,
+      query: _searchController.text,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final workerProvider = Provider.of<WorkerProvider>(context);
+    final location = Provider.of<LocationProvider>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.categoryName),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Center Location Radar Search Card
+            _LocationRadarWidget(
+              categoryName: widget.categoryName,
+              address: location.currentAddress,
+              isSearching: workerProvider.isLoading,
+              isGpsDisabled: location.isGpsDisabled,
+              onSearch: _fetchWorkers,
+              onCancel: () {
+                Navigator.pop(context);
+              },
+            ),
+
+            // GPS Disabled Warning Banner
+            if (location.isGpsDisabled || location.currentPosition == null)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.statusPending.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.statusPending),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_off,
+                        color: AppColors.statusPending, size: 24),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'GPS is turned off. Distances cannot be calculated accurately.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onPressed: () async {
+                        await Geolocator.openLocationSettings();
+                      },
+                      child: const Text('Turn On GPS',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Search Bar Filter
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Filter workers by name or skill...',
+                  prefixIcon:
+                      const Icon(Icons.search, color: AppColors.primaryNavy),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.arrow_forward),
+                    onPressed: _fetchWorkers,
+                  ),
+                ),
+                onSubmitted: (_) => _fetchWorkers(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Nearby Workers Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Nearby Available ${widget.categoryName}s',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryNavy,
+                    ),
+                  ),
+                  Text(
+                    '${workerProvider.searchResults.length} Found',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Workers List
+            workerProvider.isLoading
+                ? const Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: CircularProgressIndicator(),
+                  )
+                : workerProvider.searchResults.isEmpty
+                    ? Container(
+                        margin: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: AppColors.pureWhite,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.dividerColor),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.search_off,
+                                size: 48, color: AppColors.textLight),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No available workers found for "${widget.categoryName}".',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: workerProvider.searchResults.length,
+                        itemBuilder: (context, index) {
+                          final worker = workerProvider.searchResults[index];
+                          double dist = 0.0;
+                          bool hasValidGps = location.currentPosition != null &&
+                              worker.latitude != null &&
+                              worker.longitude != null;
+
+                          if (hasValidGps) {
+                            dist = location.calculateDistance(
+                                worker.latitude!, worker.longitude!);
+                          }
+
+                          String distanceText = hasValidGps
+                              ? LocationService.formatDistance(dist)
+                              : "GPS OFF (Tap to enable)";
+
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(16),
+                              leading: CircleAvatar(
+                                radius: 28,
+                                backgroundColor:
+                                    AppColors.primaryNavy.withValues(alpha: 0.1),
+                                child: const Icon(
+                                  Icons.person,
+                                  color: AppColors.primaryNavy,
+                                  size: 30,
+                                ),
+                              ),
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      worker.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.availableGreen
+                                          .withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      'Available',
+                                      style: TextStyle(
+                                        color: AppColors.availableGreen,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${worker.profession} • ${worker.experienceYears} yrs exp',
+                                    style: const TextStyle(
+                                      color: AppColors.accentBlue,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  // Real Location & Distance Display
+                                  GestureDetector(
+                                    onTap: () {
+                                      if (!hasValidGps) {
+                                        LocationService.promptEnableGps(context);
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: hasValidGps
+                                            ? AppColors.accentBlue
+                                                .withValues(alpha: 0.08)
+                                            : AppColors.statusPending
+                                                .withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            hasValidGps
+                                                ? Icons.location_on
+                                                : Icons.location_off,
+                                            size: 14,
+                                            color: hasValidGps
+                                                ? AppColors.accentBlue
+                                                : AppColors.statusPending,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            distanceText,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: hasValidGps
+                                                  ? AppColors.accentBlue
+                                                  : AppColors.statusPending,
+                                            ),
+                                          ),
+                                          if (worker.workingArea.isNotEmpty) ...[
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              '• ${worker.workingArea}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    worker.serviceDescription,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.star,
+                                          size: 16, color: AppColors.starGold),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${worker.rating} (${worker.reviewCount})',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Icon(Icons.work_outline,
+                                          size: 14, color: AppColors.textLight),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        '${worker.completedJobsCount} jobs',
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => WorkerProfileViewScreen(
+                                        workerId: worker.workerId),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LocationRadarWidget extends StatefulWidget {
+  final String categoryName;
+  final String address;
+  final bool isSearching;
+  final bool isGpsDisabled;
+  final VoidCallback onSearch;
+  final VoidCallback onCancel;
+
+  const _LocationRadarWidget({
+    required this.categoryName,
+    required this.address,
+    required this.isSearching,
+    required this.isGpsDisabled,
+    required this.onSearch,
+    required this.onCancel,
+  });
+
+  @override
+  State<_LocationRadarWidget> createState() => _LocationRadarWidgetState();
+}
+
+class _LocationRadarWidgetState extends State<_LocationRadarWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.pureWhite,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'LOCATION-BASED WORKER SEARCH',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: AppColors.accentBlue,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            widget.categoryName,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryNavy,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Center Location Radar Animation
+          AnimatedBuilder(
+            animation: _animationController,
+            builder: (context, child) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Outer Pulsing Circle 3
+                  Container(
+                    width: 160 + (_animationController.value * 24),
+                    height: 160 + (_animationController.value * 24),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryNavy.withValues(
+                          alpha: 0.06 * (1 - _animationController.value)),
+                    ),
+                  ),
+                  // Ring Circle 2
+                  Container(
+                    width: 125,
+                    height: 125,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryNavy.withValues(alpha: 0.08),
+                      border: Border.all(
+                        color: AppColors.accentBlue.withValues(alpha: 0.25),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  // Ring Circle 1
+                  Container(
+                    width: 85,
+                    height: 85,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryNavy.withValues(alpha: 0.15),
+                      border: Border.all(
+                        color: AppColors.primaryNavy.withValues(alpha: 0.4),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  // Center Location Icon Button
+                  GestureDetector(
+                    onTap: () {
+                      if (widget.isGpsDisabled) {
+                        LocationService.promptEnableGps(context);
+                      }
+                    },
+                    child: Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: widget.isGpsDisabled
+                            ? AppColors.statusPending
+                            : AppColors.primaryNavy,
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 8,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        widget.isGpsDisabled
+                            ? Icons.location_off
+                            : Icons.location_on,
+                        color: AppColors.pureWhite,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 18),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                widget.isGpsDisabled ? Icons.location_off : Icons.my_location,
+                size: 15,
+                color: widget.isGpsDisabled
+                    ? AppColors.statusPending
+                    : AppColors.accentBlue,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  widget.address,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: widget.isGpsDisabled
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: widget.isGpsDisabled
+                        ? AppColors.statusPending
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Control Buttons: Cancel & Search
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.statusRejected,
+                    side: const BorderSide(color: AppColors.statusRejected),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.cancel_outlined, size: 18),
+                  label: const Text('Cancel'),
+                  onPressed: widget.onCancel,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryNavy,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: widget.isSearching
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(Icons.search, size: 18),
+                  label: Text(widget.isSearching ? 'Searching...' : 'Search Nearby'),
+                  onPressed: widget.isSearching ? null : widget.onSearch,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

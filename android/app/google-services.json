@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "724329772950",
+    "project_id": "cyns-f77ec",
+    "storage_bucket": "cyns-f77ec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:724329772950:android:696bbb788951d7ce1d0fb7",
+        "android_client_info": {
+          "package_name": "com.example.cyns"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "724329772950-ktvtsg1gppu77qmhfr0r416i12hv7oqv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcYnvPdBNkj36AAirGwhZ1rBrW4Z9B5Zg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "724329772950-ktvtsg1gppu77qmhfr0r416i12hv7oqv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
