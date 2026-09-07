@@ -6,9 +6,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/constants/firestore_collections.dart';
 import '../../core/services/location_service.dart';
 import '../../data/models/service_request_model.dart';
+import '../customer/rating_review_screen.dart';
 import 'agora_call_screen.dart';
 import 'chat_screen.dart';
 
@@ -32,6 +34,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<DocumentSnapshot>? _requestDocSubscription;
   Timer? _autoMovementTimer;
+  bool _isCompletionHandled = false;
 
   @override
   void initState() {
@@ -59,14 +62,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         _wLng = _cLng;
         timer.cancel();
         _updateMarkersAndPolylines();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  '${widget.request.workerName} has arrived at employer doorstep!'),
-              backgroundColor: AppColors.availableGreen,
-            ),
-          );
+        if (mounted && !_isCompletionHandled) {
+          _isCompletionHandled = true;
+          _showCompletionModal(widget.request);
         }
       } else {
         // Glides worker 15% closer every 3 seconds continuously
@@ -92,6 +90,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       final data = doc.data() as Map<String, dynamic>?;
       if (data == null) return;
 
+      String status = data['status'] ?? '';
       double? newWLat = (data['workerLat'] as num?)?.toDouble();
       double? newWLng = (data['workerLng'] as num?)?.toDouble();
 
@@ -102,7 +101,53 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
           _updateMarkersAndPolylines();
         });
       }
+
+      if (status == AppConstants.statusCompleted && !_isCompletionHandled) {
+        _isCompletionHandled = true;
+        _autoMovementTimer?.cancel();
+        ServiceRequestModel reqModel =
+            ServiceRequestModel.fromMap(data, doc.id);
+        _showCompletionModal(reqModel);
+      }
     });
+  }
+
+  void _showCompletionModal(ServiceRequestModel req) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.check_circle_outline,
+            size: 56, color: AppColors.statusCompleted),
+        title: const Text('Service Completed! 🎉'),
+        content: Text(
+          '${req.workerName} has arrived and completed your service.\n\nPlease take a moment to rate and review your experience with ${req.workerName}.',
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.starGold,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            icon: const Icon(Icons.star),
+            label: const Text('Rate & Review Worker',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RatingReviewScreen(request: req),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void _startLiveGpsStream() async {
@@ -116,7 +161,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     _positionSubscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 5, // Auto-update every 5 meters moved
+        distanceFilter: 5,
       ),
     ).listen((Position position) {
       if (!mounted) return;
