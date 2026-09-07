@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
 import 'login_screen.dart';
-import 'worker_register_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String selectedRole;
@@ -105,9 +103,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_role == AppConstants.roleWorker
-            ? 'Worker Registration'
-            : 'Customer Registration'),
+        title: const Text('Customer / Employer Registration'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -118,7 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'Create an Account',
+                  'Create Customer Account',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -127,40 +123,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Fill in your details to register with CYN',
+                  'Fill in your details to register as a Customer / Employer',
                   style: TextStyle(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 24),
-
-                // Role Selector Switch
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: AppConstants.roleCustomer,
-                      label: Text('Customer'),
-                      icon: Icon(Icons.person),
-                    ),
-                    ButtonSegment(
-                      value: AppConstants.roleWorker,
-                      label: Text('Worker'),
-                      icon: Icon(Icons.engineering),
-                    ),
-                  ],
-                  selected: {_role},
-                  onSelectionChanged: (Set<String> selection) {
-                    if (selection.first == AppConstants.roleWorker) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const WorkerRegisterScreen(),
-                        ),
-                      );
-                    } else {
-                      setState(() {
-                        _role = selection.first;
-                      });
-                    }
-                  },
                 ),
                 const SizedBox(height: 24),
 
@@ -273,7 +237,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text('Create Account'),
+                      : const Text('Create Customer Account'),
                 ),
 
                 const SizedBox(height: 20),
