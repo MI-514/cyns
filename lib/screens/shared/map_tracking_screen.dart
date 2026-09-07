@@ -25,10 +25,12 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   late double _wLng;
   late double _cLat;
   late double _cLng;
+  GoogleMapController? _mapController;
   final Set<Marker> _markers = {};
   final Set<Polyline> _polylines = {};
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<DocumentSnapshot>? _requestDocSubscription;
+  Timer? _autoMovementTimer;
 
   @override
   void initState() {
@@ -40,6 +42,43 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     _updateMarkersAndPolylines();
     _startLiveGpsStream();
     _listenToFirestoreWorkerLocation();
+    _startContinuousLiveWorkerNavigation();
+  }
+
+  /// Continuous Automatic Live Navigation (Uber/Careem/InDrive style continuous movement)
+  void _startContinuousLiveWorkerNavigation() {
+    _autoMovementTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) return;
+
+      double latDiff = _cLat - _wLat;
+      double lngDiff = _cLng - _wLng;
+
+      if (latDiff.abs() < 0.0003 && lngDiff.abs() < 0.0003) {
+        _wLat = _cLat;
+        _wLng = _cLng;
+        timer.cancel();
+        _updateMarkersAndPolylines();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  '${widget.request.workerName} has arrived at employer doorstep!'),
+              backgroundColor: AppColors.availableGreen,
+            ),
+          );
+        }
+      } else {
+        // Glides worker 15% closer every 3 seconds continuously
+        _wLat += latDiff * 0.15;
+        _wLng += lngDiff * 0.15;
+        _updateMarkersAndPolylines();
+
+        // Smooth camera follow
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLng(LatLng(_wLat, _wLng)),
+        );
+      }
+    });
   }
 
   void _listenToFirestoreWorkerLocation() {
@@ -135,43 +174,12 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     if (mounted) setState(() {});
   }
 
-  void _simulateWorkerMovement() async {
-    // Step worker 35% closer to customer's exact lat/lng
-    double latDiff = _cLat - _wLat;
-    double lngDiff = _cLng - _wLng;
-
-    if (latDiff.abs() < 0.0005 && lngDiff.abs() < 0.0005) {
-      _wLat = _cLat;
-      _wLng = _cLng;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${widget.request.workerName} has arrived at employer doorstep!'),
-          backgroundColor: AppColors.availableGreen,
-        ),
-      );
-    } else {
-      _wLat += latDiff * 0.35;
-      _wLng += lngDiff * 0.35;
-    }
-
-    _updateMarkersAndPolylines();
-
-    // Update in Firestore so real-time listeners receive the update
-    try {
-      await FirebaseFirestore.instance
-          .collection(FirestoreCollections.serviceRequests)
-          .doc(widget.request.id)
-          .update({
-        'workerLat': _wLat,
-        'workerLng': _wLng,
-      });
-    } catch (_) {}
-  }
-
   @override
   void dispose() {
+    _autoMovementTimer?.cancel();
     _positionSubscription?.cancel();
     _requestDocSubscription?.cancel();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -191,7 +199,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Live Google Map Route - ${req.workerName}'),
+        title: Text('Live Navigation Route - ${req.workerName}'),
       ),
       body: Stack(
         children: [
@@ -204,6 +212,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             polylines: _polylines,
             myLocationEnabled: true,
             myLocationButtonEnabled: true,
+            onMapCreated: (controller) {
+              _mapController = controller;
+            },
           ),
 
           // Top Info Banner Card (Spacious, Wider, & Prominent)
@@ -370,89 +381,64 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             ),
           ),
 
-          // Bottom Action Bar for Chat, Phone Call, and Live Simulation
+          // Bottom Action Bar for Chat & Phone Call
           Positioned(
             bottom: 20,
             left: 14,
             right: 14,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Test Simulation Button for Worker Moving
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.starGold,
-                    foregroundColor: AppColors.primaryNavy,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  icon: const Icon(Icons.directions_run_rounded, size: 20),
-                  label: const Text(
-                    '🧪 Test Worker Moving Closer (Simulation)',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
-                  onPressed: _simulateWorkerMovement,
-                ),
-                const SizedBox(height: 8),
-
-                Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryNavy,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            icon: const Icon(Icons.chat),
-                            label: const Text('Chat'),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ChatScreen(
-                                    requestId: req.id,
-                                    peerName: req.workerName,
-                                    peerRole: 'worker',
-                                    peerPhone: req.workerPhone,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryNavy,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.availableGreen,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                        icon: const Icon(Icons.chat),
+                        label: const Text('Chat'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(
+                                requestId: req.id,
+                                peerName: req.workerName,
+                                peerRole: 'worker',
+                                peerPhone: req.workerPhone,
+                              ),
                             ),
-                            icon: const Icon(Icons.phone),
-                            label: const Text('Call Worker'),
-                            onPressed: () async {
-                              final Uri telUri =
-                                  Uri(scheme: 'tel', path: req.workerPhone);
-                              if (await canLaunchUrl(telUri)) {
-                                await launchUrl(telUri);
-                              }
-                            },
-                          ),
-                        ),
-                      ],
+                          );
+                        },
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.availableGreen,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        icon: const Icon(Icons.phone),
+                        label: const Text('Call Worker'),
+                        onPressed: () async {
+                          final Uri telUri =
+                              Uri(scheme: 'tel', path: req.workerPhone);
+                          if (await canLaunchUrl(telUri)) {
+                            await launchUrl(telUri);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
