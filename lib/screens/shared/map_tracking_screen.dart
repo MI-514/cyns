@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/firestore_collections.dart';
 import '../../core/services/location_service.dart';
 import '../../data/models/service_request_model.dart';
 import 'chat_screen.dart';
@@ -26,6 +28,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   final Set<Marker> _markers = {};
   final Set<Polyline> _polylines = {};
   StreamSubscription<Position>? _positionSubscription;
+  StreamSubscription<DocumentSnapshot>? _requestDocSubscription;
 
   @override
   void initState() {
@@ -36,6 +39,30 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     _wLng = widget.request.workerLng ?? (_cLng + 0.015);
     _updateMarkersAndPolylines();
     _startLiveGpsStream();
+    _listenToFirestoreWorkerLocation();
+  }
+
+  void _listenToFirestoreWorkerLocation() {
+    _requestDocSubscription = FirebaseFirestore.instance
+        .collection(FirestoreCollections.serviceRequests)
+        .doc(widget.request.id)
+        .snapshots()
+        .listen((doc) {
+      if (!doc.exists || !mounted) return;
+      final data = doc.data() as Map<String, dynamic>?;
+      if (data == null) return;
+
+      double? newWLat = (data['workerLat'] as num?)?.toDouble();
+      double? newWLng = (data['workerLng'] as num?)?.toDouble();
+
+      if (newWLat != null && newWLng != null) {
+        setState(() {
+          _wLat = newWLat;
+          _wLng = newWLng;
+          _updateMarkersAndPolylines();
+        });
+      }
+    });
   }
 
   void _startLiveGpsStream() async {
@@ -108,7 +135,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     if (mounted) setState(() {});
   }
 
-  void _simulateWorkerMovement() {
+  void _simulateWorkerMovement() async {
     // Step worker 35% closer to customer's exact lat/lng
     double latDiff = _cLat - _wLat;
     double lngDiff = _cLng - _wLng;
@@ -128,11 +155,23 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     }
 
     _updateMarkersAndPolylines();
+
+    // Update in Firestore so real-time listeners receive the update
+    try {
+      await FirebaseFirestore.instance
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(widget.request.id)
+          .update({
+        'workerLat': _wLat,
+        'workerLng': _wLng,
+      });
+    } catch (_) {}
   }
 
   @override
   void dispose() {
     _positionSubscription?.cancel();
+    _requestDocSubscription?.cancel();
     super.dispose();
   }
 
