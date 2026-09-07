@@ -30,7 +30,7 @@ class WorkerJobHistoryTab extends StatelessWidget {
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Active Jobs'),
-              Tab(text: 'Done Jobs'),
+              Tab(text: 'Rejected Jobs'),
               Tab(text: 'Missed Requests'),
             ],
           ),
@@ -52,20 +52,20 @@ class WorkerJobHistoryTab extends StatelessWidget {
                     r.status == AppConstants.statusInProgress)
                 .toList();
 
-            final doneReqs = requests
-                .where((r) => r.status == AppConstants.statusCompleted)
+            final rejectedReqs = requests
+                .where((r) => r.status == AppConstants.statusRejected)
                 .toList();
 
             final missedReqs = requests
                 .where((r) =>
-                    r.status == AppConstants.statusRejected ||
-                    r.status == AppConstants.statusCancelled)
+                    r.status == AppConstants.statusCancelled ||
+                    r.status == 'missed')
                 .toList();
 
             return TabBarView(
               children: [
                 _ActiveJobsList(requests: activeReqs),
-                _DoneJobsList(requests: doneReqs),
+                _RejectedJobsList(requests: rejectedReqs),
                 _MissedRequestsList(requests: missedReqs),
               ],
             );
@@ -190,17 +190,17 @@ class _ActiveJobsList extends StatelessWidget {
   }
 }
 
-class _DoneJobsList extends StatelessWidget {
+class _RejectedJobsList extends StatelessWidget {
   final List<ServiceRequestModel> requests;
 
-  const _DoneJobsList({required this.requests});
+  const _RejectedJobsList({required this.requests});
 
   @override
   Widget build(BuildContext context) {
     if (requests.isEmpty) {
       return const Center(
         child: Text(
-          'No completed jobs yet.',
+          'No rejected jobs.',
           style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
         ),
       );
@@ -216,26 +216,39 @@ class _DoneJobsList extends StatelessWidget {
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
             leading: CircleAvatar(
-              backgroundColor: AppColors.availableGreen.withValues(alpha: 0.15),
-              child: const Icon(Icons.check_circle, color: AppColors.availableGreen),
+              backgroundColor: AppColors.statusRejected.withValues(alpha: 0.15),
+              child: const Icon(Icons.cancel, color: AppColors.statusRejected),
             ),
             title: Text(
               req.categoryName,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            subtitle: Text('Customer: ${req.customerName}'),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text('Customer: ${req.customerName}'),
+                const SizedBox(height: 2),
+                Text(
+                  req.customerAddress,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.availableGreen.withValues(alpha: 0.15),
+                color: AppColors.statusRejected.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
-                'Completed',
+                'Rejected',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.availableGreen,
+                  color: AppColors.statusRejected,
                 ),
               ),
             ),
@@ -272,15 +285,15 @@ class _MissedRequestsList extends StatelessWidget {
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
             leading: CircleAvatar(
-              backgroundColor: AppColors.statusRejected.withValues(alpha: 0.15),
-              child: const Icon(Icons.call_missed, color: AppColors.statusRejected),
+              backgroundColor: AppColors.statusPending.withValues(alpha: 0.15),
+              child: const Icon(Icons.call_missed, color: AppColors.statusPending),
             ),
-            title: Text(
+            title: const Text(
               'Missed Request',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
-                color: AppColors.statusRejected,
+                color: AppColors.statusPending,
               ),
             ),
             subtitle: Padding(
@@ -297,7 +310,7 @@ class _MissedRequestsList extends StatelessWidget {
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.statusRejected.withValues(alpha: 0.15),
+                color: AppColors.statusPending.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
@@ -305,7 +318,7 @@ class _MissedRequestsList extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.statusRejected,
+                  color: AppColors.statusPending,
                 ),
               ),
             ),
