@@ -32,7 +32,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      if (authProvider.userModel?.role == AppConstants.roleAdmin) {
+      if (authProvider.userModel?.role == 'admin') {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),

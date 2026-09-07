@@ -6,7 +6,6 @@ import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../customer/customer_dashboard_screen.dart';
 import '../worker/worker_dashboard_screen.dart';
-import '../admin/admin_dashboard_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -35,11 +34,6 @@ class _SplashScreenState extends State<SplashScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const WorkerDashboardScreen()),
-        );
-      } else if (role == AppConstants.roleAdmin) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
         );
       } else {
         Navigator.pushReplacement(

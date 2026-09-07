@@ -2,10 +2,9 @@ class AppConstants {
   static const String appName = 'CYN – Chase Your Needs';
   static const String appTagline = 'Connect with Skilled Workers Near You';
 
-  // Role Constants
+  // Role Constants (Customer / Employer & Worker / Service Provider)
   static const String roleCustomer = 'customer';
   static const String roleWorker = 'worker';
-  static const String roleAdmin = 'admin';
 
   // Request Statuses
   static const String statusPending = 'Pending';

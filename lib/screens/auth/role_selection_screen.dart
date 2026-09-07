@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
-import '../admin/admin_login_screen.dart';
 import 'login_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
@@ -13,19 +12,6 @@ class RoleSelectionScreen extends StatelessWidget {
       backgroundColor: AppColors.offWhite,
       appBar: AppBar(
         title: const Text('CYN – Chase Your Needs'),
-        actions: [
-          IconButton(
-            tooltip: 'Admin Sign In',
-            icon: const Icon(Icons.admin_panel_settings_outlined),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const AdminLoginScreen()),
-              );
-            },
-          ),
-        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -53,7 +39,8 @@ class RoleSelectionScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 40),
-              // Customer Option Card
+
+              // Customer / Employer Option Card
               _RoleCard(
                 title: 'Customer / Employer',
                 description:
@@ -70,7 +57,8 @@ class RoleSelectionScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 20),
-              // Worker Option Card
+
+              // Worker / Service Provider Option Card
               _RoleCard(
                 title: 'Worker / Service Provider',
                 description:
@@ -87,19 +75,6 @@ class RoleSelectionScreen extends StatelessWidget {
                 },
               ),
               const Spacer(),
-              Center(
-                child: TextButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const AdminLoginScreen()),
-                    );
-                  },
-                  icon: const Icon(Icons.shield_outlined, size: 18),
-                  label: const Text('Admin Panel Login'),
-                ),
-              ),
             ],
           ),
         ),
@@ -134,7 +109,7 @@ class _RoleCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryNavy.withOpacity(0.1),
+                  color: AppColors.primaryNavy.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 36, color: AppColors.primaryNavy),

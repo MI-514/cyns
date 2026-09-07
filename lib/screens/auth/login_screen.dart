@@ -6,7 +6,6 @@ import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../customer/customer_dashboard_screen.dart';
 import '../worker/worker_dashboard_screen.dart';
-import '../admin/admin_dashboard_screen.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
@@ -56,12 +55,6 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const WorkerDashboardScreen()),
-          (route) => false,
-        );
-      } else if (userRole == AppConstants.roleAdmin) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
           (route) => false,
         );
       } else {

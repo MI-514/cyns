@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
-import 'providers/admin_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/category_provider.dart';
 import 'providers/chat_provider.dart';
@@ -42,7 +41,6 @@ class CynApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ServiceRequestProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => LocationProvider()),
-        ChangeNotifierProvider(create: (_) => AdminProvider()),
       ],
       child: MaterialApp(
         title: AppConstants.appName,
