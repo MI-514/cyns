@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/firestore_collections.dart';
@@ -12,6 +11,7 @@ import '../../data/models/message_model.dart';
 import '../../data/models/service_request_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/chat_provider.dart';
+import 'agora_call_screen.dart';
 import 'map_tracking_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -37,67 +37,30 @@ class _ChatScreenState extends State<ChatScreen> {
   File? _selectedImage;
   bool _isSending = false;
 
-  Future<void> _makePhoneCall() async {
-    final phone = widget.peerPhone ?? '';
-    if (phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Phone number not available for this user.')),
-      );
-      return;
-    }
-    final Uri telUri = Uri(scheme: 'tel', path: phone);
-    if (await canLaunchUrl(telUri)) {
-      await launchUrl(telUri);
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not launch phone call to $phone')),
-      );
-    }
+  void _makeInAppVoiceCall() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AgoraCallScreen(
+          channelId: widget.requestId,
+          peerName: widget.peerName,
+          peerRole: widget.peerRole,
+          isVideoCall: false,
+        ),
+      ),
+    );
   }
 
-  void _startVideoCall() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        icon:
-            const Icon(Icons.videocam, size: 52, color: AppColors.primaryNavy),
-        title: Text('Video Call - ${widget.peerName}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Show your problem live on video camera to explain the issue clearly to the worker!',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            if (widget.peerPhone != null)
-              Text(
-                'Phone: ${widget.peerPhone}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-          ],
+  void _startInAppVideoCall() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AgoraCallScreen(
+          channelId: widget.requestId,
+          peerName: widget.peerName,
+          peerRole: widget.peerRole,
+          isVideoCall: true,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close', style: TextStyle(fontSize: 15)),
-          ),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.availableGreen,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
-            icon: const Icon(Icons.call, size: 20),
-            label: const Text('Call Direct', style: TextStyle(fontSize: 15)),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _makePhoneCall();
-            },
-          ),
-        ],
       ),
     );
   }
@@ -123,7 +86,6 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     } catch (_) {}
 
-    // Fallback if doc is not in firestore
     if (!mounted) return;
     ServiceRequestModel dummyReq = ServiceRequestModel(
       id: widget.requestId,
@@ -242,13 +204,13 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.phone_in_talk, size: 26),
-            tooltip: 'Phone Call',
-            onPressed: _makePhoneCall,
+            tooltip: 'In-App Voice Call',
+            onPressed: _makeInAppVoiceCall,
           ),
           IconButton(
             icon: const Icon(Icons.videocam, size: 28),
-            tooltip: 'Video Call',
-            onPressed: _startVideoCall,
+            tooltip: 'In-App Video Call',
+            onPressed: _startInAppVideoCall,
           ),
           const SizedBox(width: 8),
         ],
@@ -266,7 +228,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
-                    'Explain problem via chat/call, then track live map!',
+                    'In-App Voice & Video calls ready! Tap call icon above to talk.',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
