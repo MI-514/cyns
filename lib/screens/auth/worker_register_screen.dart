@@ -163,20 +163,12 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     String fullName = '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}';
 
-    bool success = await authProvider.registerWorkerAdvanced(
+    bool success = await authProvider.registerUser(
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
       fullName: fullName,
       phoneNumber: _phoneController.text.trim(),
-      cnicNumber: _cnicController.text.trim(),
-      profession: _selectedProfession,
-      categoryId: _selectedCategoryId,
-      profilePicBase64: _profileBase64,
-      cnicFrontBase64: _cnicFrontBase64,
-      cnicBackBase64: _cnicBackBase64,
-      certificateBase64: _certificateBase64,
+      role: AppConstants.roleWorker,
     );
 
     if (!mounted) return;
