@@ -8,6 +8,7 @@ import '../customer/customer_dashboard_screen.dart';
 import '../worker/worker_dashboard_screen.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
+import 'worker_register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final String selectedRole;
@@ -252,12 +253,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text("Don't have an account? "),
                     GestureDetector(
                       onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => RegisterScreen(selectedRole: _role),
-                          ),
-                        );
+                        if (_role == AppConstants.roleWorker) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const WorkerRegisterScreen(),
+                            ),
+                          );
+                        } else {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RegisterScreen(selectedRole: _role),
+                            ),
+                          );
+                        }
                       },
                       child: const Text(
                         'Register Now',

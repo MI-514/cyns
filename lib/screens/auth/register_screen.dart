@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
 import 'login_screen.dart';
+import 'worker_register_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String selectedRole;
@@ -147,9 +148,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ],
                   selected: {_role},
                   onSelectionChanged: (Set<String> selection) {
-                    setState(() {
-                      _role = selection.first;
-                    });
+                    if (selection.first == AppConstants.roleWorker) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const WorkerRegisterScreen(),
+                        ),
+                      );
+                    } else {
+                      setState(() {
+                        _role = selection.first;
+                      });
+                    }
                   },
                 ),
                 const SizedBox(height: 24),
