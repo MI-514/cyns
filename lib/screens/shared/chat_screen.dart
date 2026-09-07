@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/firestore_collections.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/widgets/app_network_image.dart';
 import '../../data/models/message_model.dart';
 import '../../data/models/service_request_model.dart';
 import '../../providers/auth_provider.dart';
@@ -166,7 +167,7 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             InteractiveViewer(
               child: Center(
-                child: Image.network(imageUrl, fit: BoxFit.contain),
+                child: AppNetworkImage(imageUrl: imageUrl, fit: BoxFit.contain),
               ),
             ),
             IconButton(
@@ -330,8 +331,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                 onTap: () => _viewFullImage(msg.attachmentUrl!),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
-                                  child: Image.network(
-                                    msg.attachmentUrl!,
+                                  child: AppNetworkImage(
+                                    imageUrl: msg.attachmentUrl!,
                                     height: 180,
                                     width: double.infinity,
                                     fit: BoxFit.cover,
