@@ -67,7 +67,7 @@ class NotificationCenterScreen extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 10),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.primaryNavy.withOpacity(0.1),
+                    backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
                     child: const Icon(Icons.notifications,
                         color: AppColors.primaryNavy),
                   ),

@@ -38,7 +38,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: AppColors.pureWhite,
         elevation: 2,
-        shadowColor: AppColors.primaryNavy.withOpacity(0.08),
+        shadowColor: AppColors.primaryNavy.withValues(alpha: 0.08),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: AppColors.dividerColor, width: 0.8),

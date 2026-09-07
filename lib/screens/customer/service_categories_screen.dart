@@ -52,7 +52,7 @@ class ServiceCategoriesScreen extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryNavy.withOpacity(0.08),
+                                color: AppColors.primaryNavy.withValues(alpha: 0.08),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(

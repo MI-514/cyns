@@ -74,7 +74,7 @@ class _RequestWaitingCountdownScreenState
         _isHandled = true;
         _timer?.cancel();
         ServiceRequestModel updated = ServiceRequestModel.fromMap(
-            data as Map<String, dynamic>, doc.id);
+            data, doc.id);
         _navigateToMapTracking(updated);
       } else if (status == AppConstants.statusRejected) {
         _isHandled = true;

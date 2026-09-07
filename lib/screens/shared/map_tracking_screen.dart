@@ -52,7 +52,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   /// Continuous Automatic Live Navigation (Uber/Careem/InDrive style continuous movement)
   void _startContinuousLiveWorkerNavigation() {
     _autoMovementTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       double latDiff = _cLat - _wLat;
       double lngDiff = _cLng - _wLng;
@@ -86,9 +88,13 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         .doc(widget.request.id)
         .snapshots()
         .listen((doc) {
-      if (!doc.exists || !mounted) return;
-      final data = doc.data() as Map<String, dynamic>?;
-      if (data == null) return;
+      if (!doc.exists || !mounted) {
+        return;
+      }
+      final data = doc.data();
+      if (data == null) {
+        return;
+      }
 
       String status = data['status'] ?? '';
       double? newWLat = (data['workerLat'] as num?)?.toDouble();
@@ -152,11 +158,15 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
 
   void _startLiveGpsStream() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
+    if (!serviceEnabled) {
+      return;
+    }
 
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) return;
+        permission == LocationPermission.deniedForever) {
+      return;
+    }
 
     _positionSubscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
@@ -164,7 +174,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         distanceFilter: 5,
       ),
     ).listen((Position position) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _cLat = position.latitude;
         _cLng = position.longitude;
@@ -217,7 +229,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       ),
     );
 
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _showCallChoiceModal(BuildContext context, ServiceRequestModel req) {

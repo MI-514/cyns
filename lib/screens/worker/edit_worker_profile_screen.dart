@@ -136,7 +136,7 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
                   return FilterChip(
                     label: Text(cat.name),
                     selected: isSelected,
-                    selectedColor: AppColors.primaryNavy.withOpacity(0.2),
+                    selectedColor: AppColors.primaryNavy.withValues(alpha: 0.2),
                     checkmarkColor: AppColors.primaryNavy,
                     onSelected: (selected) {
                       setState(() {

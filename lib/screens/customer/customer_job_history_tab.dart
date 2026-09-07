@@ -109,7 +109,7 @@ class _RequestListView extends StatelessWidget {
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
             leading: CircleAvatar(
-              backgroundColor: AppColors.primaryNavy.withOpacity(0.1),
+              backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
               child: const Icon(Icons.handyman, color: AppColors.primaryNavy),
             ),
             title: Text(
@@ -133,7 +133,7 @@ class _RequestListView extends StatelessWidget {
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.primaryNavy.withOpacity(0.1),
+                color: AppColors.primaryNavy.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(

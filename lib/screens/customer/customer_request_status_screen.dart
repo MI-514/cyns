@@ -83,9 +83,9 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
+                    color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: statusColor.withOpacity(0.3)),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     children: [
@@ -146,7 +146,7 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                             CircleAvatar(
                               radius: 24,
                               backgroundColor:
-                                  AppColors.primaryNavy.withOpacity(0.1),
+                                  AppColors.primaryNavy.withValues(alpha: 0.1),
                               child: const Icon(Icons.person,
                                   color: AppColors.primaryNavy),
                             ),

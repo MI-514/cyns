@@ -86,7 +86,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.accentBlue.withOpacity(0.12),
+                  color: AppColors.accentBlue.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.accentBlue),
                 ),

@@ -24,7 +24,7 @@ class WorkerProfileTab extends StatelessWidget {
           const SizedBox(height: 12),
           CircleAvatar(
             radius: 48,
-            backgroundColor: AppColors.primaryNavy.withOpacity(0.1),
+            backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
             child: const Icon(
               Icons.engineering,
               size: 56,

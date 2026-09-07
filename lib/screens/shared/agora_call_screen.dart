@@ -242,7 +242,7 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // Mute Button
+                  // Mute Microphone Button
                   CircleAvatar(
                     radius: 28,
                     backgroundColor: _isMuted ? Colors.red : Colors.white24,
@@ -270,8 +270,24 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
                     ),
                   ),
 
-                  // Speaker/Camera Toggle Button
-                  if (widget.isVideoCall)
+                  if (widget.isVideoCall) ...[
+                    // Toggle Video On/Off Button
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor:
+                          _isVideoMuted ? Colors.red : Colors.white24,
+                      child: IconButton(
+                        icon: Icon(
+                          _isVideoMuted
+                              ? Icons.videocam_off
+                              : Icons.videocam,
+                          color: AppColors.pureWhite,
+                          size: 26,
+                        ),
+                        onPressed: _toggleVideo,
+                      ),
+                    ),
+                    // Switch Camera Button
                     CircleAvatar(
                       radius: 28,
                       backgroundColor: Colors.white24,
@@ -283,8 +299,9 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
                         ),
                         onPressed: _switchCamera,
                       ),
-                    )
-                  else
+                    ),
+                  ] else
+                    // Speaker Button
                     CircleAvatar(
                       radius: 28,
                       backgroundColor: _isSpeaker
