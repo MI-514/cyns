@@ -299,7 +299,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                   child: Padding(
                     padding: EdgeInsets.only(top: 6.0),
                     child: Text(
-                      'Profile Photo / Selfie (Optional)',
+                      'Profile Photo(Optional)',
                       style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                     ),
                   ),
@@ -310,7 +310,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _fullNameController,
                   decoration: const InputDecoration(
-                    labelText: 'Pura Naam (Full Name) *',
+                    labelText: 'Full Name *',
                     prefixIcon: Icon(Icons.person_outline),
                   ),
                   validator: (val) {
@@ -326,12 +326,12 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _fatherNameController,
                   decoration: const InputDecoration(
-                    labelText: "Walid ka Naam (Father's Name) *",
+                    labelText: "Father Name *",
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Please enter Father\'s Name';
+                      return 'Please enter Father Name';
                     }
                     return null;
                   },
@@ -377,9 +377,9 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _addressController,
                   decoration: const InputDecoration(
-                    labelText: 'Mojuda Pata (Current Address / City) *',
+                    labelText: 'Current Address *',
                     prefixIcon: Icon(Icons.location_on_outlined),
-                    hintText: 'e.g. Gulberg III, Lahore',
+                    hintText: 'e.g. Gujranwala',
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
@@ -412,7 +412,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 DropdownButtonFormField<String>(
                   initialValue: _selectedCategoryId,
                   decoration: const InputDecoration(
-                    labelText: 'Peshwarana Hunar (Main Skill/Trade) *',
+                    labelText: 'Main Skill *',
                     prefixIcon: Icon(Icons.work_outline),
                   ),
                   items: _categories.map((cat) {
@@ -437,7 +437,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 DropdownButtonFormField<int>(
                   initialValue: _selectedExperienceYears,
                   decoration: const InputDecoration(
-                    labelText: 'Tajurba (Experience) *',
+                    labelText: 'Experience *',
                     prefixIcon: Icon(Icons.history_edu),
                   ),
                   items: _experienceLevels.map((exp) {
