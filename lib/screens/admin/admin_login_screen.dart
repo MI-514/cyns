@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
 import 'admin_dashboard_screen.dart';
 
@@ -56,6 +55,19 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         ),
       );
     }
+  }
+
+  void _handleGuestAdminLogin() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.loginAsGuest(role: 'admin');
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -155,6 +167,24 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                 ),
                               )
                             : const Text('Access Admin Panel'),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.deepOrange, width: 1.5),
+                          backgroundColor: Colors.orange.shade50,
+                        ),
+                        onPressed: authProvider.state == AuthState.loading
+                            ? null
+                            : _handleGuestAdminLogin,
+                        icon: const Icon(Icons.bolt, color: Colors.deepOrange),
+                        label: const Text(
+                          '⚡ Quick Access (Test as Guest Admin)',
+                          style: TextStyle(
+                            color: Colors.deepOrange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),

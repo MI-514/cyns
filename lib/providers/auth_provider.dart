@@ -23,6 +23,36 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _initAuth() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isGuest = prefs.getBool('is_guest') ?? false;
+    String? savedRole = prefs.getString('user_role');
+
+    if (isGuest && savedRole != null) {
+      String uid = savedRole == 'worker'
+          ? 'guest_worker_id'
+          : savedRole == 'admin'
+              ? 'guest_admin_id'
+              : 'guest_customer_id';
+
+      String name = savedRole == 'worker'
+          ? 'Guest Worker'
+          : savedRole == 'admin'
+              ? 'Guest Admin'
+              : 'Guest Customer';
+
+      _userModel = UserModel(
+        uid: uid,
+        email: 'guest_${savedRole}@cyn.app',
+        fullName: name,
+        phoneNumber: '+923001234567',
+        role: savedRole,
+        isVerified: true,
+      );
+      _state = AuthState.authenticated;
+      notifyListeners();
+      return;
+    }
+
     _authRepository.authStateChanges.listen((User? firebaseUser) async {
       if (firebaseUser != null) {
         _userModel = await _authRepository.getUserModel(firebaseUser.uid);
@@ -39,6 +69,38 @@ class AuthProvider extends ChangeNotifier {
       }
       notifyListeners();
     });
+  }
+
+  Future<void> loginAsGuest({String role = 'customer'}) async {
+    _state = AuthState.loading;
+    notifyListeners();
+
+    String uid = role == 'worker'
+        ? 'guest_worker_id'
+        : role == 'admin'
+            ? 'guest_admin_id'
+            : 'guest_customer_id';
+
+    String name = role == 'worker'
+        ? 'Guest Worker'
+        : role == 'admin'
+            ? 'Guest Admin'
+            : 'Guest Customer';
+
+    _userModel = UserModel(
+      uid: uid,
+      email: 'guest_${role}@cyn.app',
+      fullName: name,
+      phoneNumber: '+923001234567',
+      role: role,
+      isVerified: true,
+    );
+
+    _state = AuthState.authenticated;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_role', role);
+    await prefs.setBool('is_guest', true);
+    notifyListeners();
   }
 
   Future<bool> registerUser({
@@ -65,6 +127,8 @@ class AuthProvider extends ChangeNotifier {
       await _authRepository.logout();
       _userModel = null;
       _state = AuthState.unauthenticated;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove('is_guest');
       notifyListeners();
       return true;
     } catch (e) {
@@ -90,6 +154,8 @@ class AuthProvider extends ChangeNotifier {
       );
 
       _state = AuthState.authenticated;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove('is_guest');
       notifyListeners();
       return true;
     } catch (e) {
@@ -118,6 +184,7 @@ class AuthProvider extends ChangeNotifier {
     _state = AuthState.unauthenticated;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_role');
+    await prefs.remove('is_guest');
     notifyListeners();
   }
 }

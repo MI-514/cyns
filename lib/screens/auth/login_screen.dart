@@ -76,6 +76,27 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _handleGuestLogin() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.loginAsGuest(role: _role);
+
+    if (!mounted) return;
+
+    if (_role == AppConstants.roleWorker) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const WorkerDashboardScreen()),
+        (route) => false,
+      );
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const CustomerDashboardScreen()),
+        (route) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -202,6 +223,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         )
                       : const Text('Sign In'),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Guest Quick Access
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.amber.shade800, width: 1.5),
+                    backgroundColor: Colors.amber.shade50,
+                  ),
+                  onPressed: authProvider.state == AuthState.loading ? null : _handleGuestLogin,
+                  icon: Icon(Icons.bolt, color: Colors.amber.shade900),
+                  label: Text(
+                    '⚡ Skip Sign In (Test as Guest ${_role == AppConstants.roleWorker ? "Worker" : "Customer"})',
+                    style: TextStyle(
+                      color: Colors.amber.shade900,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 24),
