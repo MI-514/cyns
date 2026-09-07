@@ -20,10 +20,11 @@ class WorkerRegisterScreen extends StatefulWidget {
 class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
+  final _fullNameController = TextEditingController();
+  final _fatherNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
   final _cnicController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -31,31 +32,39 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
   final List<Map<String, String>> _categories = [
     {'id': 'electrician', 'name': 'Electrician'},
     {'id': 'plumber', 'name': 'Plumber'},
-    {'id': 'painter', 'name': 'Painter'},
-    {'id': 'mechanic', 'name': 'Auto Mechanic'},
+    {'id': 'mason', 'name': 'Mason / Raj Mistri'},
     {'id': 'carpenter', 'name': 'Carpenter'},
-    {'id': 'ac_technician', 'name': 'AC & Fridge Technician'},
-    {'id': 'appliance_repair', 'name': 'Appliance Repair'},
-    {'id': 'cleaner', 'name': 'Home Cleaner'},
-    {'id': 'gardener', 'name': 'Gardener'},
     {'id': 'welder', 'name': 'Welder & Fabricator'},
-    {'id': 'mason', 'name': 'Mason / Builder'},
-    {'id': 'locksmith', 'name': 'Locksmith'},
-    {'id': 'handyman', 'name': 'General Handyman'},
+    {'id': 'ac_technician', 'name': 'AC & Refrigerator Technician'},
+    {'id': 'tailor', 'name': 'Tailor / Darzi'},
+    {'id': 'driver', 'name': 'Driver'},
+    {'id': 'auto_mechanic', 'name': 'Auto Mechanic'},
+    {'id': 'painter', 'name': 'Painter'},
+    {'id': 'cleaner', 'name': 'Home Cleaner / Housekeeping'},
+    {'id': 'laborer', 'name': 'General Laborer / Loader'},
+    {'id': 'tile_worker', 'name': 'Tile & Marble Worker'},
+    {'id': 'appliance_repair', 'name': 'Appliance Repair'},
+  ];
+
+  final List<Map<String, dynamic>> _experienceLevels = [
+    {'years': 1, 'label': 'Less than 1 year'},
+    {'years': 2, 'label': '1 - 3 years'},
+    {'years': 4, 'label': '3 - 5 years'},
+    {'years': 6, 'label': '5+ years'},
+    {'years': 10, 'label': '10+ years'},
   ];
 
   String _selectedCategoryId = 'electrician';
   String _selectedProfession = 'Electrician';
+  int _selectedExperienceYears = 2;
 
-  File? _profileImage; // Front selfie / live photo
+  File? _profileImage;
   File? _cnicFrontImage;
   File? _cnicBackImage;
-  File? _certificateImage; // Optional certificate
 
   String _profileBase64 = '';
   String _cnicFrontBase64 = '';
   String _cnicBackBase64 = '';
-  String _certificateBase64 = '';
 
   bool _obscurePassword = true;
   final ImagePicker _picker = ImagePicker();
@@ -73,7 +82,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Select ${type == 'profile' ? 'Profile Selfie' : type == 'front' ? 'CNIC Front Photo' : type == 'back' ? 'CNIC Back Photo' : 'Certificate / License (Optional)'}',
+                'Select ${type == 'profile' ? 'Profile Selfie / Photo' : type == 'front' ? 'CNIC Front Photo' : 'CNIC Back Photo'}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -128,7 +137,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
   void _setPickedImage(XFile xFile, String type) async {
     File file = File(xFile.path);
     List<int> bytes = await file.readAsBytes();
-    String base64Str = base64Encode(bytes);
+    String base64Str = 'data:image/jpeg;base64,${base64Encode(bytes)}';
 
     setState(() {
       if (type == 'profile') {
@@ -140,9 +149,6 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
       } else if (type == 'back') {
         _cnicBackImage = file;
         _cnicBackBase64 = base64Str;
-      } else if (type == 'cert') {
-        _certificateImage = file;
-        _certificateBase64 = base64Str;
       }
     });
   }
@@ -153,7 +159,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
     if (_cnicFrontImage == null || _cnicBackImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please upload both ID card front and back images.'),
+          content: Text('Please upload both CNIC Front and Back images for verification.'),
           backgroundColor: AppColors.statusRejected,
         ),
       );
@@ -161,14 +167,21 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
     }
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    String fullName = '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}';
 
-    bool success = await authProvider.registerUser(
+    bool success = await authProvider.registerWorkerAdvanced(
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
-      fullName: fullName,
+      fullName: _fullNameController.text.trim(),
+      fatherName: _fatherNameController.text.trim(),
       phoneNumber: _phoneController.text.trim(),
-      role: AppConstants.roleWorker,
+      address: _addressController.text.trim(),
+      cnicNumber: _cnicController.text.trim(),
+      profession: _selectedProfession,
+      categoryId: _selectedCategoryId,
+      experienceYears: _selectedExperienceYears,
+      profilePicBase64: _profileBase64,
+      cnicFrontBase64: _cnicFrontBase64,
+      cnicBackBase64: _cnicBackBase64,
     );
 
     if (!mounted) return;
@@ -182,7 +195,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
           icon: const Icon(Icons.check_circle, size: 52, color: AppColors.availableGreen),
           title: const Text('Registration Successful!'),
           content: const Text(
-            'Your Service Provider account has been created successfully.\nYou can now sign in with your email and password.',
+            'Your Service Provider account has been created and saved in Cloud Firestore.\nYou can now sign in with your registered email and password.',
             textAlign: TextAlign.center,
           ),
           actions: [
@@ -224,7 +237,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Service Provider Registration'),
+        title: const Text('Worker Registration'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -235,28 +248,28 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'Join as Service Provider',
+                  'Join as Service Provider / Worker',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryNavy,
                   ),
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Fill in your professional details and verification documents',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  'Enter your details, trade skills, and CNIC photos to register in Cloud Firestore',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 24),
 
-                // Front Selfie / Live Photo Picker
+                // Profile Photo / Selfie
                 Center(
                   child: GestureDetector(
                     onTap: () => _pickImage('profile'),
                     child: Stack(
                       children: [
                         CircleAvatar(
-                          radius: 50,
+                          radius: 48,
                           backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
                           backgroundImage: _profileImage != null
                               ? FileImage(_profileImage!)
@@ -284,50 +297,44 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 ),
                 const Center(
                   child: Padding(
-                    padding: EdgeInsets.only(top: 8.0),
+                    padding: EdgeInsets.only(top: 6.0),
                     child: Text(
-                      'Tap to take Profile Photo / Selfie',
+                      'Profile Photo / Selfie (Optional)',
                       style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                // First Name & Last Name
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _firstNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'First Name',
-                          prefixIcon: Icon(Icons.person_outline),
-                        ),
-                        validator: (val) {
-                          if (val == null || val.trim().isEmpty) {
-                            return 'Enter first name';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _lastNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Last Name',
-                          prefixIcon: Icon(Icons.person_outline),
-                        ),
-                        validator: (val) {
-                          if (val == null || val.trim().isEmpty) {
-                            return 'Enter last name';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
+                // Pura Naam (Full Name)
+                TextFormField(
+                  controller: _fullNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Pura Naam (Full Name) *',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter Full Name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Walid ka Naam (Father's Name)
+                TextFormField(
+                  controller: _fatherNameController,
+                  decoration: const InputDecoration(
+                    labelText: "Walid ka Naam (Father's Name) *",
+                    prefixIcon: Icon(Icons.badge_outlined),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter Father\'s Name';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -336,12 +343,12 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Email Address',
+                    labelText: 'Email Address *',
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Please enter email';
+                      return 'Please enter Email Address';
                     }
                     if (!val.contains('@')) return 'Enter valid email';
                     return null;
@@ -349,17 +356,34 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Phone Number
+                // Mobile Number
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    labelText: 'Phone Number',
+                    labelText: 'Mobile Number *',
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Please enter phone number';
+                      return 'Please enter Mobile Number';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Mojuda Pata (Current Address)
+                TextFormField(
+                  controller: _addressController,
+                  decoration: const InputDecoration(
+                    labelText: 'Mojuda Pata (Current Address / City) *',
+                    prefixIcon: Icon(Icons.location_on_outlined),
+                    hintText: 'e.g. Gulberg III, Lahore',
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter Current Address';
                     }
                     return null;
                   },
@@ -371,24 +395,24 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                   controller: _cnicController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'ID Card Number (CNIC)',
+                    labelText: 'ID Card Number (CNIC) *',
                     prefixIcon: Icon(Icons.credit_card_outlined),
                     hintText: '35202-1234567-1',
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Please enter ID card number';
+                      return 'Please enter CNIC number';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
 
-                // Skills / Service Categories Selector
+                // Peshwarana Hunar (Main Skill/Trade) Dropdown
                 DropdownButtonFormField<String>(
                   initialValue: _selectedCategoryId,
                   decoration: const InputDecoration(
-                    labelText: 'Skills Category',
+                    labelText: 'Peshwarana Hunar (Main Skill/Trade) *',
                     prefixIcon: Icon(Icons.work_outline),
                   ),
                   items: _categories.map((cat) {
@@ -407,11 +431,34 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                     }
                   },
                 ),
+                const SizedBox(height: 16),
+
+                // Tajurba (Experience) Dropdown
+                DropdownButtonFormField<int>(
+                  initialValue: _selectedExperienceYears,
+                  decoration: const InputDecoration(
+                    labelText: 'Tajurba (Experience) *',
+                    prefixIcon: Icon(Icons.history_edu),
+                  ),
+                  items: _experienceLevels.map((exp) {
+                    return DropdownMenuItem<int>(
+                      value: exp['years'] as int,
+                      child: Text(exp['label'] as String),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        _selectedExperienceYears = val;
+                      });
+                    }
+                  },
+                ),
                 const SizedBox(height: 24),
 
-                // ID Card Front & Back Image Pickers
+                // CNIC Front & Back Image Verification
                 const Text(
-                  'ID Card Verification Photos',
+                  'CNIC Verification Images *',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -447,8 +494,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                                   children: [
                                     Icon(Icons.add_a_photo, color: AppColors.primaryNavy),
                                     SizedBox(height: 4),
-                                    Text('ID Card Front',
-                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                    Text('CNIC Front Image',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                         ),
@@ -481,8 +528,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                                   children: [
                                     Icon(Icons.add_a_photo, color: AppColors.primaryNavy),
                                     SizedBox(height: 4),
-                                    Text('ID Card Back',
-                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                    Text('CNIC Back Image',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                         ),
@@ -490,57 +537,14 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-
-                // Certificate Upload (Optional)
-                const Text(
-                  'Professional Certificate / License (Optional)',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: AppColors.primaryNavy,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () => _pickImage('cert'),
-                  child: Container(
-                    height: 90,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryNavy.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _certificateImage != null
-                            ? AppColors.availableGreen
-                            : AppColors.textLight,
-                        width: _certificateImage != null ? 2 : 1,
-                      ),
-                    ),
-                    child: _certificateImage != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.file(_certificateImage!,
-                                fit: BoxFit.cover, width: double.infinity),
-                          )
-                        : const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.upload_file, color: AppColors.primaryNavy),
-                              SizedBox(width: 8),
-                              Text('Tap to upload certificate / diploma',
-                                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                            ],
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // Password
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: 'Password *',
                     prefixIcon: const Icon(Icons.lock_outlined),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -565,7 +569,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                   controller: _confirmPasswordController,
                   obscureText: _obscurePassword,
                   decoration: const InputDecoration(
-                    labelText: 'Confirm Password',
+                    labelText: 'Confirm Password *',
                     prefixIcon: Icon(Icons.lock_clock_outlined),
                   ),
                   validator: (val) {
@@ -591,7 +595,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text('Create Service Provider Account'),
+                      : const Text('Register Worker Account in Firestore'),
                 ),
 
                 const SizedBox(height: 20),
@@ -599,7 +603,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Already have a worker account? '),
+                    const Text('Already registered? '),
                     GestureDetector(
                       onTap: () {
                         Navigator.pushReplacement(

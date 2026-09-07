@@ -23,7 +23,7 @@ class AuthRepository {
     }
   }
 
-  // Register Customer or Worker or Admin
+  // Register Customer
   Future<UserModel> registerUser({
     required String email,
     required String password,
@@ -46,7 +46,7 @@ class AuthRepository {
         role: role,
       );
 
-      // Save user doc in Firestore (non-blocking attempt)
+      // Save user doc in Firestore
       _firestore
           .collection(FirestoreCollections.users)
           .doc(uid)
@@ -63,28 +63,6 @@ class AuthRepository {
           'phoneNumber': phoneNumber,
           'profilePicUrl': '',
           'address': '',
-        }).catchError((_) {});
-      } else if (role == 'worker') {
-        _firestore
-            .collection(FirestoreCollections.workers)
-            .doc(uid)
-            .set({
-          'workerId': uid,
-          'name': fullName,
-          'phoneNumber': phoneNumber,
-          'profilePicUrl': '',
-          'profession': 'General Skilled Worker',
-          'categoryIds': [],
-          'skills': [],
-          'experienceYears': 1,
-          'serviceDescription': '',
-          'workingArea': '',
-          'isAvailable': true,
-          'rating': 0.0,
-          'reviewCount': 0,
-          'completedJobsCount': 0,
-          'isApproved': true,
-          'createdAt': FieldValue.serverTimestamp(),
         }).catchError((_) {});
       }
 
@@ -104,7 +82,98 @@ class AuthRepository {
     }
   }
 
-  // Fast Login with precise error messages
+  // Advanced Real-Time Worker Registration with Father Name, Address, Skill Trade, Experience, CNIC
+  Future<UserModel> registerWorkerAdvanced({
+    required String email,
+    required String password,
+    required String fullName,
+    required String fatherName,
+    required String phoneNumber,
+    required String address,
+    required String cnicNumber,
+    required String profession,
+    required String categoryId,
+    required int experienceYears,
+    String? profilePicBase64,
+    String? cnicFrontBase64,
+    String? cnicBackBase64,
+  }) async {
+    try {
+      UserCredential cred = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
+
+      String uid = cred.user!.uid;
+      UserModel userModel = UserModel(
+        uid: uid,
+        email: email.trim(),
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        role: 'worker',
+      );
+
+      // Save in users collection in real time
+      await _firestore
+          .collection(FirestoreCollections.users)
+          .doc(uid)
+          .set({
+        'uid': uid,
+        'email': email.trim(),
+        'fullName': fullName.trim(),
+        'fatherName': fatherName.trim(),
+        'phoneNumber': phoneNumber.trim(),
+        'address': address.trim(),
+        'role': 'worker',
+      });
+
+      // Save in workers collection in real time for live map & search
+      await _firestore
+          .collection(FirestoreCollections.workers)
+          .doc(uid)
+          .set({
+        'workerId': uid,
+        'name': fullName.trim(),
+        'fatherName': fatherName.trim(),
+        'phoneNumber': phoneNumber.trim(),
+        'address': address.trim(),
+        'cnicNumber': cnicNumber.trim(),
+        'profilePicUrl': profilePicBase64 ?? '',
+        'cnicFrontBase64': cnicFrontBase64 ?? '',
+        'cnicBackBase64': cnicBackBase64 ?? '',
+        'profession': profession,
+        'categoryIds': [categoryId],
+        'skills': [profession],
+        'experienceYears': experienceYears,
+        'serviceDescription': '$profession with $experienceYears+ years of experience in $address.',
+        'workingArea': address.trim(),
+        'isAvailable': true,
+        'isApproved': true,
+        'latitude': 31.5204, // Default center; auto-updates on GPS stream
+        'longitude': 74.3587,
+        'rating': 5.0,
+        'reviewCount': 1,
+        'completedJobsCount': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return userModel;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        throw Exception("An account already exists for this email. Please sign in instead.");
+      } else if (e.code == 'weak-password') {
+        throw Exception("Password should be at least 6 characters.");
+      } else if (e.code == 'invalid-email') {
+        throw Exception("Invalid email address format.");
+      } else {
+        throw Exception(e.message ?? "Registration failed. Please try again.");
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Fast Login
   Future<UserModel> loginUser({
     required String email,
     required String password,
@@ -117,7 +186,7 @@ class AuthRepository {
 
       String uid = cred.user!.uid;
 
-      // Fast Firestore document fetch with 2-second timeout
+      // Fast Firestore document fetch
       try {
         DocumentSnapshot doc = await _firestore
             .collection(FirestoreCollections.users)
@@ -128,15 +197,11 @@ class AuthRepository {
         if (doc.exists && doc.data() != null) {
           return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
         }
-      } catch (_) {
-        // Fallback to Auth User data
-      }
+      } catch (_) {}
 
       String inferredRole = email.toLowerCase().contains('worker')
           ? 'worker'
-          : email.toLowerCase().contains('admin')
-              ? 'admin'
-              : 'customer';
+          : 'customer';
 
       return UserModel(
         uid: uid,
