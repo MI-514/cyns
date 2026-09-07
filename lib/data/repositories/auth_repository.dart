@@ -23,14 +23,38 @@ class AuthRepository {
     }
   }
 
-  // Register Customer
+  /// Check if a username is available in Cloud Firestore
+  Future<bool> isUsernameAvailable(String username) async {
+    try {
+      String clean = username.trim().toLowerCase();
+      QuerySnapshot snap = await _firestore
+          .collection(FirestoreCollections.users)
+          .where('username', isEqualTo: clean)
+          .get()
+          .timeout(const Duration(seconds: 3));
+      return snap.docs.isEmpty;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  // Register Customer with Unique Alphanumeric Username Check
   Future<UserModel> registerUser({
     required String email,
     required String password,
+    required String username,
     required String fullName,
     required String phoneNumber,
     required String role,
   }) async {
+    String cleanUsername = username.trim().toLowerCase();
+
+    // Verify username uniqueness
+    bool isAvailable = await isUsernameAvailable(cleanUsername);
+    if (!isAvailable) {
+      throw Exception("Username '$cleanUsername' is already taken. Please choose another unique username.");
+    }
+
     try {
       UserCredential cred = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
@@ -41,6 +65,7 @@ class AuthRepository {
       UserModel userModel = UserModel(
         uid: uid,
         email: email.trim(),
+        username: cleanUsername,
         fullName: fullName.trim(),
         phoneNumber: phoneNumber.trim(),
         role: role,
@@ -59,6 +84,7 @@ class AuthRepository {
             .doc(uid)
             .set({
           'customerId': uid,
+          'username': cleanUsername,
           'name': fullName,
           'phoneNumber': phoneNumber,
           'profilePicUrl': '',
@@ -82,10 +108,11 @@ class AuthRepository {
     }
   }
 
-  // Advanced Real-Time Worker Registration with Father Name, Address, Skill Trade, Experience, CNIC
+  // Advanced Real-Time Worker Registration with Unique Username
   Future<UserModel> registerWorkerAdvanced({
     required String email,
     required String password,
+    required String username,
     required String fullName,
     required String fatherName,
     required String phoneNumber,
@@ -98,6 +125,14 @@ class AuthRepository {
     String? cnicFrontBase64,
     String? cnicBackBase64,
   }) async {
+    String cleanUsername = username.trim().toLowerCase();
+
+    // Verify username uniqueness
+    bool isAvailable = await isUsernameAvailable(cleanUsername);
+    if (!isAvailable) {
+      throw Exception("Username '$cleanUsername' is already taken. Please choose another unique username.");
+    }
+
     try {
       UserCredential cred = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
@@ -108,6 +143,7 @@ class AuthRepository {
       UserModel userModel = UserModel(
         uid: uid,
         email: email.trim(),
+        username: cleanUsername,
         fullName: fullName.trim(),
         phoneNumber: phoneNumber.trim(),
         role: 'worker',
@@ -120,6 +156,7 @@ class AuthRepository {
           .set({
         'uid': uid,
         'email': email.trim(),
+        'username': cleanUsername,
         'fullName': fullName.trim(),
         'fatherName': fatherName.trim(),
         'phoneNumber': phoneNumber.trim(),
@@ -133,6 +170,7 @@ class AuthRepository {
           .doc(uid)
           .set({
         'workerId': uid,
+        'username': cleanUsername,
         'name': fullName.trim(),
         'fatherName': fatherName.trim(),
         'phoneNumber': phoneNumber.trim(),
@@ -206,6 +244,7 @@ class AuthRepository {
       return UserModel(
         uid: uid,
         email: cred.user!.email ?? email.trim(),
+        username: email.split('@').first,
         fullName: cred.user!.displayName ?? email.split('@').first,
         phoneNumber: cred.user!.phoneNumber ?? '',
         role: inferredRole,

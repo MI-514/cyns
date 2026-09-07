@@ -3,9 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class UserModel {
   final String uid;
   final String email;
+  final String username;
   final String fullName;
   final String phoneNumber;
-  final String role; // customer, worker, admin
+  final String role; // customer, worker
   final String profilePicUrl;
   final bool isVerified;
   final DateTime createdAt;
@@ -13,6 +14,7 @@ class UserModel {
   UserModel({
     required this.uid,
     required this.email,
+    required this.username,
     required this.fullName,
     required this.phoneNumber,
     required this.role,
@@ -25,6 +27,7 @@ class UserModel {
     return {
       'uid': uid,
       'email': email,
+      'username': username.trim().toLowerCase(),
       'fullName': fullName,
       'phoneNumber': phoneNumber,
       'role': role,
@@ -38,6 +41,7 @@ class UserModel {
     return UserModel(
       uid: docId,
       email: map['email'] ?? '',
+      username: map['username'] ?? '',
       fullName: map['fullName'] ?? '',
       phoneNumber: map['phoneNumber'] ?? '',
       role: map['role'] ?? 'customer',

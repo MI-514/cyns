@@ -20,6 +20,7 @@ class WorkerRegisterScreen extends StatefulWidget {
 class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  final _usernameController = TextEditingController();
   final _fullNameController = TextEditingController();
   final _fatherNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -171,6 +172,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
     bool success = await authProvider.registerWorkerAdvanced(
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
+      username: _usernameController.text.trim(),
       fullName: _fullNameController.text.trim(),
       fatherName: _fatherNameController.text.trim(),
       phoneNumber: _phoneController.text.trim(),
@@ -257,7 +259,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Enter your details, trade skills, and CNIC photos to register in Cloud Firestore',
+                  'Enter your details, unique username, trade skills, and CNIC photos to register in Cloud Firestore',
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 24),
@@ -299,18 +301,46 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                   child: Padding(
                     padding: EdgeInsets.only(top: 6.0),
                     child: Text(
-                      'Profile Photo(Optional)',
+                      'Profile Photo / Selfie (Optional)',
                       style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
 
+                // Unique Username Field
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Unique Username (e.g. worker786) *',
+                    prefixIcon: Icon(Icons.alternate_email),
+                    hintText: 'Must include letters & numbers (e.g. usman001)',
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter a unique username';
+                    }
+                    String clean = val.trim();
+                    if (clean.length < 3 || clean.length > 20) {
+                      return 'Username must be 3-20 characters';
+                    }
+                    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(clean)) {
+                      return 'Username must contain only letters and numbers';
+                    }
+                    if (!RegExp(r'[a-zA-Z]').hasMatch(clean) ||
+                        !RegExp(r'[0-9]').hasMatch(clean)) {
+                      return 'Username must include both letters and numbers (e.g. worker786)';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
                 // Pura Naam (Full Name)
                 TextFormField(
                   controller: _fullNameController,
                   decoration: const InputDecoration(
-                    labelText: 'Full Name *',
+                    labelText: 'Pura Naam (Full Name) *',
                     prefixIcon: Icon(Icons.person_outline),
                   ),
                   validator: (val) {
@@ -326,12 +356,12 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _fatherNameController,
                   decoration: const InputDecoration(
-                    labelText: "Father Name *",
+                    labelText: "Walid ka Naam (Father's Name) *",
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Please enter Father Name';
+                      return 'Please enter Father\'s Name';
                     }
                     return null;
                   },
@@ -377,9 +407,9 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _addressController,
                   decoration: const InputDecoration(
-                    labelText: 'Current Address *',
+                    labelText: 'Mojuda Pata (Current Address / City) *',
                     prefixIcon: Icon(Icons.location_on_outlined),
-                    hintText: 'e.g. Gujranwala',
+                    hintText: 'e.g. Gulberg III, Lahore',
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
@@ -412,7 +442,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 DropdownButtonFormField<String>(
                   initialValue: _selectedCategoryId,
                   decoration: const InputDecoration(
-                    labelText: 'Main Skill *',
+                    labelText: 'Peshwarana Hunar (Main Skill/Trade) *',
                     prefixIcon: Icon(Icons.work_outline),
                   ),
                   items: _categories.map((cat) {
@@ -437,7 +467,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 DropdownButtonFormField<int>(
                   initialValue: _selectedExperienceYears,
                   decoration: const InputDecoration(
-                    labelText: 'Experience *',
+                    labelText: 'Tajurba (Experience) *',
                     prefixIcon: Icon(Icons.history_edu),
                   ),
                   items: _experienceLevels.map((exp) {

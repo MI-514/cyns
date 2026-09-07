@@ -16,6 +16,7 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -39,6 +40,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool success = await authProvider.registerUser(
       email: _emailController.text,
       password: _passwordController.text,
+      username: _usernameController.text,
       fullName: _nameController.text,
       phoneNumber: _phoneController.text,
       role: _role,
@@ -128,11 +130,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 24),
 
+                // Unique Username Field
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Unique Username (e.g. john123) *',
+                    prefixIcon: Icon(Icons.alternate_email),
+                    hintText: 'Must include letters & numbers (e.g. ahmed786)',
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter a unique username';
+                    }
+                    String clean = val.trim();
+                    if (clean.length < 3 || clean.length > 20) {
+                      return 'Username must be 3-20 characters';
+                    }
+                    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(clean)) {
+                      return 'Username must contain only letters and numbers';
+                    }
+                    if (!RegExp(r'[a-zA-Z]').hasMatch(clean) ||
+                        !RegExp(r'[0-9]').hasMatch(clean)) {
+                      return 'Username must include both letters and numbers (e.g. john123)';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
                 // Full Name
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
-                    labelText: 'Full Name',
+                    labelText: 'Full Name *',
                     prefixIcon: Icon(Icons.person_outline),
                   ),
                   validator: (val) {
@@ -149,7 +179,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Email Address',
+                    labelText: 'Email Address *',
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (val) {
@@ -167,7 +197,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    labelText: 'Phone Number',
+                    labelText: 'Phone Number *',
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                   validator: (val) {
@@ -184,7 +214,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: 'Password *',
                     prefixIcon: const Icon(Icons.lock_outlined),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -211,7 +241,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _confirmPasswordController,
                   obscureText: _obscurePassword,
                   decoration: const InputDecoration(
-                    labelText: 'Confirm Password',
+                    labelText: 'Confirm Password *',
                     prefixIcon: Icon(Icons.lock_clock_outlined),
                   ),
                   validator: (val) {

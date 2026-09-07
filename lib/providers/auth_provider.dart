@@ -44,6 +44,7 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> registerUser({
     required String email,
     required String password,
+    required String username,
     required String fullName,
     required String phoneNumber,
     required String role,
@@ -56,6 +57,7 @@ class AuthProvider extends ChangeNotifier {
       await _authRepository.registerUser(
         email: email,
         password: password,
+        username: username,
         fullName: fullName,
         phoneNumber: phoneNumber,
         role: role,
@@ -75,10 +77,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Advanced Worker Registration with Father Name, Address, Skill Trade, Experience, CNIC
+  // Advanced Worker Registration with Unique Alphanumeric Username Check
   Future<bool> registerWorkerAdvanced({
     required String email,
     required String password,
+    required String username,
     required String fullName,
     required String fatherName,
     required String phoneNumber,
@@ -99,6 +102,7 @@ class AuthProvider extends ChangeNotifier {
       await _authRepository.registerWorkerAdvanced(
         email: email,
         password: password,
+        username: username,
         fullName: fullName,
         fatherName: fatherName,
         phoneNumber: phoneNumber,
@@ -130,6 +134,7 @@ class AuthProvider extends ChangeNotifier {
     _userModel = UserModel(
       uid: guestUid,
       email: '$role.guest@cyns.app',
+      username: 'guest_${DateTime.now().millisecondsSinceEpoch}',
       fullName: '${role == "worker" ? "Worker" : "Customer"} Guest',
       phoneNumber: '+923000000000',
       role: role,
