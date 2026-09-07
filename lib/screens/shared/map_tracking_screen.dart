@@ -9,6 +9,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/firestore_collections.dart';
 import '../../core/services/location_service.dart';
 import '../../data/models/service_request_model.dart';
+import 'agora_call_screen.dart';
 import 'chat_screen.dart';
 
 class MapTrackingScreen extends StatefulWidget {
@@ -172,6 +173,118 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     );
 
     if (mounted) setState(() {});
+  }
+
+  void _showCallChoiceModal(BuildContext context, ServiceRequestModel req) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.call, color: AppColors.primaryNavy, size: 28),
+                const SizedBox(width: 10),
+                Text(
+                  'Call ${req.workerName}',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryNavy,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Select how you want to call and talk with the worker:',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+
+            // Option 1: In-App Voice Call (Agora VoIP)
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
+                child: const Icon(Icons.phone_in_talk, color: AppColors.primaryNavy),
+              ),
+              title: const Text('In-App Internet Voice Call',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Free internet call inside CYN App'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AgoraCallScreen(
+                      channelId: req.id,
+                      peerName: req.workerName,
+                      peerRole: 'worker',
+                      isVideoCall: false,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const Divider(),
+
+            // Option 2: In-App Video Call (Agora Video)
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
+                child: const Icon(Icons.videocam, color: AppColors.primaryNavy),
+              ),
+              title: const Text('In-App Video Call',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Live video camera to show issue to worker'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AgoraCallScreen(
+                      channelId: req.id,
+                      peerName: req.workerName,
+                      peerRole: 'worker',
+                      isVideoCall: true,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const Divider(),
+
+            // Option 3: Direct Phone Call (Cellular Dialer)
+            if (req.workerPhone.isNotEmpty)
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.availableGreen.withValues(alpha: 0.15),
+                  child: const Icon(Icons.phone, color: AppColors.availableGreen),
+                ),
+                title: const Text('Direct Phone Number Call',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text('Call ${req.workerPhone} via SIM'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final Uri telUri = Uri(scheme: 'tel', path: req.workerPhone);
+                  if (await canLaunchUrl(telUri)) {
+                    await launchUrl(telUri);
+                  }
+                },
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -381,7 +494,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             ),
           ),
 
-          // Bottom Action Bar for Chat & Phone Call
+          // Bottom Action Bar for Chat & Call Options
           Positioned(
             bottom: 20,
             left: 14,
@@ -427,13 +540,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                         ),
                         icon: const Icon(Icons.phone),
                         label: const Text('Call Worker'),
-                        onPressed: () async {
-                          final Uri telUri =
-                              Uri(scheme: 'tel', path: req.workerPhone);
-                          if (await canLaunchUrl(telUri)) {
-                            await launchUrl(telUri);
-                          }
-                        },
+                        onPressed: () => _showCallChoiceModal(context, req),
                       ),
                     ),
                   ],
