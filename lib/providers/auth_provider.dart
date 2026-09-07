@@ -28,17 +28,10 @@ class AuthProvider extends ChangeNotifier {
     String? savedRole = prefs.getString('user_role');
 
     if (isGuest && savedRole != null) {
-      String uid = savedRole == 'worker'
-          ? 'guest_worker_id'
-          : savedRole == 'admin'
-              ? 'guest_admin_id'
-              : 'guest_customer_id';
+      String uid =
+          savedRole == 'worker' ? 'guest_worker_id' : 'guest_customer_id';
 
-      String name = savedRole == 'worker'
-          ? 'Guest Worker'
-          : savedRole == 'admin'
-              ? 'Guest Admin'
-              : 'Guest Customer';
+      String name = savedRole == 'worker' ? 'Guest Worker' : 'Guest Customer';
 
       _userModel = UserModel(
         uid: uid,
@@ -75,17 +68,9 @@ class AuthProvider extends ChangeNotifier {
     _state = AuthState.loading;
     notifyListeners();
 
-    String uid = role == 'worker'
-        ? 'guest_worker_id'
-        : role == 'admin'
-            ? 'guest_admin_id'
-            : 'guest_customer_id';
+    String uid = role == 'worker' ? 'guest_worker_id' : 'guest_customer_id';
 
-    String name = role == 'worker'
-        ? 'Guest Worker'
-        : role == 'admin'
-            ? 'Guest Admin'
-            : 'Guest Customer';
+    String name = role == 'worker' ? 'Guest Worker' : 'Guest Customer';
 
     _userModel = UserModel(
       uid: uid,

@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
-import '../admin/admin_dashboard_screen.dart';
 import '../customer/customer_dashboard_screen.dart';
 import '../worker/worker_dashboard_screen.dart';
 import 'login_screen.dart';
@@ -22,12 +21,6 @@ class RoleSelectionScreen extends StatelessWidget {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const WorkerDashboardScreen()),
-        (route) => false,
-      );
-    } else if (role == 'admin') {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
         (route) => false,
       );
     } else {
@@ -159,15 +152,6 @@ class RoleSelectionScreen extends StatelessWidget {
                       onPressed: () => _loginGuest(context, AppConstants.roleWorker),
                       icon: const Icon(Icons.engineering, size: 18),
                       label: const Text('Test as Guest Worker'),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton.icon(
-                      onPressed: () => _loginGuest(context, 'admin'),
-                      icon: const Icon(Icons.admin_panel_settings, size: 18, color: Colors.deepOrange),
-                      label: const Text(
-                        'Test as Guest Admin',
-                        style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold),
-                      ),
                     ),
                   ],
                 ),
