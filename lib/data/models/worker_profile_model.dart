@@ -2,8 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class WorkerProfileModel {
   final String workerId;
+  final String username;
   final String name;
+  final String fatherName;
   final String phoneNumber;
+  final String address;
+  final String cnicNumber;
   final String profilePicUrl;
   final String profession;
   final List<String> categoryIds;
@@ -22,8 +26,12 @@ class WorkerProfileModel {
 
   WorkerProfileModel({
     required this.workerId,
+    this.username = '',
     required this.name,
+    this.fatherName = '',
     required this.phoneNumber,
+    this.address = '',
+    this.cnicNumber = '',
     this.profilePicUrl = '',
     required this.profession,
     required this.categoryIds,
@@ -44,8 +52,12 @@ class WorkerProfileModel {
   Map<String, dynamic> toMap() {
     return {
       'workerId': workerId,
+      'username': username,
       'name': name,
+      'fatherName': fatherName,
       'phoneNumber': phoneNumber,
+      'address': address,
+      'cnicNumber': cnicNumber,
       'profilePicUrl': profilePicUrl,
       'profession': profession,
       'categoryIds': categoryIds,
@@ -67,15 +79,19 @@ class WorkerProfileModel {
   factory WorkerProfileModel.fromMap(Map<String, dynamic> map, String docId) {
     return WorkerProfileModel(
       workerId: docId,
+      username: map['username'] ?? '',
       name: map['name'] ?? '',
+      fatherName: map['fatherName'] ?? '',
       phoneNumber: map['phoneNumber'] ?? '',
+      address: map['address'] ?? '',
+      cnicNumber: map['cnicNumber'] ?? '',
       profilePicUrl: map['profilePicUrl'] ?? '',
       profession: map['profession'] ?? '',
       categoryIds: List<String>.from(map['categoryIds'] ?? []),
       skills: List<String>.from(map['skills'] ?? []),
       experienceYears: map['experienceYears'] ?? 1,
       serviceDescription: map['serviceDescription'] ?? '',
-      workingArea: map['workingArea'] ?? '',
+      workingArea: map['workingArea'] ?? map['address'] ?? '',
       isAvailable: map['isAvailable'] ?? true,
       latitude: (map['latitude'] as num?)?.toDouble(),
       longitude: (map['longitude'] as num?)?.toDouble(),
