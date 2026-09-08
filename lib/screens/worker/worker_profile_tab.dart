@@ -109,7 +109,7 @@ class WorkerProfileTab extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Service Provider Details',
+                    'Worker Details',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -127,7 +127,7 @@ class WorkerProfileTab extends StatelessWidget {
                   ),
                   _WorkerDetailRow(
                     icon: Icons.badge_outlined,
-                    label: "Walid ka Naam (Father's Name)",
+                    label: 'Father Name',
                     value: worker?.fatherName.isNotEmpty == true
                         ? worker!.fatherName
                         : 'N/A',
@@ -143,12 +143,12 @@ class WorkerProfileTab extends StatelessWidget {
                   ),
                   _WorkerDetailRow(
                     icon: Icons.work_outline,
-                    label: 'Peshwarana Hunar (Main Skill)',
+                    label: 'Main Skill',
                     value: worker?.profession ?? 'N/A',
                   ),
                   _WorkerDetailRow(
                     icon: Icons.history_edu,
-                    label: 'Tajurba (Experience)',
+                    label: 'Experience',
                     value: '${worker?.experienceYears ?? 1} Years',
                   ),
                   _WorkerDetailRow(
@@ -165,7 +165,7 @@ class WorkerProfileTab extends StatelessWidget {
                   ),
                   _WorkerDetailRow(
                     icon: Icons.location_on_outlined,
-                    label: 'Mojuda Pata (Current Address)',
+                    label: 'Current Address',
                     value: worker?.address.isNotEmpty == true
                         ? worker!.address
                         : worker?.workingArea ?? 'N/A',

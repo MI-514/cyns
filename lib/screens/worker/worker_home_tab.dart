@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/models/service_request_model.dart';
+import '../../data/models/worker_profile_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/service_request_provider.dart';
 import '../../providers/worker_provider.dart';
 import 'active_job_screen.dart';
@@ -11,16 +13,35 @@ import 'active_job_screen.dart';
 class WorkerHomeTab extends StatelessWidget {
   const WorkerHomeTab({super.key});
 
+  String _getFirstName(String fullName) {
+    String clean = fullName.trim();
+    if (clean.isNotEmpty && !clean.contains('@')) {
+      return clean.split(' ').first;
+    }
+    return 'Worker';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
     final workerProvider = Provider.of<WorkerProvider>(context);
     final requestProvider = Provider.of<ServiceRequestProvider>(context);
 
-    final worker = workerProvider.currentWorkerProfile;
-
-    if (worker == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    // Fallback profile if loading or uninitialized so screen renders instantly!
+    final worker = workerProvider.currentWorkerProfile ??
+        WorkerProfileModel(
+          workerId: auth.userModel?.uid ?? 'worker_id',
+          name: auth.userModel?.fullName.isNotEmpty == true
+              ? auth.userModel!.fullName
+              : 'Worker',
+          phoneNumber: auth.userModel?.phoneNumber ?? '',
+          profession: 'Skilled Worker',
+          categoryIds: ['plumber'],
+          skills: ['Plumbing'],
+          serviceDescription: 'Skilled worker available for doorstep service.',
+          workingArea: 'City Wide',
+          isAvailable: true,
+        );
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -55,7 +76,7 @@ class WorkerHomeTab extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              'Hello, ${worker.name}',
+                              'Hello, ${_getFirstName(worker.name)}',
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: AppColors.pureWhite,
@@ -299,64 +320,28 @@ class WorkerHomeTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: AppColors.dividerColor),
                   ),
-                  child: Center(
+                  child: const Center(
                     child: Column(
                       children: [
-                        const Icon(Icons.inbox_rounded,
+                        Icon(Icons.work_off_outlined,
                             size: 52, color: AppColors.textLight),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'No new pending requests right now.',
+                        SizedBox(height: 10),
+                        Text(
+                          'No new jobs available right now.',
                           style: TextStyle(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
+                        SizedBox(height: 4),
+                        Text(
                           'Stay online to receive instant doorstep job offers.',
                           style: TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 12,
                           ),
                         ),
-                        if (worker.workerId.contains('guest')) ...[
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryNavy,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                            ),
-                            icon: const Icon(Icons.bolt, size: 18),
-                            label: const Text(
-                              '⚡ Create Test Job Request',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            onPressed: () async {
-                              final req = ServiceRequestModel(
-                                id: 'req_test_${DateTime.now().millisecondsSinceEpoch}',
-                                customerId: 'guest_customer_cyn',
-                                customerName: 'Ali Raza (Guest Customer)',
-                                customerPhone: '+923009876543',
-                                workerId: worker.workerId,
-                                workerName: worker.name,
-                                workerPhone: worker.phoneNumber,
-                                categoryId: 'plumber',
-                                categoryName: 'Plumbing Service',
-                                problemDescription:
-                                    'Urgent: Kitchen sink pipe leaking water on floor. Need immediate repair.',
-                                customerLat: 31.5204,
-                                customerLng: 74.3587,
-                                customerAddress:
-                                    'House #42, Block B, Gulberg III, Lahore',
-                                status: AppConstants.statusPending,
-                              );
-                              await requestProvider.createRequest(req);
-                            },
-                          ),
-                        ],
                       ],
                     ),
                   ),

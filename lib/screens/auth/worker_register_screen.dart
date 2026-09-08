@@ -358,12 +358,12 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _fatherNameController,
                   decoration: const InputDecoration(
-                    labelText: "Walid ka Naam (Father's Name) *",
+                    labelText: "Father Name *",
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Please enter Father\'s Name';
+                      return 'Please enter Father Name';
                     }
                     return null;
                   },
@@ -409,7 +409,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _addressController,
                   decoration: const InputDecoration(
-                    labelText: 'Mojuda Pata (Current Address / City) *',
+                    labelText: 'Current Address *',
                     prefixIcon: Icon(Icons.location_on_outlined),
                     hintText: 'e.g. Gulberg III, Lahore',
                   ),
@@ -445,7 +445,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Peshwarana Hunar (Skill Categories) *',
+                      'Main Skill *',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -497,7 +497,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 DropdownButtonFormField<int>(
                   initialValue: _selectedExperienceYears,
                   decoration: const InputDecoration(
-                    labelText: 'Tajurba (Experience) *',
+                    labelText: 'Experience *',
                     prefixIcon: Icon(Icons.history_edu),
                   ),
                   items: _experienceLevels.map((exp) {
