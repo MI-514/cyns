@@ -145,20 +145,42 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Strict Role-Validated User Login
   Future<bool> loginUser({
     required String email,
     required String password,
+    required String expectedRole,
   }) async {
     try {
       _state = AuthState.loading;
       _errorMessage = '';
       notifyListeners();
 
-      _userModel = await _authRepository.loginUser(
+      UserModel user = await _authRepository.loginUser(
         email: email,
         password: password,
       );
 
+      // STRICT ROLE VALIDATION: Verify registered role matches the login screen role!
+      if (user.role != expectedRole) {
+        await _authRepository.logout();
+        _userModel = null;
+        _state = AuthState.unauthenticated;
+
+        if (user.role == 'customer') {
+          _errorMessage =
+              'Access Denied: This account is registered as a Customer / Employer. Please switch to Customer Sign In.';
+        } else if (user.role == 'worker') {
+          _errorMessage =
+              'Access Denied: This account is registered as a Worker / Service Provider. Please switch to Worker Sign In.';
+        } else {
+          _errorMessage = 'Access Denied: Role mismatch for this account.';
+        }
+        notifyListeners();
+        return false;
+      }
+
+      _userModel = user;
       _state = AuthState.authenticated;
       notifyListeners();
       return true;
