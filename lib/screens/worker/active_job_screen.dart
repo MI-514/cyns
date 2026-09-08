@@ -9,6 +9,7 @@ import '../../data/models/service_request_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/service_request_provider.dart';
+import '../shared/agora_call_screen.dart';
 import '../shared/chat_screen.dart';
 import '../shared/map_tracking_screen.dart';
 
@@ -20,12 +21,116 @@ class ActiveJobScreen extends StatefulWidget {
 }
 
 class _ActiveJobScreenState extends State<ActiveJobScreen> {
-  void _callCustomer(BuildContext context, String phone) async {
-    if (phone.isEmpty) return;
-    final Uri url = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    }
+  void _showCallChoiceModal(BuildContext context, ServiceRequestModel job) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.call, color: AppColors.primaryNavy, size: 28),
+                const SizedBox(width: 10),
+                Text(
+                  'Call ${job.customerName}',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryNavy,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Select how you want to call and talk with the employer:',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+
+            // Option 1: In-App Voice Call (Agora VoIP)
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
+                child: const Icon(Icons.phone_in_talk, color: AppColors.primaryNavy),
+              ),
+              title: const Text('In-App Internet Voice Call',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Free internet call inside CYN App'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AgoraCallScreen(
+                      channelId: job.id,
+                      peerName: job.customerName,
+                      peerRole: 'customer',
+                      isVideoCall: false,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const Divider(),
+
+            // Option 2: In-App Video Call (Agora Video)
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
+                child: const Icon(Icons.videocam, color: AppColors.primaryNavy),
+              ),
+              title: const Text('In-App Video Call',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Live video camera call with employer'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AgoraCallScreen(
+                      channelId: job.id,
+                      peerName: job.customerName,
+                      peerRole: 'customer',
+                      isVideoCall: true,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const Divider(),
+
+            // Option 3: Direct Phone Call (Cellular Dialer)
+            if (job.customerPhone.isNotEmpty)
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.availableGreen.withValues(alpha: 0.15),
+                  child: const Icon(Icons.phone, color: AppColors.availableGreen),
+                ),
+                title: const Text('Direct Phone Number Call',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text('Call ${job.customerPhone} via SIM'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final Uri telUri = Uri(scheme: 'tel', path: job.customerPhone);
+                  if (await canLaunchUrl(telUri)) {
+                    await launchUrl(telUri);
+                  }
+                },
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -314,9 +419,9 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.call),
-                      label: const Text('Call'),
+                      label: const Text('Call Customer'),
                       onPressed: () =>
-                          _callCustomer(context, activeJob.customerPhone),
+                          _showCallChoiceModal(context, activeJob),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -332,6 +437,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                               requestId: activeJob.id,
                               peerName: activeJob.customerName,
                               peerRole: 'customer',
+                              peerPhone: activeJob.customerPhone,
                             ),
                           ),
                         );
