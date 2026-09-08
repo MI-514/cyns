@@ -255,14 +255,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     GestureDetector(
                       onTap: () {
                         if (_role == AppConstants.roleWorker) {
-                          Navigator.pushReplacement(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => const WorkerRegisterScreen(),
                             ),
                           );
                         } else {
-                          Navigator.pushReplacement(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => RegisterScreen(selectedRole: _role),

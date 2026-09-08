@@ -66,9 +66,9 @@ class RoleSelectionScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
-              // Customer / Employer Option Card
+              // Customer Option Card
               _RoleCard(
-                title: 'Customer / Employer',
+                title: 'Customer',
                 description:
                     'Find nearby plumbers, electricians, mechanics and hire skilled workers easily.',
                 icon: Icons.person_search,
@@ -84,9 +84,9 @@ class RoleSelectionScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Worker / Service Provider Option Card
+              // Worker Option Card
               _RoleCard(
-                title: 'Worker / Service Provider',
+                title: 'Worker',
                 description:
                     'Offer your skills, manage availability, receive nearby service requests, and grow your work.',
                 icon: Icons.engineering,

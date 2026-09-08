@@ -169,10 +169,10 @@ class AuthProvider extends ChangeNotifier {
 
         if (user.role == 'customer') {
           _errorMessage =
-              'Access Denied: This account is registered as a Customer / Employer. Please switch to Customer Sign In.';
+              'Access Denied: This account is registered as a Customer. Please switch to Customer Sign In.';
         } else if (user.role == 'worker') {
           _errorMessage =
-              'Access Denied: This account is registered as a Worker / Service Provider. Please switch to Worker Sign In.';
+              'Access Denied: This account is registered as a Worker. Please switch to Worker Sign In.';
         } else {
           _errorMessage = 'Access Denied: Role mismatch for this account.';
         }

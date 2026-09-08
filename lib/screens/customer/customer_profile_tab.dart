@@ -71,7 +71,7 @@ class CustomerProfileTab extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Employer Profile Details',
+                    'Customer Profile Details',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -103,7 +103,7 @@ class CustomerProfileTab extends StatelessWidget {
                   const _ProfileDetailRow(
                     icon: Icons.badge_outlined,
                     label: 'Account Role',
-                    value: 'Customer / Employer',
+                    value: 'Customer',
                   ),
                 ],
               ),

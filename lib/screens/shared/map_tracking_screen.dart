@@ -195,7 +195,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         markerId: const MarkerId('customer'),
         position: LatLng(_cLat, _cLng),
         infoWindow: InfoWindow(
-          title: 'Employer Doorstep Location',
+          title: 'Customer Doorstep Location',
           snippet: widget.request.customerAddress,
         ),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
@@ -209,7 +209,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         position: LatLng(_wLat, _wLng),
         infoWindow: InfoWindow(
           title: 'Worker Location (${widget.request.workerName})',
-          snippet: 'En Route to Employer',
+          snippet: 'En Route to Customer',
         ),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ),

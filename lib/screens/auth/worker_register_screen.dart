@@ -197,7 +197,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
           icon: const Icon(Icons.check_circle, size: 52, color: AppColors.availableGreen),
           title: const Text('Registration Successful!'),
           content: const Text(
-            'Your Service Provider account has been created and saved in Cloud Firestore.\nYou can now sign in with your registered email and password.',
+            'Your Worker account has been created and saved in Cloud Firestore.\nYou can now sign in with your registered email and password.',
             textAlign: TextAlign.center,
           ),
           actions: [
@@ -250,7 +250,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'Join as Service Provider / Worker',
+                  'Join as Worker',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -636,14 +636,18 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                     const Text('Already registered? '),
                     GestureDetector(
                       onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const LoginScreen(
-                              selectedRole: AppConstants.roleWorker,
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        } else {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(
+                                selectedRole: AppConstants.roleWorker,
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        }
                       },
                       child: const Text(
                         'Sign In',

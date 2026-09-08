@@ -49,7 +49,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Select how you want to call and talk with the employer:',
+              'Select how you want to call and talk with the customer:',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 20),
@@ -89,7 +89,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
               ),
               title: const Text('In-App Video Call',
                   style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Live video camera call with employer'),
+              subtitle: const Text('Live video camera call with customer'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Navigator.pop(ctx);
