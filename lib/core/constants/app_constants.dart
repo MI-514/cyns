@@ -85,12 +85,6 @@ class AppConstants {
       'icon': 'devices',
     },
     {
-      'id': 'appliance_repair',
-      'name': 'Appliance Repair',
-      'description': 'Microwave, oven, water heater & general home electronics.',
-      'icon': 'home_repair_service',
-    },
-    {
       'id': 'welder',
       'name': 'Welder',
       'description': 'Iron gate, steel grill & structural metal welding.',
