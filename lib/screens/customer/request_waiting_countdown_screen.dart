@@ -259,7 +259,7 @@ class _RequestWaitingCountdownScreenState
       categoryId: widget.request.categoryId,
       categoryName: nextWorker.profession,
       problemDescription:
-          'InDrive-Style Auto Hiring Offer for ${nextWorker.profession}',
+          'Hiring Offer for ${nextWorker.profession}',
       customerLat: widget.request.customerLat,
       customerLng: widget.request.customerLng,
       customerAddress: widget.request.customerAddress,
@@ -343,7 +343,7 @@ class _RequestWaitingCountdownScreenState
                     Icon(Icons.autorenew, color: AppColors.pureWhite, size: 16),
                     SizedBox(width: 6),
                     Text(
-                      'INDRIVE-STYLE AUTO DISPATCH',
+                      'CYN AUTO DISPATCH',
                       style: TextStyle(
                         color: AppColors.pureWhite,
                         fontSize: 11,
