@@ -59,11 +59,16 @@ class NotificationCenterScreen extends StatelessWidget {
                   d.data() as Map<String, dynamic>, d.id))
               .toList();
 
+          // Sort notifications newest first
+          notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: notifications.length,
             itemBuilder: (context, index) {
               final notif = notifications[index];
+              final relatedId = notif.relatedId;
+
               return Card(
                 margin: const EdgeInsets.only(bottom: 10),
                 child: ListTile(
@@ -81,12 +86,12 @@ class NotificationCenterScreen extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right_rounded,
                       color: AppColors.textLight),
                   onTap: () {
-                    if (notif.relatedId.isNotEmpty) {
+                    if (relatedId != null && relatedId.isNotEmpty) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => CustomerRequestStatusScreen(
-                            requestId: notif.relatedId,
+                            requestId: relatedId,
                           ),
                         ),
                       );
