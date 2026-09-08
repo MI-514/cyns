@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -49,7 +48,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     _startContinuousLiveWorkerNavigation();
   }
 
-  /// Continuous Automatic Live Navigation (Uber/Careem/InDrive style continuous movement)
+  /// Continuous Automatic Live Navigation (Uber/Careem style continuous movement)
   void _startContinuousLiveWorkerNavigation() {
     _autoMovementTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (!mounted) {
@@ -251,9 +250,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                 const Icon(Icons.call, color: AppColors.primaryNavy, size: 28),
                 const SizedBox(width: 10),
                 Text(
-                  'Call ${req.workerName}',
+                  'In-App Calling (${req.workerName})',
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryNavy,
                   ),
@@ -262,7 +261,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Select how you want to call and talk with the worker:',
+              'Communication is kept 100% private & secure inside CYN App:',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 20),
@@ -302,7 +301,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
               ),
               title: const Text('In-App Video Call',
                   style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Live video camera to show issue to worker'),
+              subtitle: const Text('Live video camera call inside CYN App'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Navigator.pop(ctx);
@@ -319,27 +318,6 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                 );
               },
             ),
-            const Divider(),
-
-            // Option 3: Direct Phone Call (Cellular Dialer)
-            if (req.workerPhone.isNotEmpty)
-              ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.availableGreen.withValues(alpha: 0.15),
-                  child: const Icon(Icons.phone, color: AppColors.availableGreen),
-                ),
-                title: const Text('Direct Phone Number Call',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('Call ${req.workerPhone} via SIM'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  final Uri telUri = Uri(scheme: 'tel', path: req.workerPhone);
-                  if (await canLaunchUrl(telUri)) {
-                    await launchUrl(telUri);
-                  }
-                },
-              ),
           ],
         ),
       ),
@@ -389,7 +367,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             },
           ),
 
-          // Top Info Banner Card (Spacious, Wider, & Prominent)
+          // Top Info Banner Card
           Positioned(
             top: 16,
             left: 14,
@@ -583,7 +561,6 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                                 requestId: req.id,
                                 peerName: req.workerName,
                                 peerRole: 'worker',
-                                peerPhone: req.workerPhone,
                               ),
                             ),
                           );

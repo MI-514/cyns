@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/models/service_request_model.dart';
 import '../../providers/service_request_provider.dart';
+import '../shared/agora_call_screen.dart';
 import '../shared/chat_screen.dart';
 import '../shared/map_tracking_screen.dart';
 import 'rating_review_screen.dart';
@@ -38,18 +38,18 @@ class CustomerRequestStatusScreen extends StatelessWidget {
     }
   }
 
-  void _callWorker(BuildContext context, String phone) async {
-    if (phone.isEmpty) return;
-    final Uri url = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open phone dialer.')),
-        );
-      }
-    }
+  void _callWorkerInApp(BuildContext context, ServiceRequestModel req) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AgoraCallScreen(
+          channelId: req.id,
+          peerName: req.workerName,
+          peerRole: 'worker',
+          isVideoCall: false,
+        ),
+      ),
+    );
   }
 
   @override
@@ -125,7 +125,7 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                 _StatusStepper(currentStatus: req.status),
                 const SizedBox(height: 24),
 
-                // Worker Details Card
+                // Worker Details Card (Phone Number Protected)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -162,12 +162,20 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                                       fontSize: 16,
                                     ),
                                   ),
-                                  Text(
-                                    req.workerPhone,
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 13,
-                                    ),
+                                  const SizedBox(height: 2),
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.security, size: 14, color: AppColors.availableGreen),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Contact: Privacy Protected',
+                                        style: TextStyle(
+                                          color: AppColors.accentBlue,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -231,8 +239,7 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                         child: OutlinedButton.icon(
                           icon: const Icon(Icons.call),
                           label: const Text('Call Worker'),
-                          onPressed: () =>
-                              _callWorker(context, req.workerPhone),
+                          onPressed: () => _callWorkerInApp(context, req),
                         ),
                       ),
                       const SizedBox(width: 12),

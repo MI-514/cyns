@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -38,9 +37,9 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                 const Icon(Icons.call, color: AppColors.primaryNavy, size: 28),
                 const SizedBox(width: 10),
                 Text(
-                  'Call ${job.customerName}',
+                  'In-App Calling (${job.customerName})',
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryNavy,
                   ),
@@ -49,7 +48,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Select how you want to call and talk with the customer:',
+              'Communication is kept 100% private & secure inside CYN App:',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 20),
@@ -89,7 +88,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
               ),
               title: const Text('In-App Video Call',
                   style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Live video camera call with customer'),
+              subtitle: const Text('Live video camera call inside CYN App'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Navigator.pop(ctx);
@@ -106,27 +105,6 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                 );
               },
             ),
-            const Divider(),
-
-            // Option 3: Direct Phone Call (Cellular Dialer)
-            if (job.customerPhone.isNotEmpty)
-              ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.availableGreen.withValues(alpha: 0.15),
-                  child: const Icon(Icons.phone, color: AppColors.availableGreen),
-                ),
-                title: const Text('Direct Phone Number Call',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('Call ${job.customerPhone} via SIM'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  final Uri telUri = Uri(scheme: 'tel', path: job.customerPhone);
-                  if (await canLaunchUrl(telUri)) {
-                    await launchUrl(telUri);
-                  }
-                },
-              ),
           ],
         ),
       ),
@@ -226,7 +204,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Customer Details
+              // Customer Details Card (Phone Number Protected)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -245,7 +223,20 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                       Text('Name: ${activeJob.customerName}',
                           style: const TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      Text('Phone: ${activeJob.customerPhone}'),
+                      const Row(
+                        children: [
+                          Icon(Icons.security, size: 16, color: AppColors.availableGreen),
+                          SizedBox(width: 4),
+                          Text(
+                            'Contact: Privacy Protected (In-App Call & Chat Enabled)',
+                            style: TextStyle(
+                              color: AppColors.accentBlue,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -437,7 +428,6 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                               requestId: activeJob.id,
                               peerName: activeJob.customerName,
                               peerRole: 'customer',
-                              peerPhone: activeJob.customerPhone,
                             ),
                           ),
                         );
