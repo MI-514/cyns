@@ -10,6 +10,14 @@ import '../../providers/worker_provider.dart';
 class WorkerHomeTab extends StatelessWidget {
   const WorkerHomeTab({super.key});
 
+  String _getFirstName(String fullName) {
+    String clean = fullName.trim();
+    if (clean.isNotEmpty && !clean.contains('@')) {
+      return clean.split(' ').first;
+    }
+    return 'Worker';
+  }
+
   @override
   Widget build(BuildContext context) {
     final workerProvider = Provider.of<WorkerProvider>(context);
@@ -26,7 +34,7 @@ class WorkerHomeTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Availability Header Card
+          // Availability Header Card displaying Worker First Name only
           Card(
             color: AppColors.primaryNavy,
             child: Padding(
@@ -38,7 +46,7 @@ class WorkerHomeTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Hello, ${worker.name} 🛠️',
+                          'Hello, ${_getFirstName(worker.name)} 🛠️',
                           style: const TextStyle(
                             color: AppColors.pureWhite,
                             fontSize: 18,

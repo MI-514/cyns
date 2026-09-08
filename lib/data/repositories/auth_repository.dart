@@ -72,24 +72,23 @@ class AuthRepository {
       );
 
       // Save user doc in Firestore
-      _firestore
+      await _firestore
           .collection(FirestoreCollections.users)
           .doc(uid)
-          .set(userModel.toMap())
-          .catchError((_) {});
+          .set(userModel.toMap());
 
       if (role == 'customer') {
-        _firestore
+        await _firestore
             .collection(FirestoreCollections.customers)
             .doc(uid)
             .set({
           'customerId': uid,
           'username': cleanUsername,
-          'name': fullName,
-          'phoneNumber': phoneNumber,
+          'name': fullName.trim(),
+          'phoneNumber': phoneNumber.trim(),
           'profilePicUrl': '',
           'address': '',
-        }).catchError((_) {});
+        });
       }
 
       return userModel;
@@ -224,13 +223,13 @@ class AuthRepository {
 
       String uid = cred.user!.uid;
 
-      // Fast Firestore document fetch
+      // Always fetch real Firestore User document
       try {
         DocumentSnapshot doc = await _firestore
             .collection(FirestoreCollections.users)
             .doc(uid)
             .get()
-            .timeout(const Duration(seconds: 2));
+            .timeout(const Duration(seconds: 4));
 
         if (doc.exists && doc.data() != null) {
           return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
@@ -245,7 +244,7 @@ class AuthRepository {
         uid: uid,
         email: cred.user!.email ?? email.trim(),
         username: email.split('@').first,
-        fullName: cred.user!.displayName ?? email.split('@').first,
+        fullName: cred.user!.displayName ?? 'User',
         phoneNumber: cred.user!.phoneNumber ?? '',
         role: inferredRole,
       );
@@ -278,7 +277,7 @@ class AuthRepository {
           .collection(FirestoreCollections.users)
           .doc(uid)
           .get()
-          .timeout(const Duration(seconds: 2));
+          .timeout(const Duration(seconds: 4));
       if (doc.exists && doc.data() != null) {
         return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }

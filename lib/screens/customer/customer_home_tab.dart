@@ -20,12 +20,8 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
 
   String _getFirstName(AuthProvider auth) {
     String full = auth.userModel?.fullName.trim() ?? '';
-    if (full.isNotEmpty) {
+    if (full.isNotEmpty && !full.contains('@')) {
       return full.split(' ').first;
-    }
-    String email = auth.userModel?.email.trim() ?? '';
-    if (email.isNotEmpty) {
-      return email.split('@').first;
     }
     return 'Customer';
   }
@@ -50,7 +46,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header displaying Customer First Name only
+          // Header displaying Customer First Name strictly from form
           Row(
             children: [
               CircleAvatar(
