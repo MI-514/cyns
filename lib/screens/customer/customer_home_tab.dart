@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_constants.dart';
 import '../../data/models/category_model.dart';
+import '../../data/models/service_request_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/category_provider.dart';
+import '../../providers/service_request_provider.dart';
+import 'customer_request_status_screen.dart';
 import 'worker_list_screen.dart';
 
 class CustomerHomeTab extends StatefulWidget {
@@ -30,6 +34,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final categoryProvider = Provider.of<CategoryProvider>(context);
+    final requestProvider = Provider.of<ServiceRequestProvider>(context);
 
     // Filter categories based on search input
     List<CategoryModel> displayedCategories = categoryProvider.categories;
@@ -71,7 +76,103 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+
+          // Stream for Active/Pending Requests Banner
+          if (auth.userModel != null)
+            StreamBuilder<List<ServiceRequestModel>>(
+              stream: requestProvider.getCustomerRequests(auth.userModel!.uid),
+              builder: (context, snapshot) {
+                final requests = snapshot.data ?? [];
+                final activeRequests = requests
+                    .where((r) =>
+                        r.status == AppConstants.statusPending ||
+                        r.status == AppConstants.statusAccepted ||
+                        r.status == AppConstants.statusOnTheWay ||
+                        r.status == AppConstants.statusArrived ||
+                        r.status == AppConstants.statusInProgress)
+                    .toList();
+
+                if (activeRequests.isEmpty) return const SizedBox.shrink();
+
+                final activeReq = activeRequests.first;
+
+                return Card(
+                  elevation: 4,
+                  shadowColor: AppColors.accentBlue.withValues(alpha: 0.2),
+                  margin: const EdgeInsets.only(bottom: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    side: BorderSide(
+                      color: AppColors.accentBlue.withValues(alpha: 0.4),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CustomerRequestStatusScreen(
+                            requestId: activeReq.id,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentBlue.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.access_time_filled_rounded,
+                              color: AppColors.accentBlue,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Active Request: ${activeReq.categoryName}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryNavy,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Worker: ${activeReq.workerName} • ${activeReq.status}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.accentBlue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 14,
+                            color: AppColors.primaryNavy,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
 
           // Search Bar for Categories
           TextField(
