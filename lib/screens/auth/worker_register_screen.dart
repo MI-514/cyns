@@ -30,23 +30,6 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  final List<Map<String, String>> _categories = [
-    {'id': 'electrician', 'name': 'Electrician'},
-    {'id': 'plumber', 'name': 'Plumber'},
-    {'id': 'mason', 'name': 'Mason / Raj Mistri'},
-    {'id': 'carpenter', 'name': 'Carpenter'},
-    {'id': 'welder', 'name': 'Welder & Fabricator'},
-    {'id': 'ac_technician', 'name': 'AC & Refrigerator Technician'},
-    {'id': 'tailor', 'name': 'Tailor / Darzi'},
-    {'id': 'driver', 'name': 'Driver'},
-    {'id': 'auto_mechanic', 'name': 'Auto Mechanic'},
-    {'id': 'painter', 'name': 'Painter'},
-    {'id': 'cleaner', 'name': 'Home Cleaner / Housekeeping'},
-    {'id': 'laborer', 'name': 'General Laborer / Loader'},
-    {'id': 'tile_worker', 'name': 'Tile & Marble Worker'},
-    {'id': 'appliance_repair', 'name': 'Appliance Repair'},
-  ];
-
   final List<Map<String, dynamic>> _experienceLevels = [
     {'years': 1, 'label': 'Less than 1 year'},
     {'years': 2, 'label': '1 - 3 years'},
@@ -55,8 +38,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
     {'years': 10, 'label': '10+ years'},
   ];
 
-  String _selectedCategoryId = 'electrician';
-  String _selectedProfession = 'Electrician';
+  final List<String> _selectedCategoryIds = ['electrician'];
   int _selectedExperienceYears = 2;
 
   File? _profileImage;
@@ -167,7 +149,27 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
       return;
     }
 
+    if (_selectedCategoryIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least 1 or 2 trade skills.'),
+          backgroundColor: AppColors.statusRejected,
+        ),
+      );
+      return;
+    }
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // Get main profession name from first selected category
+    String professionName = AppConstants.defaultCategories
+        .firstWhere((c) => c['id'] == _selectedCategoryIds.first)['name']!;
+
+    if (_selectedCategoryIds.length > 1) {
+      String secondName = AppConstants.defaultCategories
+          .firstWhere((c) => c['id'] == _selectedCategoryIds[1])['name']!;
+      professionName = '$professionName & $secondName';
+    }
 
     bool success = await authProvider.registerWorkerAdvanced(
       email: _emailController.text.trim(),
@@ -178,8 +180,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
       phoneNumber: _phoneController.text.trim(),
       address: _addressController.text.trim(),
       cnicNumber: _cnicController.text.trim(),
-      profession: _selectedProfession,
-      categoryId: _selectedCategoryId,
+      profession: professionName,
+      categoryId: _selectedCategoryIds.first,
       experienceYears: _selectedExperienceYears,
       profilePicBase64: _profileBase64,
       cnicFrontBase64: _cnicFrontBase64,
@@ -436,30 +438,58 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                // Peshwarana Hunar (Main Skill/Trade) Dropdown
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedCategoryId,
-                  decoration: const InputDecoration(
-                    labelText: 'Peshwarana Hunar (Main Skill/Trade) *',
-                    prefixIcon: Icon(Icons.work_outline),
-                  ),
-                  items: _categories.map((cat) {
-                    return DropdownMenuItem<String>(
-                      value: cat['id']!,
-                      child: Text(cat['name']!),
+                // Peshwarana Hunar (Main Skill/Trade) Multi-Select Chips
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Peshwarana Hunar (Skill Categories) *',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.primaryNavy,
+                      ),
+                    ),
+                    Text(
+                      '${_selectedCategoryIds.length} Selected',
+                      style: const TextStyle(
+                        color: AppColors.accentBlue,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: AppConstants.defaultCategories.map((cat) {
+                    String catId = cat['id']!;
+                    String catName = cat['name']!;
+                    bool isSelected = _selectedCategoryIds.contains(catId);
+                    return FilterChip(
+                      label: Text(catName),
+                      selected: isSelected,
+                      selectedColor: AppColors.primaryNavy.withValues(alpha: 0.2),
+                      checkmarkColor: AppColors.primaryNavy,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            if (!_selectedCategoryIds.contains(catId)) {
+                              _selectedCategoryIds.add(catId);
+                            }
+                          } else {
+                            if (_selectedCategoryIds.length > 1) {
+                              _selectedCategoryIds.remove(catId);
+                            }
+                          }
+                        });
+                      },
                     );
                   }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _selectedCategoryId = val;
-                        _selectedProfession = _categories
-                            .firstWhere((c) => c['id'] == val)['name']!;
-                      });
-                    }
-                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -636,18 +666,14 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                     const Text('Already registered? '),
                     GestureDetector(
                       onTap: () {
-                        if (Navigator.canPop(context)) {
-                          Navigator.pop(context);
-                        } else {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LoginScreen(
-                                selectedRole: AppConstants.roleWorker,
-                              ),
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(
+                              selectedRole: AppConstants.roleWorker,
                             ),
-                          );
-                        }
+                          ),
+                        );
                       },
                       child: const Text(
                         'Sign In',

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_constants.dart';
 import '../../data/models/worker_profile_model.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/category_provider.dart';
 import '../../providers/worker_provider.dart';
 
 class EditWorkerProfileScreen extends StatefulWidget {
@@ -44,6 +44,16 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
   void _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_selectedCategoryIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least 1 or 2 skill categories.'),
+          backgroundColor: AppColors.statusRejected,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
@@ -56,17 +66,21 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
 
     WorkerProfileModel updated = WorkerProfileModel(
       workerId: auth.userModel?.uid ?? '',
+      username: workerProvider.currentWorkerProfile?.username ?? auth.userModel?.username ?? '',
       name: auth.userModel?.fullName ?? 'Worker',
+      fatherName: workerProvider.currentWorkerProfile?.fatherName ?? '',
       phoneNumber: auth.userModel?.phoneNumber ?? '',
+      address: _areaController.text.trim(),
+      cnicNumber: workerProvider.currentWorkerProfile?.cnicNumber ?? '',
       profession: _professionController.text.trim(),
       categoryIds: _selectedCategoryIds,
-      skills: skillsList,
+      skills: skillsList.isNotEmpty ? skillsList : [_professionController.text.trim()],
       experienceYears: int.tryParse(_expController.text.trim()) ?? 1,
       serviceDescription: _descController.text.trim(),
       workingArea: _areaController.text.trim(),
       isAvailable: workerProvider.currentWorkerProfile?.isAvailable ?? true,
-      rating: workerProvider.currentWorkerProfile?.rating ?? 0.0,
-      reviewCount: workerProvider.currentWorkerProfile?.reviewCount ?? 0,
+      rating: workerProvider.currentWorkerProfile?.rating ?? 5.0,
+      reviewCount: workerProvider.currentWorkerProfile?.reviewCount ?? 1,
       completedJobsCount:
           workerProvider.currentWorkerProfile?.completedJobsCount ?? 0,
     );
@@ -79,7 +93,7 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Worker profile updated successfully!'),
+        content: Text('Worker skill categories updated successfully!'),
         backgroundColor: AppColors.statusCompleted,
       ),
     );
@@ -88,8 +102,6 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final categoryProvider = Provider.of<CategoryProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Professional Profile'),
@@ -119,31 +131,50 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
               const SizedBox(height: 16),
 
               // Categories Multi-Select
-              const Text(
-                'Select Service Categories',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: AppColors.primaryNavy,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Peshwarana Hunar (Skill Categories) *',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppColors.primaryNavy,
+                    ),
+                  ),
+                  Text(
+                    '${_selectedCategoryIds.length} Selected',
+                    style: const TextStyle(
+                      color: AppColors.accentBlue,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: categoryProvider.categories.map((cat) {
-                  bool isSelected = _selectedCategoryIds.contains(cat.id);
+                children: AppConstants.defaultCategories.map((cat) {
+                  String catId = cat['id']!;
+                  String catName = cat['name']!;
+                  bool isSelected = _selectedCategoryIds.contains(catId);
                   return FilterChip(
-                    label: Text(cat.name),
+                    label: Text(catName),
                     selected: isSelected,
                     selectedColor: AppColors.primaryNavy.withValues(alpha: 0.2),
                     checkmarkColor: AppColors.primaryNavy,
                     onSelected: (selected) {
                       setState(() {
                         if (selected) {
-                          _selectedCategoryIds.add(cat.id);
+                          if (!_selectedCategoryIds.contains(catId)) {
+                            _selectedCategoryIds.add(catId);
+                          }
                         } else {
-                          _selectedCategoryIds.remove(cat.id);
+                          if (_selectedCategoryIds.length > 1) {
+                            _selectedCategoryIds.remove(catId);
+                          }
                         }
                       });
                     },
