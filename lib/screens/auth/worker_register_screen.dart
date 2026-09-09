@@ -342,7 +342,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _fullNameController,
                   decoration: const InputDecoration(
-                    labelText: 'Pura Naam (Full Name) *',
+                    labelText: 'Full Name *',
                     prefixIcon: Icon(Icons.person_outline),
                   ),
                   validator: (val) {
