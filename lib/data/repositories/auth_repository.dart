@@ -289,17 +289,17 @@ class AuthRepository {
     }
   }
 
-  /// Generate & Send 6-Digit OTP for Registered Email Password Reset
+  /// Generate & Send 6-Digit OTP & Firebase Reset Email directly to Gmail Inbox
   Future<String> sendPasswordResetOtp(String email) async {
     String cleanEmail = email.trim().toLowerCase();
 
-    // Step 1: Verify Email Registration
+    // Step 1: Verify Email Registration in Firestore
     bool isRegistered = await isEmailRegistered(cleanEmail);
     if (!isRegistered) {
       throw Exception("This email is not registered in CYN. Please enter your registered email.");
     }
 
-    // Step 2: Generate 6-Digit OTP
+    // Step 2: Generate 6-Digit OTP Code
     String otp = (Random().nextInt(900000) + 100000).toString();
 
     // Step 3: Save OTP in Firestore `password_resets` collection with 10min expiry
@@ -313,10 +313,18 @@ class AuthRepository {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    // Step 4: Also send standard Firebase reset link as backup
+    // Step 4: Send Official Password Reset Email to Gmail via Firebase Auth
     try {
       await _auth.sendPasswordResetEmail(email: cleanEmail);
-    } catch (_) {}
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        throw Exception("This email is not registered in CYN.");
+      } else if (e.code == 'invalid-email') {
+        throw Exception("Invalid email address format.");
+      } else {
+        throw Exception(e.message ?? "Failed to send reset email to $cleanEmail.");
+      }
+    }
 
     return otp;
   }

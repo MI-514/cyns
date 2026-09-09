@@ -5,7 +5,6 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/worker_provider.dart';
 import '../shared/notification_center_screen.dart';
-import 'active_job_screen.dart';
 import 'worker_home_tab.dart';
 import 'worker_job_history_tab.dart';
 import 'worker_profile_tab.dart';
@@ -34,7 +33,6 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
 
   final List<Widget> _tabs = const [
     WorkerHomeTab(),
-    ActiveJobScreen(),
     WorkerJobHistoryTab(),
     WorkerProfileTab(),
   ];
@@ -127,14 +125,9 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
             label: 'New Jobs',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.play_circle_outline_rounded),
-            activeIcon: Icon(Icons.play_circle_fill_rounded),
-            label: 'Active Job',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.task_alt_outlined),
-            activeIcon: Icon(Icons.task_alt_rounded),
-            label: 'Done Jobs',
+            icon: Icon(Icons.history_outlined),
+            activeIcon: Icon(Icons.history_rounded),
+            label: 'Job History',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
