@@ -56,7 +56,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         SnackBar(
           content: Text(authProvider.errorMessage.isNotEmpty
               ? authProvider.errorMessage
-              : 'Wrong 6-Digit OTP. Please check your Gmail app for the correct code.'),
+              : 'Wrong 6-Digit OTP. Please enter the correct code.'),
           backgroundColor: AppColors.statusRejected,
         ),
       );
@@ -77,69 +77,72 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Top Gmail Notification Helper Banner
+                // Prominent Instant 6-Digit OTP Verification Card
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.shade300),
+                    color: AppColors.primaryNavy,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryNavy.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      Icon(Icons.mark_email_unread_outlined,
-                          color: Colors.blue.shade900),
-                      const SizedBox(width: 10),
-                      Expanded(
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.verified_user, color: AppColors.starGold, size: 22),
+                          SizedBox(width: 8),
+                          Text(
+                            'CYN 6-DIGIT OTP VERIFICATION CODE',
+                            style: TextStyle(
+                              color: AppColors.pureWhite,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.pureWhite.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.starGold, width: 1.5),
+                        ),
                         child: Text(
-                          '📧 Check your Gmail app (${widget.email}) for the Reset Password OTP email.',
-                          style: TextStyle(
-                            color: Colors.blue.shade900,
+                          widget.generatedOtp,
+                          style: const TextStyle(
+                            color: AppColors.starGold,
+                            fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                            letterSpacing: 8,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Testing OTP Preview Banner
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.amber.shade400),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.key, color: Colors.amber.shade900),
-                      const SizedBox(width: 8),
+                      const SizedBox(height: 8),
                       Text(
-                        '🔑 Test OTP Code: ${widget.generatedOtp}',
-                        style: TextStyle(
-                          color: Colors.amber.shade900,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                        'Generated for ${widget.email}\nEnter code below to reset password instantly',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.textLight,
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                const Icon(
-                  Icons.lock_clock_outlined,
-                  size: 64,
-                  color: AppColors.primaryNavy,
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 28),
 
                 const Text(
-                  'Verify 6-Digit OTP Code',
+                  'Enter 6-Digit OTP Code',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 22,
@@ -150,11 +153,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 const SizedBox(height: 8),
 
                 Text(
-                  'Enter the 6-digit OTP code sent to ${widget.email} to proceed with updating your password:',
+                  'Enter the 6-digit OTP code shown above for ${widget.email} to proceed with updating your password:',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
 
                 // OTP 6-Digit Field
                 TextFormField(
