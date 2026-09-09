@@ -32,9 +32,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     if (generatedOtp != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('6-Digit OTP code sent to your registered email!'),
+        SnackBar(
+          content: Text(
+              'Reset Password OTP email sent to ${_emailController.text.trim()}! Please check your Gmail app.'),
           backgroundColor: AppColors.statusCompleted,
+          duration: const Duration(seconds: 4),
         ),
       );
 
@@ -74,7 +76,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Icon(
-                  Icons.lock_reset_outlined,
+                  Icons.mark_email_read_outlined,
                   size: 64,
                   color: AppColors.primaryNavy,
                 ),
@@ -90,7 +92,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Enter your registered email address below. We will verify if your email is registered and send a 6-digit OTP code.',
+                  'Enter your registered email address below. We will verify if your email is registered in CYN and send a password reset OTP directly to your Gmail inbox.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
@@ -122,7 +124,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text('Verify Email & Send 6-Digit OTP'),
+                      : const Text('Send OTP'),
                 ),
               ],
             ),

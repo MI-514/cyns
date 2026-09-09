@@ -40,7 +40,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     if (isValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('OTP Verified Successfully!'),
+          content: Text('OTP Code Verified Successfully!'),
           backgroundColor: AppColors.statusCompleted,
         ),
       );
@@ -56,7 +56,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         SnackBar(
           content: Text(authProvider.errorMessage.isNotEmpty
               ? authProvider.errorMessage
-              : 'Wrong 6-Digit OTP. Please enter the correct code.'),
+              : 'Wrong 6-Digit OTP. Please check your Gmail app for the correct code.'),
           backgroundColor: AppColors.statusRejected,
         ),
       );
@@ -77,7 +77,35 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Top OTP Preview Banner for Test Verification
+                // Top Gmail Notification Helper Banner
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.mark_email_unread_outlined,
+                          color: Colors.blue.shade900),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '📧 Check your Gmail app (${widget.email}) for the Reset Password OTP email.',
+                          style: TextStyle(
+                            color: Colors.blue.shade900,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Testing OTP Preview Banner
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -91,11 +119,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       Icon(Icons.key, color: Colors.amber.shade900),
                       const SizedBox(width: 8),
                       Text(
-                        '🔑 Your 6-Digit OTP Code: ${widget.generatedOtp}',
+                        '🔑 Test OTP Code: ${widget.generatedOtp}',
                         style: TextStyle(
                           color: Colors.amber.shade900,
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                          fontSize: 14,
                         ),
                       ),
                     ],
@@ -104,7 +132,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 const SizedBox(height: 24),
 
                 const Icon(
-                  Icons.mark_email_read_outlined,
+                  Icons.lock_clock_outlined,
                   size: 64,
                   color: AppColors.primaryNavy,
                 ),
@@ -122,7 +150,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 const SizedBox(height: 8),
 
                 Text(
-                  'A 6-digit OTP code has been generated for ${widget.email}.\nEnter the code below to proceed with password update:',
+                  'Enter the 6-digit OTP code sent to ${widget.email} to proceed with updating your password:',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
