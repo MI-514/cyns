@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -27,17 +28,12 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   late double _wLng;
   late double _cLat;
   late double _cLng;
-  MapLibreMapController? _mapController;
-  Symbol? _customerSymbol;
-  Symbol? _workerSymbol;
-  Line? _routeLine;
+  final MapController _mapController = MapController();
 
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<DocumentSnapshot>? _requestDocSubscription;
   Timer? _autoMovementTimer;
   bool _isCompletionHandled = false;
-
-  final String openFreeMapStyle = "https://tiles.openfreemap.org/styles/liberty";
 
   @override
   void initState() {
@@ -49,63 +45,6 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     _startLiveGpsStream();
     _listenToFirestoreWorkerLocation();
     _startContinuousLiveWorkerNavigation();
-  }
-
-  void _onMapCreated(MapLibreMapController controller) {
-    _mapController = controller;
-    _updateMapElements();
-  }
-
-  void _updateMapElements() async {
-    if (_mapController == null) return;
-
-    try {
-      // Clear old symbols and route line if any
-      if (_customerSymbol != null) await _mapController!.removeSymbol(_customerSymbol!);
-      if (_workerSymbol != null) await _mapController!.removeSymbol(_workerSymbol!);
-      if (_routeLine != null) await _mapController!.removeLine(_routeLine!);
-
-      // Add Customer Doorstep Location Symbol (Red Pin)
-      _customerSymbol = await _mapController!.addSymbol(
-        SymbolOptions(
-          geometry: LatLng(_cLat, _cLng),
-          iconImage: "marker-15",
-          iconSize: 2.2,
-          textField: "Customer Doorstep",
-          textOffset: const Offset(0, 1.8),
-          textColor: "#FF0000",
-        ),
-      );
-
-      // Add Worker Location Symbol (Blue Pin)
-      _workerSymbol = await _mapController!.addSymbol(
-        SymbolOptions(
-          geometry: LatLng(_wLat, _wLng),
-          iconImage: "marker-15",
-          iconSize: 2.2,
-          textField: "Worker (${widget.request.workerName})",
-          textOffset: const Offset(0, 1.8),
-          textColor: "#0000FF",
-        ),
-      );
-
-      // Add Live Route Polyline connecting Worker and Customer
-      _routeLine = await _mapController!.addLine(
-        LineOptions(
-          geometry: [
-            LatLng(_wLat, _wLng),
-            LatLng(_cLat, _cLng),
-          ],
-          lineColor: "#1E3A8A",
-          lineWidth: 5.0,
-          lineOpacity: 0.85,
-        ),
-      );
-    } catch (_) {}
-
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   /// Continuous Automatic Live Navigation
@@ -122,7 +61,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         _wLat = _cLat;
         _wLng = _cLng;
         timer.cancel();
-        _updateMapElements();
+        if (mounted) {
+          setState(() {});
+        }
         if (mounted && !_isCompletionHandled) {
           _isCompletionHandled = true;
           _showCompletionModal(widget.request);
@@ -131,12 +72,14 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         // Glides worker 15% closer every 3 seconds continuously
         _wLat += latDiff * 0.15;
         _wLng += lngDiff * 0.15;
-        _updateMapElements();
+        if (mounted) {
+          setState(() {});
+        }
 
         // Smooth camera follow
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLng(LatLng(_wLat, _wLng)),
-        );
+        try {
+          _mapController.move(LatLng(_wLat, _wLng), _mapController.camera.zoom);
+        } catch (_) {}
       }
     });
   }
@@ -163,7 +106,6 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         setState(() {
           _wLat = newWLat;
           _wLng = newWLng;
-          _updateMapElements();
         });
       }
 
@@ -239,7 +181,6 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       setState(() {
         _cLat = position.latitude;
         _cLng = position.longitude;
-        _updateMapElements();
       });
     });
   }
@@ -340,7 +281,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     _autoMovementTimer?.cancel();
     _positionSubscription?.cancel();
     _requestDocSubscription?.cancel();
-    _mapController?.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -360,19 +301,84 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Live Navigation Route - ${req.workerName}'),
+        title: Text('Live Open Map Route - ${req.workerName}'),
       ),
       body: Stack(
         children: [
-          MapLibreMap(
-            styleString: openFreeMapStyle,
-            onMapCreated: _onMapCreated,
-            initialCameraPosition: CameraPosition(
-              target: LatLng(_cLat, _cLng),
-              zoom: 14.5,
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: LatLng(_cLat, _cLng),
+              initialZoom: 14.5,
             ),
-            myLocationEnabled: true,
-            trackCameraPosition: true,
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.cyns',
+              ),
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: [
+                      LatLng(_wLat, _wLng),
+                      LatLng(_cLat, _cLng),
+                    ],
+                    color: AppColors.primaryNavy,
+                    strokeWidth: 5.0,
+                  ),
+                ],
+              ),
+              MarkerLayer(
+                markers: [
+                  // Customer Red Pin Marker
+                  Marker(
+                    point: LatLng(_cLat, _cLng),
+                    width: 80,
+                    height: 80,
+                    child: const Column(
+                      children: [
+                        Icon(
+                          Icons.location_on_rounded,
+                          color: Colors.red,
+                          size: 40,
+                        ),
+                        Text(
+                          'Customer',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Worker Blue Pin Marker
+                  Marker(
+                    point: LatLng(_wLat, _wLng),
+                    width: 80,
+                    height: 80,
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.location_on_rounded,
+                          color: Colors.blue,
+                          size: 40,
+                        ),
+                        Text(
+                          req.workerName,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
 
           // Top Info Banner Card
