@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -27,13 +27,17 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   late double _wLng;
   late double _cLat;
   late double _cLng;
-  GoogleMapController? _mapController;
-  final Set<Marker> _markers = {};
-  final Set<Polyline> _polylines = {};
+  MapLibreMapController? _mapController;
+  Symbol? _customerSymbol;
+  Symbol? _workerSymbol;
+  Line? _routeLine;
+
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<DocumentSnapshot>? _requestDocSubscription;
   Timer? _autoMovementTimer;
   bool _isCompletionHandled = false;
+
+  final String openFreeMapStyle = "https://tiles.openfreemap.org/styles/liberty";
 
   @override
   void initState() {
@@ -42,13 +46,69 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     _cLng = widget.request.customerLng;
     _wLat = widget.request.workerLat ?? (_cLat + 0.015);
     _wLng = widget.request.workerLng ?? (_cLng + 0.015);
-    _updateMarkersAndPolylines();
     _startLiveGpsStream();
     _listenToFirestoreWorkerLocation();
     _startContinuousLiveWorkerNavigation();
   }
 
-  /// Continuous Automatic Live Navigation (Uber/Careem style continuous movement)
+  void _onMapCreated(MapLibreMapController controller) {
+    _mapController = controller;
+    _updateMapElements();
+  }
+
+  void _updateMapElements() async {
+    if (_mapController == null) return;
+
+    try {
+      // Clear old symbols and route line if any
+      if (_customerSymbol != null) await _mapController!.removeSymbol(_customerSymbol!);
+      if (_workerSymbol != null) await _mapController!.removeSymbol(_workerSymbol!);
+      if (_routeLine != null) await _mapController!.removeLine(_routeLine!);
+
+      // Add Customer Doorstep Location Symbol (Red Pin)
+      _customerSymbol = await _mapController!.addSymbol(
+        SymbolOptions(
+          geometry: LatLng(_cLat, _cLng),
+          iconImage: "marker-15",
+          iconSize: 2.2,
+          textField: "Customer Doorstep",
+          textOffset: const Offset(0, 1.8),
+          textColor: "#FF0000",
+        ),
+      );
+
+      // Add Worker Location Symbol (Blue Pin)
+      _workerSymbol = await _mapController!.addSymbol(
+        SymbolOptions(
+          geometry: LatLng(_wLat, _wLng),
+          iconImage: "marker-15",
+          iconSize: 2.2,
+          textField: "Worker (${widget.request.workerName})",
+          textOffset: const Offset(0, 1.8),
+          textColor: "#0000FF",
+        ),
+      );
+
+      // Add Live Route Polyline connecting Worker and Customer
+      _routeLine = await _mapController!.addLine(
+        LineOptions(
+          geometry: [
+            LatLng(_wLat, _wLng),
+            LatLng(_cLat, _cLng),
+          ],
+          lineColor: "#1E3A8A",
+          lineWidth: 5.0,
+          lineOpacity: 0.85,
+        ),
+      );
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  /// Continuous Automatic Live Navigation
   void _startContinuousLiveWorkerNavigation() {
     _autoMovementTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (!mounted) {
@@ -62,7 +122,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         _wLat = _cLat;
         _wLng = _cLng;
         timer.cancel();
-        _updateMarkersAndPolylines();
+        _updateMapElements();
         if (mounted && !_isCompletionHandled) {
           _isCompletionHandled = true;
           _showCompletionModal(widget.request);
@@ -71,7 +131,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         // Glides worker 15% closer every 3 seconds continuously
         _wLat += latDiff * 0.15;
         _wLng += lngDiff * 0.15;
-        _updateMarkersAndPolylines();
+        _updateMapElements();
 
         // Smooth camera follow
         _mapController?.animateCamera(
@@ -103,7 +163,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         setState(() {
           _wLat = newWLat;
           _wLng = newWLng;
-          _updateMarkersAndPolylines();
+          _updateMapElements();
         });
       }
 
@@ -179,58 +239,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       setState(() {
         _cLat = position.latitude;
         _cLng = position.longitude;
-        _updateMarkersAndPolylines();
+        _updateMapElements();
       });
     });
-  }
-
-  void _updateMarkersAndPolylines() {
-    _markers.clear();
-    _polylines.clear();
-
-    // Customer Location Marker (Red Pin)
-    _markers.add(
-      Marker(
-        markerId: const MarkerId('customer'),
-        position: LatLng(_cLat, _cLng),
-        infoWindow: InfoWindow(
-          title: 'Customer Doorstep Location',
-          snippet: widget.request.customerAddress,
-        ),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-      ),
-    );
-
-    // Worker Location Marker (Blue Pin)
-    _markers.add(
-      Marker(
-        markerId: const MarkerId('worker'),
-        position: LatLng(_wLat, _wLng),
-        infoWindow: InfoWindow(
-          title: 'Worker Location (${widget.request.workerName})',
-          snippet: 'En Route to Customer',
-        ),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-      ),
-    );
-
-    // Live Route Polyline connecting Worker and Customer
-    _polylines.add(
-      Polyline(
-        polylineId: const PolylineId('route_line'),
-        points: [
-          LatLng(_wLat, _wLng),
-          LatLng(_cLat, _cLng),
-        ],
-        color: AppColors.primaryNavy,
-        width: 5,
-        patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-      ),
-    );
-
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   void _showCallChoiceModal(BuildContext context, ServiceRequestModel req) {
@@ -353,18 +364,15 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       ),
       body: Stack(
         children: [
-          GoogleMap(
+          MapLibreMap(
+            styleString: openFreeMapStyle,
+            onMapCreated: _onMapCreated,
             initialCameraPosition: CameraPosition(
               target: LatLng(_cLat, _cLng),
               zoom: 14.5,
             ),
-            markers: _markers,
-            polylines: _polylines,
             myLocationEnabled: true,
-            myLocationButtonEnabled: true,
-            onMapCreated: (controller) {
-              _mapController = controller;
-            },
+            trackCameraPosition: true,
           ),
 
           // Top Info Banner Card

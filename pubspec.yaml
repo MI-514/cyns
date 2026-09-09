@@ -41,6 +41,7 @@ dependencies:
   flutter_rating_bar: ^4.0.1
   agora_rtc_engine: ^6.3.2
   permission_handler: ^11.3.1
+  maplibre_gl: ^0.27.0
 
 dev_dependencies:
   flutter_test:
