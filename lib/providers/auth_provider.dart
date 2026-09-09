@@ -145,7 +145,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Strict Role-Validated User Login
+  /// Strict Step-by-Step Email & Password Validated Login
   Future<bool> loginUser({
     required String email,
     required String password,
@@ -192,11 +192,27 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> resetPassword(String email) async {
+  /// Send 6-Digit OTP for Registered Email Password Reset
+  Future<String?> sendPasswordResetOtp(String email) async {
     try {
       _errorMessage = '';
-      await _authRepository.sendPasswordResetEmail(email);
-      return true;
+      String otp = await _authRepository.sendPasswordResetOtp(email);
+      notifyListeners();
+      return otp;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Verify 6-Digit OTP
+  Future<bool> verifyOtp(String email, String inputOtp) async {
+    try {
+      _errorMessage = '';
+      bool isValid = await _authRepository.verifyOtp(email, inputOtp);
+      notifyListeners();
+      return isValid;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();

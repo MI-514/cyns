@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import 'otp_verification_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -22,26 +23,36 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    bool success = await authProvider.resetPassword(_emailController.text);
+    String? generatedOtp =
+        await authProvider.sendPasswordResetOtp(_emailController.text.trim());
 
     setState(() => _isLoading = false);
 
     if (!mounted) return;
 
-    if (success) {
+    if (generatedOtp != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Password reset email sent! Please check your inbox.'),
+          content: Text('6-Digit OTP code sent to your registered email!'),
           backgroundColor: AppColors.statusCompleted,
         ),
       );
-      Navigator.pop(context);
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtpVerificationScreen(
+            email: _emailController.text.trim(),
+            generatedOtp: generatedOtp,
+          ),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.errorMessage.isNotEmpty
               ? authProvider.errorMessage
-              : 'Failed to send password reset email.'),
+              : 'Failed to send OTP code. Please check your email.'),
           backgroundColor: AppColors.statusRejected,
         ),
       );
@@ -55,7 +66,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         title: const Text('Reset Password'),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
@@ -79,21 +90,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Enter your registered email address below and we will send you instructions to reset your password.',
+                  'Enter your registered email address below. We will verify if your email is registered and send a 6-digit OTP code.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 32),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Email Address',
+                    labelText: 'Registered Email Address',
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Please enter your email';
+                      return 'Please enter your registered email';
                     }
                     if (!val.contains('@')) return 'Enter valid email';
                     return null;
@@ -111,7 +122,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text('Send Reset Link'),
+                      : const Text('Verify Email & Send 6-Digit OTP'),
                 ),
               ],
             ),

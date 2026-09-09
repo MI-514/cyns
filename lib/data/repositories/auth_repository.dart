@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/firestore_collections.dart';
@@ -20,6 +21,21 @@ class AuthRepository {
       return _auth.authStateChanges();
     } catch (_) {
       return const Stream.empty();
+    }
+  }
+
+  /// Check if an email is registered in Cloud Firestore
+  Future<bool> isEmailRegistered(String email) async {
+    try {
+      String clean = email.trim().toLowerCase();
+      QuerySnapshot snap = await _firestore
+          .collection(FirestoreCollections.users)
+          .where('email', isEqualTo: clean)
+          .get()
+          .timeout(const Duration(seconds: 4));
+      return snap.docs.isNotEmpty;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -210,14 +226,23 @@ class AuthRepository {
     }
   }
 
-  // Fast Login
+  // Step-by-Step Validated Login
   Future<UserModel> loginUser({
     required String email,
     required String password,
   }) async {
+    String cleanEmail = email.trim().toLowerCase();
+
+    // STEP 1: Verify Email Registration
+    bool isRegistered = await isEmailRegistered(cleanEmail);
+    if (!isRegistered) {
+      throw Exception("This email is not registered. Please register first.");
+    }
+
+    // STEP 2: Verify Password via Firebase Auth
     try {
       UserCredential cred = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
+        email: cleanEmail,
         password: password.trim(),
       );
 
@@ -236,14 +261,12 @@ class AuthRepository {
         }
       } catch (_) {}
 
-      String inferredRole = email.toLowerCase().contains('worker')
-          ? 'worker'
-          : 'customer';
+      String inferredRole = cleanEmail.contains('worker') ? 'worker' : 'customer';
 
       return UserModel(
         uid: uid,
-        email: cred.user!.email ?? email.trim(),
-        username: email.split('@').first,
+        email: cred.user!.email ?? cleanEmail,
+        username: cleanEmail.split('@').first,
         fullName: cred.user!.displayName ?? 'User',
         phoneNumber: cred.user!.phoneNumber ?? '',
         role: inferredRole,
@@ -252,19 +275,78 @@ class AuthRepository {
       String code = e.code.toLowerCase();
       String msg = (e.message ?? '').toLowerCase();
 
-      if (code == 'wrong-password' || msg.contains('password') || msg.contains('invalid_password')) {
-        throw Exception("Incorrect password. Please check your password and try again.");
-      } else if (code == 'user-not-found' || msg.contains('user-not-found') || msg.contains('user_not_found') || msg.contains('no user')) {
-        throw Exception("No account registered with this email. Please register first.");
-      } else if (code == 'invalid-credential') {
-        throw Exception("Incorrect password. Please check your password and try again.");
-      } else if (code == 'invalid-email') {
-        throw Exception("Invalid email address format.");
+      if (code == 'wrong-password' || msg.contains('password') || msg.contains('invalid_password') || code == 'invalid-credential') {
+        throw Exception("Wrong password. Please enter the correct password.");
+      } else if (code == 'user-not-found' || msg.contains('user-not-found')) {
+        throw Exception("This email is not registered. Please register first.");
       } else if (code == 'user-disabled') {
         throw Exception("This account has been suspended or disabled.");
       } else {
-        throw Exception(e.message ?? "Authentication failed. Please check your credentials.");
+        throw Exception("Wrong password. Please enter the correct password.");
       }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Generate & Send 6-Digit OTP for Registered Email Password Reset
+  Future<String> sendPasswordResetOtp(String email) async {
+    String cleanEmail = email.trim().toLowerCase();
+
+    // Step 1: Verify Email Registration
+    bool isRegistered = await isEmailRegistered(cleanEmail);
+    if (!isRegistered) {
+      throw Exception("This email is not registered in CYN. Please enter your registered email.");
+    }
+
+    // Step 2: Generate 6-Digit OTP
+    String otp = (Random().nextInt(900000) + 100000).toString();
+
+    // Step 3: Save OTP in Firestore `password_resets` collection with 10min expiry
+    await _firestore
+        .collection('password_resets')
+        .doc(cleanEmail)
+        .set({
+      'email': cleanEmail,
+      'otp': otp,
+      'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(minutes: 10))),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // Step 4: Also send standard Firebase reset link as backup
+    try {
+      await _auth.sendPasswordResetEmail(email: cleanEmail);
+    } catch (_) {}
+
+    return otp;
+  }
+
+  /// Verify 6-Digit OTP
+  Future<bool> verifyOtp(String email, String inputOtp) async {
+    try {
+      String cleanEmail = email.trim().toLowerCase();
+      DocumentSnapshot doc = await _firestore
+          .collection('password_resets')
+          .doc(cleanEmail)
+          .get();
+
+      if (!doc.exists || doc.data() == null) {
+        throw Exception("Invalid OTP. Please request a new OTP code.");
+      }
+
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      String storedOtp = data['otp'] ?? '';
+      Timestamp? expiresAt = data['expiresAt'] as Timestamp?;
+
+      if (storedOtp != inputOtp.trim()) {
+        throw Exception("Wrong OTP code. Please enter the correct 6-digit OTP.");
+      }
+
+      if (expiresAt != null && expiresAt.toDate().isBefore(DateTime.now())) {
+        throw Exception("OTP code has expired. Please request a new OTP.");
+      }
+
+      return true;
     } catch (e) {
       rethrow;
     }
@@ -283,18 +365,6 @@ class AuthRepository {
       }
     } catch (_) {}
     return null;
-  }
-
-  // Reset Password
-  Future<void> sendPasswordResetEmail(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        throw Exception("No account found with this email.");
-      }
-      throw Exception(e.message ?? "Failed to send password reset email.");
-    }
   }
 
   // Logout
