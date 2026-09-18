@@ -93,6 +93,34 @@ class ServiceRequestRepository {
     } catch (_) {}
   }
 
+  /// Update worker live GPS position & navigation metadata
+  Future<void> updateWorkerLocation({
+    required String requestId,
+    required double workerLat,
+    required double workerLng,
+    double? heading,
+    String? estimatedArrivalTime,
+    double? distanceKm,
+  }) async {
+    try {
+      Map<String, dynamic> updateData = {
+        'workerLat': workerLat,
+        'workerLng': workerLng,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      if (heading != null) updateData['heading'] = heading;
+      if (estimatedArrivalTime != null) {
+        updateData['estimatedArrivalTime'] = estimatedArrivalTime;
+      }
+      if (distanceKm != null) updateData['distanceKm'] = distanceKm;
+
+      await _firestore
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(requestId)
+          .set(updateData, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
   /// Get Customer Requests Stream
   Stream<List<ServiceRequestModel>> getCustomerRequests(String customerId) {
     try {

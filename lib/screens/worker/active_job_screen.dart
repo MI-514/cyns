@@ -217,9 +217,14 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.statusOnTheWay),
-                    icon: const Icon(Icons.directions_run),
-                    label: const Text('I am On The Way'),
+                      backgroundColor: AppColors.statusOnTheWay,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    icon: const Icon(Icons.navigation_rounded),
+                    label: const Text(
+                      'Start Route & GPS Navigation',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
                     onPressed: () async {
                       double? wLat = locationProvider.currentPosition?.latitude;
                       double? wLng = locationProvider.currentPosition?.longitude;
@@ -240,6 +245,12 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                         workerLng: wLng,
                         eta: eta,
                         distanceKm: dist,
+                      );
+
+                      // Automatically open Turn-by-Turn GPS Navigation
+                      LocationService.openTurnByTurnNavigation(
+                        activeJob.customerLat,
+                        activeJob.customerLng,
                       );
                     },
                   ),

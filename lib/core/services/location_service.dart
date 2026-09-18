@@ -165,4 +165,16 @@ class LocationService {
       double startLat, double startLng, double endLat, double endLng) {
     return Geolocator.bearingBetween(startLat, startLng, endLat, endLng);
   }
+
+  /// Listen to continuous live location stream for active worker navigation
+  static Stream<Position> getLocationStream({
+    int distanceFilterMeters = 5,
+  }) {
+    return Geolocator.getPositionStream(
+      locationSettings: LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: distanceFilterMeters,
+      ),
+    );
+  }
 }
