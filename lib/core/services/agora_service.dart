@@ -8,7 +8,8 @@ class AgoraService {
 
   /// Optional Agora Temporary Token (If Primary Certificate is enabled in Agora Console).
   /// Leave empty string "" if using a Testing Mode project without tokens.
-  static const String token = "";
+  static const String token =
+      "007eJxTYDh7/Pnf5Lr6rxPsnroIxtccu2+82Wlf5utzdj/F1Xjv7jBSYDBPNTEzSbE0tzQ2NjExNTe0NEoxSkoytjQ3sjQ2tTQ0suVbm9UQyMjgziLPwMTACIYgPg9DSmpuvm5yRmJeXmoOA1QOJMPCYGhgYAgA1IwjNw==";
 
   /// Check if a valid custom Agora App ID has been provided
   static bool get isAppIdConfigured {
