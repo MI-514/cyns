@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -25,6 +26,63 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _obscureNewPassword = true;
   String _generatedOtp = '';
 
+  // 5-Minute OTP Expiration Timer
+  Timer? _otpExpiryTimer;
+  int _otpRemainingSeconds = 300; // 5 minutes
+
+  // 30-Second Resend Cooldown Timer
+  Timer? _resendCooldownTimer;
+  int _resendCooldownSeconds = 30;
+  bool _canResendOtp = false;
+
+  @override
+  void dispose() {
+    _otpExpiryTimer?.cancel();
+    _resendCooldownTimer?.cancel();
+    _emailController.dispose();
+    _otpController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _startTimers() {
+    // 5-Minute (300s) Expiration Timer
+    _otpRemainingSeconds = 300;
+    _otpExpiryTimer?.cancel();
+    _otpExpiryTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      if (_otpRemainingSeconds > 0) {
+        setState(() => _otpRemainingSeconds--);
+      } else {
+        timer.cancel();
+        setState(() {});
+      }
+    });
+
+    // 30-Second Resend Cooldown Timer
+    _canResendOtp = false;
+    _resendCooldownSeconds = 30;
+    _resendCooldownTimer?.cancel();
+    _resendCooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      if (_resendCooldownSeconds > 0) {
+        setState(() => _resendCooldownSeconds--);
+      } else {
+        timer.cancel();
+        setState(() => _canResendOtp = true);
+      }
+    });
+  }
+
+  String _formatTime(int totalSeconds) {
+    int minutes = totalSeconds ~/ 60;
+    int seconds = totalSeconds % 60;
+    String m = minutes < 10 ? '0$minutes' : '$minutes';
+    String s = seconds < 10 ? '0$seconds' : '$seconds';
+    return '$m:$s';
+  }
+
   void _handleSendOtp() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -33,12 +91,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     _generatedOtp = EmailService.generate6DigitOtp();
     bool emailSent = await EmailService.sendOtpEmail(
-      recipientEmail: _emailController.text.trim(),
+      recipientEmail: _emailController.text.trim().toLowerCase(),
       otpCode: _generatedOtp,
     );
 
-    // Also trigger Firebase password reset as fallback
-    await authProvider.resetPassword(_emailController.text.trim());
+    // Trigger Firebase reset email
+    await authProvider.resetPassword(_emailController.text.trim().toLowerCase());
+
+    _startTimers();
 
     setState(() {
       _isLoading = false;
@@ -50,7 +110,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '6-Digit OTP Code ($_generatedOtp) sent to ${_emailController.text.trim()}!',
+          '6-Digit OTP Code ($_generatedOtp) sent to ${_emailController.text.trim()}! Valid for 5 minutes.',
         ),
         backgroundColor: AppColors.statusCompleted,
         duration: const Duration(seconds: 5),
@@ -58,15 +118,53 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
+  void _handleResendOtp() async {
+    if (!_canResendOtp) return;
+
+    _otpController.clear();
+    _generatedOtp = EmailService.generate6DigitOtp();
+    
+    await EmailService.sendOtpEmail(
+      recipientEmail: _emailController.text.trim().toLowerCase(),
+      otpCode: _generatedOtp,
+    );
+
+    _startTimers();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'New 6-Digit OTP Code ($_generatedOtp) sent! Timer reset to 5 minutes.',
+        ),
+        backgroundColor: AppColors.statusCompleted,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   void _verifyOtp() {
+    if (_otpRemainingSeconds <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('OTP Code Expired! Please click "Resend Code" to receive a fresh 6-digit code.'),
+          backgroundColor: AppColors.statusRejected,
+        ),
+      );
+      return;
+    }
+
     String inputOtp = _otpController.text.trim();
     if (inputOtp == _generatedOtp || inputOtp == '123456') {
+      _otpExpiryTimer?.cancel();
+      _resendCooldownTimer?.cancel();
       setState(() {
         _otpVerified = true;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('OTP Verified! Enter your new password below.'),
+          content: Text('OTP Verified Successfully! Enter your new password below.'),
           backgroundColor: AppColors.statusCompleted,
         ),
       );
@@ -260,30 +358,59 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          // Highlighted Instant OTP Banner
+                          // Highlighted Instant OTP Banner with 5-Minute Timer
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 10),
                             decoration: BoxDecoration(
-                              color: AppColors.starGold.withValues(alpha: 0.15),
+                              color: _otpRemainingSeconds > 0
+                                  ? AppColors.starGold.withValues(alpha: 0.15)
+                                  : Colors.red.shade50,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color: AppColors.starGold.withValues(alpha: 0.4)),
+                                  color: _otpRemainingSeconds > 0
+                                      ? AppColors.starGold.withValues(alpha: 0.4)
+                                      : Colors.red.shade300),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.verified,
-                                    color: Colors.orange, size: 20),
+                                Icon(
+                                  _otpRemainingSeconds > 0
+                                      ? Icons.timer_rounded
+                                      : Icons.alarm_off_rounded,
+                                  color: _otpRemainingSeconds > 0
+                                      ? Colors.orange.shade800
+                                      : Colors.red,
+                                  size: 22,
+                                ),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                  child: Text(
-                                    'Your Instant Reset OTP: $_generatedOtp',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14,
-                                      color: Colors.black87,
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _otpRemainingSeconds > 0
+                                            ? 'Instant Reset OTP: $_generatedOtp'
+                                            : 'OTP Code Expired! Please click Resend Code below.',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 13,
+                                          color: _otpRemainingSeconds > 0
+                                              ? Colors.black87
+                                              : Colors.red.shade900,
+                                        ),
+                                      ),
+                                      if (_otpRemainingSeconds > 0)
+                                        Text(
+                                          'Valid for: ${_formatTime(_otpRemainingSeconds)} (5 min limit)',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.accentBlue,
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -296,6 +423,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             keyboardType: TextInputType.number,
                             maxLength: 6,
                             textAlign: TextAlign.center,
+                            enabled: _otpRemainingSeconds > 0,
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -311,19 +439,47 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.availableGreen,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _otpRemainingSeconds > 0
+                                        ? AppColors.availableGreen
+                                        : Colors.grey,
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  icon: const Icon(Icons.check_circle_rounded),
+                                  label: const Text('Verify OTP',
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold)),
+                                  onPressed: _otpRemainingSeconds > 0
+                                      ? _verifyOtp
+                                      : null,
+                                ),
                               ),
-                              icon: const Icon(Icons.check_circle_rounded),
-                              label: const Text('Verify OTP Code',
-                                  style: TextStyle(
-                                      fontSize: 15, fontWeight: FontWeight.bold)),
-                              onPressed: _verifyOtp,
-                            ),
+                              const SizedBox(width: 10),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.primaryNavy,
+                                  side: const BorderSide(
+                                      color: AppColors.primaryNavy),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 14),
+                                ),
+                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                label: Text(
+                                  _canResendOtp
+                                      ? 'Resend Code'
+                                      : 'Resend in ${_resendCooldownSeconds}s',
+                                  style: const TextStyle(
+                                      fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: _canResendOtp ? _handleResendOtp : null,
+                              ),
+                            ],
                           ),
                         ],
                       ),
