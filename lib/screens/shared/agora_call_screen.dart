@@ -115,7 +115,7 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
       }
 
       await _engine!.joinChannel(
-        token: '',
+        token: AgoraService.token,
         channelId: widget.channelId,
         uid: 0,
         options: const ChannelMediaOptions(

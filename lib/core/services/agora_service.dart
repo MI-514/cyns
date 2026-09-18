@@ -6,6 +6,10 @@ class AgoraService {
   /// Replace this with your actual App ID from https://console.agora.io
   static const String appId = "7e464d979334457192d2bb3972935912";
 
+  /// Optional Agora Temporary Token (If Primary Certificate is enabled in Agora Console).
+  /// Leave empty string "" if using a Testing Mode project without tokens.
+  static const String token = "";
+
   /// Check if a valid custom Agora App ID has been provided
   static bool get isAppIdConfigured {
     return appId.isNotEmpty &&
