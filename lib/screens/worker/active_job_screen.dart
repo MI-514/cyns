@@ -319,53 +319,80 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
 
               const SizedBox(height: 16),
 
-              // Call / Chat / Map Action Row
+              // Persistent Primary Chat Action Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryNavy,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  icon: const Icon(Icons.chat_bubble_rounded,
+                      color: AppColors.pureWhite, size: 20),
+                  label: Text(
+                    '💬 Chat with ${activeJob.customerName}',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.pureWhite,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatScreen(
+                          requestId: activeJob.id,
+                          peerName: activeJob.customerName,
+                          peerRole: 'customer',
+                          peerPhone: activeJob.customerPhone,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Call & Live Map Action Row
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.call),
-                      label: const Text('Call'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.availableGreen,
+                        side: const BorderSide(color: AppColors.availableGreen),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.call, size: 18),
+                      label: const Text('Call Phone',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () =>
                           _callCustomer(context, activeJob.customerPhone),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.chat_bubble_outline),
-                      label: const Text('Chat'),
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryNavy,
+                        side: const BorderSide(color: AppColors.primaryNavy),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.map_rounded, size: 18),
+                      label: const Text('Live Map',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => ChatScreen(
-                              requestId: activeJob.id,
-                              peerName: activeJob.customerName,
-                              peerRole: 'customer',
-                            ),
+                            builder: (_) => MapTrackingScreen(request: activeJob),
                           ),
                         );
                       },
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.map_outlined),
-                  label: const Text('Open Map / Share Live Location'),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => MapTrackingScreen(request: activeJob),
-                      ),
-                    );
-                  },
-                ),
               ),
             ],
           ),

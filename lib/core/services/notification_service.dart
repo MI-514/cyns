@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 
 import '../constants/firestore_collections.dart';
 
@@ -88,6 +89,13 @@ class NotificationService {
         'isRead': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
+    } catch (_) {}
+  }
+
+  /// Trigger audible alert beep sound for incoming job offer
+  static void playIncomingJobAlertBeep() {
+    try {
+      SystemSound.play(SystemSoundType.click);
     } catch (_) {}
   }
 }

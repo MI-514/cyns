@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/notification_service.dart';
 import '../../data/models/service_request_model.dart';
 import '../../providers/service_request_provider.dart';
 import '../../providers/worker_provider.dart';
@@ -295,6 +296,10 @@ class WorkerHomeTab extends StatelessWidget {
                   .where((r) => r.status == AppConstants.statusPending)
                   .toList();
 
+              if (pendingRequests.isNotEmpty) {
+                NotificationService.playIncomingJobAlertBeep();
+              }
+
               if (pendingRequests.isEmpty) {
                 return Container(
                   width: double.infinity,
@@ -387,6 +392,37 @@ class WorkerHomeTab extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Incoming Job Ringer Alert Banner
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppColors.starGold.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: AppColors.starGold.withValues(alpha: 0.5)),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.notifications_active_rounded,
+                                    color: Colors.orange, size: 20),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '🔔 INCOMING JOB OFFER! Tap Accept to start chat',
+                                    style: TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
