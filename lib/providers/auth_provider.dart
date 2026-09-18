@@ -150,6 +150,7 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> loginUser({
     required String email,
     required String password,
+    String? expectedRole,
   }) async {
     try {
       _state = AuthState.loading;
@@ -159,9 +160,12 @@ class AuthProvider extends ChangeNotifier {
       _userModel = await _authRepository.loginUser(
         email: email,
         password: password,
+        expectedRole: expectedRole,
       );
 
       _state = AuthState.authenticated;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_role', _userModel!.role);
       notifyListeners();
       return true;
     } catch (e) {

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
+import '../auth/role_selection_screen.dart';
 import '../customer/customer_dashboard_screen.dart';
 import '../worker/worker_dashboard_screen.dart';
 import '../onboarding/onboarding_screen.dart';
@@ -58,6 +60,10 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isOnboardingCompleted = prefs.getBool('is_onboarding_completed') ?? false;
+
+    if (!mounted) return;
 
     if (auth.isAuthenticated && auth.userModel != null) {
       String role = auth.userModel!.role;
@@ -72,7 +78,14 @@ class _SplashScreenState extends State<SplashScreen>
           MaterialPageRoute(builder: (_) => const CustomerDashboardScreen()),
         );
       }
+    } else if (isOnboardingCompleted) {
+      // Skip Onboarding on returning app launches
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+      );
     } else {
+      // Fresh Install -> Show Onboarding Screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const OnboardingScreen()),

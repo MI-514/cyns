@@ -211,10 +211,11 @@ class AuthRepository {
     }
   }
 
-  // Fast Login
+  // Fast Login with Strict Role Validation
   Future<UserModel> loginUser({
     required String email,
     required String password,
+    String? expectedRole,
   }) async {
     try {
       UserCredential cred = await _auth.signInWithEmailAndPassword(
@@ -223,6 +224,7 @@ class AuthRepository {
       );
 
       String uid = cred.user!.uid;
+      UserModel? userModel;
 
       // Fast Firestore document fetch
       try {
@@ -230,25 +232,42 @@ class AuthRepository {
             .collection(FirestoreCollections.users)
             .doc(uid)
             .get()
-            .timeout(const Duration(seconds: 2));
+            .timeout(const Duration(seconds: 3));
 
         if (doc.exists && doc.data() != null) {
-          return UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+          userModel = UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
         }
       } catch (_) {}
 
-      String inferredRole = email.toLowerCase().contains('worker')
-          ? 'worker'
-          : 'customer';
+      if (userModel == null) {
+        String inferredRole = email.toLowerCase().contains('worker')
+            ? 'worker'
+            : 'customer';
 
-      return UserModel(
-        uid: uid,
-        email: cred.user!.email ?? email.trim(),
-        username: email.split('@').first,
-        fullName: cred.user!.displayName ?? email.split('@').first,
-        phoneNumber: cred.user!.phoneNumber ?? '',
-        role: inferredRole,
-      );
+        userModel = UserModel(
+          uid: uid,
+          email: cred.user!.email ?? email.trim(),
+          username: email.split('@').first,
+          fullName: cred.user!.displayName ?? email.split('@').first,
+          phoneNumber: cred.user!.phoneNumber ?? '',
+          role: expectedRole ?? inferredRole,
+        );
+      }
+
+      // Enforce Strict Cross-Role Login Block
+      if (expectedRole != null && expectedRole.isNotEmpty) {
+        if (userModel.role.trim().toLowerCase() != expectedRole.trim().toLowerCase()) {
+          await _auth.signOut();
+          String registeredRoleName = userModel.role.toLowerCase() == 'worker'
+              ? 'Service Provider'
+              : 'Customer';
+
+          throw Exception(
+              "Access Denied: This account is registered as a $registeredRoleName.\nPlease log in on the $registeredRoleName Login screen.");
+        }
+      }
+
+      return userModel;
     } on FirebaseAuthException catch (e) {
       String code = e.code.toLowerCase();
       String msg = (e.message ?? '').toLowerCase();
@@ -258,7 +277,7 @@ class AuthRepository {
       } else if (code == 'user-not-found' || msg.contains('user-not-found') || msg.contains('user_not_found') || msg.contains('no user')) {
         throw Exception("No account registered with this email. Please register first.");
       } else if (code == 'invalid-credential') {
-        throw Exception("Incorrect password. Please check your password and try again.");
+        throw Exception("Incorrect password or email. Please check your credentials.");
       } else if (code == 'invalid-email') {
         throw Exception("Invalid email address format.");
       } else if (code == 'user-disabled') {

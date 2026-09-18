@@ -278,7 +278,13 @@ class WorkerHomeTab extends StatelessWidget {
           const SizedBox(height: 12),
 
           StreamBuilder<List<ServiceRequestModel>>(
-            stream: requestProvider.getWorkerRequests(worker.workerId),
+            stream: requestProvider.getWorkerRequests(
+              worker.workerId,
+              categoryId: worker.categoryIds.isNotEmpty
+                  ? worker.categoryIds.first
+                  : worker.profession,
+              categoryIds: worker.categoryIds,
+            ),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());

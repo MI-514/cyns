@@ -137,16 +137,42 @@ class ServiceRequestRepository {
     }
   }
 
-  /// Get Worker Requests Stream
-  Stream<List<ServiceRequestModel>> getWorkerRequests(String workerId) {
+  /// Get Worker Requests Stream (filtered by worker ID and matching categories)
+  Stream<List<ServiceRequestModel>> getWorkerRequests(
+    String workerId, {
+    String? categoryId,
+    List<String>? categoryIds,
+  }) {
     try {
       return _firestore
           .collection(FirestoreCollections.serviceRequests)
-          .where('workerId', isEqualTo: workerId)
           .snapshots()
           .map((snapshot) => snapshot.docs
-              .map((doc) => ServiceRequestModel.fromMap(
-                  doc.data(), doc.id))
+              .map((doc) => ServiceRequestModel.fromMap(doc.data(), doc.id))
+              .where((req) {
+                // Return requests assigned to this specific worker
+                if (req.workerId == workerId) return true;
+
+                // Return open pending requests in the worker's category
+                if (req.status == AppConstants.statusPending) {
+                  if (req.workerId.isEmpty) {
+                    if (categoryId != null && categoryId.isNotEmpty) {
+                      if (req.categoryId.trim().toLowerCase() ==
+                          categoryId.trim().toLowerCase()) {
+                        return true;
+                      }
+                    }
+                    if (categoryIds != null && categoryIds.isNotEmpty) {
+                      if (categoryIds.any((c) =>
+                          c.trim().toLowerCase() ==
+                          req.categoryId.trim().toLowerCase())) {
+                        return true;
+                      }
+                    }
+                  }
+                }
+                return false;
+              })
               .toList());
     } catch (_) {
       return const Stream.empty();

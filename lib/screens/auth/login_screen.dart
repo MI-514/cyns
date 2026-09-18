@@ -46,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
     bool success = await authProvider.loginUser(
       email: _emailController.text,
       password: _passwordController.text,
+      expectedRole: _role,
     );
 
     if (!mounted) return;

@@ -89,8 +89,16 @@ class ServiceRequestProvider extends ChangeNotifier {
     return _repository.getCustomerRequests(customerId);
   }
 
-  Stream<List<ServiceRequestModel>> getWorkerRequests(String workerId) {
-    return _repository.getWorkerRequests(workerId);
+  Stream<List<ServiceRequestModel>> getWorkerRequests(
+    String workerId, {
+    String? categoryId,
+    List<String>? categoryIds,
+  }) {
+    return _repository.getWorkerRequests(
+      workerId,
+      categoryId: categoryId,
+      categoryIds: categoryIds,
+    );
   }
 
   Stream<ServiceRequestModel?> getRequestStream(String requestId) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
 import '../auth/role_selection_screen.dart';
 
@@ -12,6 +13,16 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+
+  void _completeOnboarding() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_onboarding_completed', true);
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+    );
+  }
 
   final List<Map<String, String>> _slides = [
     {
@@ -97,13 +108,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ],
                   ),
                   TextButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const RoleSelectionScreen()),
-                      );
-                    },
+                    onPressed: _completeOnboarding,
                     child: const Text(
                       'Skip',
                       style: TextStyle(
@@ -271,11 +276,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         curve: Curves.easeInOut,
                       );
                     } else {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const RoleSelectionScreen()),
-                      );
+                      _completeOnboarding();
                     }
                   },
                   child: Row(
