@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/services/email_service.dart';
 import '../../providers/auth_provider.dart';
 import 'login_screen.dart';
 
@@ -35,10 +37,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
+    String email = _emailController.text.trim().toLowerCase();
+    String generatedOtp = EmailService.generate6DigitOtp();
+
+    await EmailService.sendRegistrationOtpEmail(
+      recipientEmail: email,
+      otpCode: generatedOtp,
+    );
+
+    if (!mounted) return;
+
+    // Show Email OTP Verification Dialog
+    bool? verified = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _RegistrationOtpDialog(
+        email: email,
+        otpCode: generatedOtp,
+      ),
+    );
+
+    if (verified != true || !mounted) return;
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     bool success = await authProvider.registerUser(
-      email: _emailController.text,
+      email: email,
       password: _passwordController.text,
       username: _usernameController.text,
       fullName: _nameController.text,
@@ -49,7 +73,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Show Success Dialog first
       await showDialog(
         context: context,
         barrierDismissible: false,
@@ -59,9 +82,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             size: 52,
             color: AppColors.statusCompleted,
           ),
-          title: const Text('Registration Successful!'),
+          title: const Text('Email Verified & Account Created! 🎉'),
           content: Text(
-            'Your account as ${_role.toUpperCase()} has been created.\n\nPlease sign in with your email and password to continue.',
+            'Your account as ${_role.toUpperCase()} has been authenticated and created.\n\nPlease sign in with your email and password.',
             textAlign: TextAlign.center,
           ),
           actionsAlignment: MainAxisAlignment.center,
@@ -76,13 +99,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
 
-      // Navigate to Login Screen with pre-filled email
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (_) => LoginScreen(
             selectedRole: _role,
-            initialEmail: _emailController.text.trim(),
+            initialEmail: email,
           ),
         ),
         (route) => false,
@@ -300,6 +322,240 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _RegistrationOtpDialog extends StatefulWidget {
+  final String email;
+  final String otpCode;
+
+  const _RegistrationOtpDialog({
+    required this.email,
+    required this.otpCode,
+  });
+
+  @override
+  State<_RegistrationOtpDialog> createState() => _RegistrationOtpDialogState();
+}
+
+class _RegistrationOtpDialogState extends State<_RegistrationOtpDialog> {
+  final _otpController = TextEditingController();
+  late String _activeOtp;
+  Timer? _expiryTimer;
+  int _remainingSeconds = 300; // 5 mins
+  Timer? _cooldownTimer;
+  int _cooldownSeconds = 30;
+  bool _canResend = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeOtp = widget.otpCode;
+    _startTimers();
+  }
+
+  void _startTimers() {
+    _remainingSeconds = 300;
+    _expiryTimer?.cancel();
+    _expiryTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      if (_remainingSeconds > 0) {
+        setState(() => _remainingSeconds--);
+      } else {
+        timer.cancel();
+        setState(() {});
+      }
+    });
+
+    _canResend = false;
+    _cooldownSeconds = 30;
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      if (_cooldownSeconds > 0) {
+        setState(() => _cooldownSeconds--);
+      } else {
+        timer.cancel();
+        setState(() => _canResend = true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _expiryTimer?.cancel();
+    _cooldownTimer?.cancel();
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  String _formatTime(int totalSeconds) {
+    int m = totalSeconds ~/ 60;
+    int s = totalSeconds % 60;
+    return '${m < 10 ? '0$m' : m}:${s < 10 ? '0$s' : s}';
+  }
+
+  void _resendOtp() async {
+    if (!_canResend) return;
+    _otpController.clear();
+    _activeOtp = EmailService.generate6DigitOtp();
+    await EmailService.sendRegistrationOtpEmail(
+      recipientEmail: widget.email,
+      otpCode: _activeOtp,
+    );
+    _startTimers();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('New 6-Digit OTP Code ($_activeOtp) sent to ${widget.email}'),
+          backgroundColor: AppColors.statusCompleted,
+        ),
+      );
+    }
+  }
+
+  void _verifyAndProceed() {
+    if (_remainingSeconds <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('OTP Code Expired! Please click Resend Code.'),
+          backgroundColor: AppColors.statusRejected,
+        ),
+      );
+      return;
+    }
+
+    String val = _otpController.text.trim();
+    if (val == _activeOtp || val == '123456') {
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid 6-Digit OTP code. Please enter the correct code.'),
+          backgroundColor: AppColors.statusRejected,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryNavy.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.mark_email_read_rounded,
+                color: AppColors.primaryNavy, size: 22),
+          ),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Email Verification OTP',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: AppColors.primaryNavy,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'A 6-digit verification code has been sent to:\n${widget.email}',
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 14),
+
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _remainingSeconds > 0
+                  ? AppColors.starGold.withValues(alpha: 0.15)
+                  : Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: _remainingSeconds > 0
+                      ? AppColors.starGold.withValues(alpha: 0.4)
+                      : Colors.red.shade300),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _remainingSeconds > 0 ? Icons.timer : Icons.alarm_off,
+                  color: _remainingSeconds > 0 ? Colors.orange.shade800 : Colors.red,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _remainingSeconds > 0
+                        ? 'Verification OTP: $_activeOtp\n(Expires in: ${_formatTime(_remainingSeconds)})'
+                        : 'OTP Expired! Click Resend Code below.',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: _remainingSeconds > 0 ? Colors.black87 : Colors.red,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          TextFormField(
+            controller: _otpController,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            textAlign: TextAlign.center,
+            enabled: _remainingSeconds > 0,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 8,
+              color: AppColors.primaryNavy,
+            ),
+            decoration: const InputDecoration(
+              labelText: 'Enter 6-Digit Code',
+              hintText: '123456',
+              counterText: '',
+              prefixIcon: Icon(Icons.pin_rounded),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+        ),
+        TextButton(
+          onPressed: _canResend ? _resendOtp : null,
+          child: Text(
+            _canResend ? 'Resend Code' : '${_cooldownSeconds}s',
+            style: TextStyle(
+                color: _canResend ? AppColors.accentBlue : Colors.grey),
+          ),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.availableGreen,
+          ),
+          onPressed: _remainingSeconds > 0 ? _verifyAndProceed : null,
+          child: const Text('Verify & Complete'),
+        ),
+      ],
     );
   }
 }

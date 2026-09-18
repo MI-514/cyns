@@ -9,7 +9,7 @@ class EmailService {
     return otp.toString();
   }
 
-  /// Send OTP Email
+  /// Send OTP Email (Password Reset)
   static Future<bool> sendOtpEmail({
     required String recipientEmail,
     required String otpCode,
@@ -20,6 +20,21 @@ class EmailService {
       return true;
     } catch (e) {
       debugPrint("Failed to send OTP email: $e");
+      return false;
+    }
+  }
+
+  /// Send Registration OTP Email
+  static Future<bool> sendRegistrationOtpEmail({
+    required String recipientEmail,
+    required String otpCode,
+  }) async {
+    try {
+      debugPrint("Sending 6-Digit Registration Verification OTP $otpCode to $recipientEmail");
+      await Future.delayed(const Duration(milliseconds: 1000));
+      return true;
+    } catch (e) {
+      debugPrint("Failed to send registration OTP email: $e");
       return false;
     }
   }
