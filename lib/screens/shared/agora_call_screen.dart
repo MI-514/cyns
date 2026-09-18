@@ -94,6 +94,15 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
               _remoteUid = null;
             });
           },
+          onError: (ErrorCodeType err, String msg) {
+            debugPrint("Agora Engine Error [$err]: $msg");
+            if (!mounted) return;
+            setState(() {
+              _isEngineError = true;
+              _engineErrorMessage =
+                  'Agora Call Error ($err): $msg.\nIf using App ID without token, please check "Testing Mode" in Agora Console.';
+            });
+          },
         ),
       );
 
@@ -115,11 +124,12 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
         ),
       );
     } catch (e) {
+      debugPrint("Agora Init Exception: $e");
       if (!mounted) return;
       setState(() {
         _isEngineError = true;
         _engineErrorMessage =
-            'Invalid or expired Agora App ID. Please set a valid App ID in lib/core/services/agora_service.dart.';
+            'Agora Connection Error: $e.\nPlease verify your App ID and ensure "Testing Mode" is enabled in console.agora.io.';
       });
       _startDurationTimer();
     }
