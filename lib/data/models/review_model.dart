@@ -23,6 +23,14 @@ class ReviewModel {
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
+  static DateTime _parseDate(dynamic val) {
+    if (val is Timestamp) return val.toDate();
+    if (val is DateTime) return val;
+    if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+    if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
+    return DateTime.now();
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -47,9 +55,7 @@ class ReviewModel {
       customerProfilePic: map['customerProfilePic'] ?? '',
       rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
       reviewText: map['reviewText'] ?? '',
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : DateTime.now(),
+      createdAt: _parseDate(map['createdAt']),
     );
   }
 }

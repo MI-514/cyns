@@ -21,6 +21,14 @@ class ChatModel {
     DateTime? lastMessageTime,
   }) : lastMessageTime = lastMessageTime ?? DateTime.now();
 
+  static DateTime _parseDate(dynamic val) {
+    if (val is Timestamp) return val.toDate();
+    if (val is DateTime) return val;
+    if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+    if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
+    return DateTime.now();
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -43,9 +51,7 @@ class ChatModel {
       customerName: map['customerName'] ?? '',
       workerName: map['workerName'] ?? '',
       lastMessage: map['lastMessage'] ?? '',
-      lastMessageTime: map['lastMessageTime'] != null
-          ? (map['lastMessageTime'] as Timestamp).toDate()
-          : DateTime.now(),
+      lastMessageTime: _parseDate(map['lastMessageTime']),
     );
   }
 }

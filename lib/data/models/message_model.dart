@@ -21,6 +21,14 @@ class MessageModel {
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
+  static DateTime _parseDate(dynamic val) {
+    if (val is Timestamp) return val.toDate();
+    if (val is DateTime) return val;
+    if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+    if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
+    return DateTime.now();
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -43,9 +51,7 @@ class MessageModel {
       senderRole: map['senderRole'] ?? '',
       message: map['message'] ?? '',
       attachmentUrl: map['attachmentUrl'],
-      timestamp: map['timestamp'] != null
-          ? (map['timestamp'] as Timestamp).toDate()
-          : DateTime.now(),
+      timestamp: _parseDate(map['timestamp']),
     );
   }
 }

@@ -12,7 +12,7 @@ import '../../data/models/worker_profile_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/service_request_provider.dart';
 import '../../providers/worker_provider.dart';
-import '../shared/map_tracking_screen.dart';
+import '../shared/chat_screen.dart';
 
 class RequestWaitingCountdownScreen extends StatefulWidget {
   final ServiceRequestModel request;
@@ -75,7 +75,7 @@ class _RequestWaitingCountdownScreenState
         _timer?.cancel();
         ServiceRequestModel updated = ServiceRequestModel.fromMap(
             data, doc.id);
-        _navigateToMapTracking(updated);
+        _navigateToChat(updated);
       } else if (status == AppConstants.statusRejected) {
         _isHandled = true;
         _timer?.cancel();
@@ -108,7 +108,7 @@ class _RequestWaitingCountdownScreenState
       status: AppConstants.statusAccepted,
     );
 
-    _navigateToMapTracking(acceptedReq);
+    _navigateToChat(acceptedReq);
   }
 
   void _handleTimeout() async {
@@ -259,7 +259,7 @@ class _RequestWaitingCountdownScreenState
       categoryId: widget.request.categoryId,
       categoryName: nextWorker.profession,
       problemDescription:
-          'Hiring Offer for ${nextWorker.profession}',
+          'InDrive-Style Auto Hiring Offer for ${nextWorker.profession}',
       customerLat: widget.request.customerLat,
       customerLng: widget.request.customerLng,
       customerAddress: widget.request.customerAddress,
@@ -305,11 +305,17 @@ class _RequestWaitingCountdownScreenState
     }
   }
 
-  void _navigateToMapTracking(ServiceRequestModel updatedRequest) {
+  void _navigateToChat(ServiceRequestModel updatedRequest) {
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => MapTrackingScreen(request: updatedRequest),
+        builder: (_) => ChatScreen(
+          requestId: updatedRequest.id,
+          peerName: updatedRequest.workerName,
+          peerRole: 'worker',
+          peerPhone: updatedRequest.workerPhone,
+        ),
       ),
     );
   }
@@ -323,68 +329,164 @@ class _RequestWaitingCountdownScreenState
 
   @override
   Widget build(BuildContext context) {
+    double dist = LocationService.calculateDistanceKm(
+      widget.request.customerLat,
+      widget.request.customerLng,
+      widget.request.workerLat ?? widget.request.customerLat,
+      widget.request.workerLng ?? widget.request.customerLng,
+    );
+
     return Scaffold(
       backgroundColor: AppColors.primaryNavy,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.pureWhite),
+          onPressed: () {
+            _timer?.cancel();
+            _subscription?.cancel();
+            Navigator.pop(context);
+          },
+        ),
+        title: const Text(
+          'Live Dispatch Radar',
+          style: TextStyle(fontSize: 18, color: AppColors.pureWhite),
+        ),
+      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Top Dispatch Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.pureWhite.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.pureWhite.withValues(alpha: 0.25),
+                  ),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.autorenew, color: AppColors.pureWhite, size: 16),
-                    SizedBox(width: 6),
+                    Icon(Icons.radar_rounded,
+                        color: AppColors.pureWhite, size: 16),
+                    SizedBox(width: 8),
                     Text(
-                      'CYN AUTO DISPATCH',
+                      'SCANNING 10 KM RADIUS',
                       style: TextStyle(
                         color: AppColors.pureWhite,
                         fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                widget.request.workerName,
-                style: const TextStyle(
-                  color: AppColors.pureWhite,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(height: 20),
+
+              // Priority Worker Target Details Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColors.pureWhite.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.pureWhite.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(
+                        color: AppColors.pureWhite,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.engineering_rounded,
+                        color: AppColors.primaryNavy,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  widget.request.workerName,
+                                  style: const TextStyle(
+                                    color: AppColors.pureWhite,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppColors.starGold,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${LocationService.formatDistance(dist)} away',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Category: ${widget.request.categoryName}',
+                            style: const TextStyle(
+                              color: AppColors.textLight,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Searching Nearest ${widget.request.categoryName}',
-                style: const TextStyle(
-                  color: AppColors.textLight,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 36),
+              const SizedBox(height: 28),
 
               // 30-Second Live Timer Circle
               Stack(
                 alignment: Alignment.center,
                 children: [
+                  Container(
+                    width: 190,
+                    height: 190,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.pureWhite.withValues(alpha: 0.05),
+                    ),
+                  ),
                   SizedBox(
-                    width: 180,
-                    height: 180,
+                    width: 170,
+                    height: 170,
                     child: CircularProgressIndicator(
                       value: _secondsRemaining / 30.0,
-                      strokeWidth: 10,
-                      valueColor:
-                          const AlwaysStoppedAnimation<Color>(AppColors.pureWhite),
+                      strokeWidth: 8,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.pureWhite),
                       backgroundColor:
                           AppColors.pureWhite.withValues(alpha: 0.15),
                     ),
@@ -396,62 +498,102 @@ class _RequestWaitingCountdownScreenState
                         '$_secondsRemaining',
                         style: const TextStyle(
                           color: AppColors.pureWhite,
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 46,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                       const Text(
                         'SECONDS',
                         style: TextStyle(
                           color: AppColors.textLight,
-                          fontSize: 12,
-                          letterSpacing: 1,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 28),
 
-              const Text(
-                'Requesting nearest worker...\nIf worker doesn\'t accept in 30s, request will automatically dispatch to the next nearest worker!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.textLight,
-                  fontSize: 14,
-                  height: 1.4,
+              // Dispatch Status Narrative
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.pureWhite.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Requesting Nearest Active Worker',
+                      style: TextStyle(
+                        color: AppColors.pureWhite,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Dispatching to active workers within 10 KM.\nIf not accepted in 30s, automatically rotates to next nearest worker.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.pureWhite.withValues(alpha: 0.75),
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 28),
 
-              // Cancel Request Button
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.pureWhite,
-                  side: const BorderSide(color: AppColors.pureWhite),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 12),
+              // Exit / Cancel Auto-Search Button (Properly Constrained & Responsive)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.pureWhite,
+                    side: BorderSide(
+                      color: AppColors.pureWhite.withValues(alpha: 0.6),
+                      width: 1.5,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Cancel Auto-Search & Exit',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  onPressed: () {
+                    _timer?.cancel();
+                    _subscription?.cancel();
+                    Navigator.pop(context);
+                  },
                 ),
-                icon: const Icon(Icons.close),
-                label: const Text('Cancel Auto-Search'),
-                onPressed: () {
-                  _timer?.cancel();
-                  _subscription?.cancel();
-                  Navigator.pop(context);
-                },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-              // Test Simulation Button
+              // Test Mode Button
               TextButton.icon(
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.availableGreen,
                 ),
                 icon: const Icon(Icons.check_circle_outline, size: 18),
-                label: const Text(
-                  '🧪 Simulate Worker Acceptance (Test Mode)',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                label: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Simulate Worker Acceptance (Test Mode)',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
                 ),
                 onPressed: _simulateWorkerAccept,
               ),

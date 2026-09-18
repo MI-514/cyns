@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -8,7 +9,6 @@ import '../../data/models/service_request_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/service_request_provider.dart';
-import '../shared/agora_call_screen.dart';
 import '../shared/chat_screen.dart';
 import '../shared/map_tracking_screen.dart';
 
@@ -20,95 +20,12 @@ class ActiveJobScreen extends StatefulWidget {
 }
 
 class _ActiveJobScreenState extends State<ActiveJobScreen> {
-  void _showCallChoiceModal(BuildContext context, ServiceRequestModel job) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.call, color: AppColors.primaryNavy, size: 28),
-                const SizedBox(width: 10),
-                Text(
-                  'In-App Calling (${job.customerName})',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryNavy,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Communication is kept 100% private & secure inside CYN App:',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-            ),
-            const SizedBox(height: 20),
-
-            // Option 1: In-App Voice Call (Agora VoIP)
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
-                child: const Icon(Icons.phone_in_talk, color: AppColors.primaryNavy),
-              ),
-              title: const Text('In-App Internet Voice Call',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Free internet call inside CYN App'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AgoraCallScreen(
-                      channelId: job.id,
-                      peerName: job.customerName,
-                      peerRole: 'customer',
-                      isVideoCall: false,
-                    ),
-                  ),
-                );
-              },
-            ),
-            const Divider(),
-
-            // Option 2: In-App Video Call (Agora Video)
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
-                child: const Icon(Icons.videocam, color: AppColors.primaryNavy),
-              ),
-              title: const Text('In-App Video Call',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Live video camera call inside CYN App'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AgoraCallScreen(
-                      channelId: job.id,
-                      peerName: job.customerName,
-                      peerRole: 'customer',
-                      isVideoCall: true,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+  void _callCustomer(BuildContext context, String phone) async {
+    if (phone.isEmpty) return;
+    final Uri url = Uri.parse('tel:$phone');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    }
   }
 
   @override
@@ -204,7 +121,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Customer Details Card (Phone Number Protected)
+              // Customer Details
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -223,20 +140,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                       Text('Name: ${activeJob.customerName}',
                           style: const TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      const Row(
-                        children: [
-                          Icon(Icons.security, size: 16, color: AppColors.availableGreen),
-                          SizedBox(width: 4),
-                          Text(
-                            'Contact: Privacy Protected (In-App Call & Chat Enabled)',
-                            style: TextStyle(
-                              color: AppColors.accentBlue,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
+                      Text('Phone: ${activeJob.customerPhone}'),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -410,9 +314,9 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.call),
-                      label: const Text('Call Customer'),
+                      label: const Text('Call'),
                       onPressed: () =>
-                          _showCallChoiceModal(context, activeJob),
+                          _callCustomer(context, activeJob.customerPhone),
                     ),
                   ),
                   const SizedBox(width: 8),

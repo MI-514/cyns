@@ -37,29 +37,11 @@ class WorkerProvider extends ChangeNotifier {
   }
 
   Future<void> toggleAvailability(String workerId, bool isAvailable) async {
-    await _repository.toggleAvailability(workerId, isAvailable);
     if (_currentWorkerProfile != null) {
-      _currentWorkerProfile = WorkerProfileModel(
-        workerId: _currentWorkerProfile!.workerId,
-        name: _currentWorkerProfile!.name,
-        phoneNumber: _currentWorkerProfile!.phoneNumber,
-        profilePicUrl: _currentWorkerProfile!.profilePicUrl,
-        profession: _currentWorkerProfile!.profession,
-        categoryIds: _currentWorkerProfile!.categoryIds,
-        skills: _currentWorkerProfile!.skills,
-        experienceYears: _currentWorkerProfile!.experienceYears,
-        serviceDescription: _currentWorkerProfile!.serviceDescription,
-        workingArea: _currentWorkerProfile!.workingArea,
-        isAvailable: isAvailable,
-        latitude: _currentWorkerProfile!.latitude,
-        longitude: _currentWorkerProfile!.longitude,
-        rating: _currentWorkerProfile!.rating,
-        reviewCount: _currentWorkerProfile!.reviewCount,
-        completedJobsCount: _currentWorkerProfile!.completedJobsCount,
-        isApproved: _currentWorkerProfile!.isApproved,
-      );
+      _currentWorkerProfile = _currentWorkerProfile!.copyWith(isAvailable: isAvailable);
       notifyListeners();
     }
+    await _repository.toggleAvailability(workerId, isAvailable);
   }
 
   Future<void> searchWorkers({
@@ -67,6 +49,7 @@ class WorkerProvider extends ChangeNotifier {
     double? customerLat,
     double? customerLng,
     String? query,
+    double maxRadiusKm = 10.0,
   }) async {
     _isLoading = true;
     _searchQuery = query ?? '';
@@ -77,6 +60,7 @@ class WorkerProvider extends ChangeNotifier {
       customerLat: customerLat,
       customerLng: customerLng,
       searchQuery: query,
+      maxRadiusKm: maxRadiusKm,
     );
 
     _isLoading = false;

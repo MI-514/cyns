@@ -105,7 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Customer Registration'),
+        title: const Text('Customer / Employer Registration'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -125,7 +125,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Fill in your details to register as a Customer',
+                  'Fill in your details to register as a Customer / Employer',
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 24),
@@ -278,16 +278,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const Text('Already have an account? '),
                     GestureDetector(
                       onTap: () {
-                        if (Navigator.canPop(context)) {
-                          Navigator.pop(context);
-                        } else {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => LoginScreen(selectedRole: _role),
-                            ),
-                          );
-                        }
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LoginScreen(selectedRole: _role),
+                          ),
+                        );
                       },
                       child: const Text(
                         'Sign In',

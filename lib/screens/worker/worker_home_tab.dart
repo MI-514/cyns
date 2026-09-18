@@ -4,44 +4,114 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/models/service_request_model.dart';
-import '../../data/models/worker_profile_model.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/service_request_provider.dart';
 import '../../providers/worker_provider.dart';
-import 'active_job_screen.dart';
+import '../shared/chat_screen.dart';
 
 class WorkerHomeTab extends StatelessWidget {
   const WorkerHomeTab({super.key});
 
-  String _getFirstName(String fullName) {
-    String clean = fullName.trim();
-    if (clean.isNotEmpty && !clean.contains('@')) {
-      return clean.split(' ').first;
-    }
-    return 'Worker';
+  void _showIssueDetailsModal(BuildContext context, ServiceRequestModel req) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Customer Issue Details',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryNavy,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 10),
+            Text(
+              'Customer: ${req.customerName}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            Text(
+              'Address: ${req.customerAddress}',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Problem Comment / Description:',
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryNavy),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.offWhite,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.dividerColor),
+              ),
+              child: Text(
+                req.problemDescription.isNotEmpty
+                    ? req.problemDescription
+                    : 'No text comment provided.',
+                style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+              ),
+            ),
+            if (req.attachmentUrl != null) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Attached Issue Photo:',
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryNavy),
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.network(
+                  req.attachmentUrl!,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context);
     final workerProvider = Provider.of<WorkerProvider>(context);
     final requestProvider = Provider.of<ServiceRequestProvider>(context);
 
-    // Fallback profile if loading or uninitialized so screen renders instantly!
-    final worker = workerProvider.currentWorkerProfile ??
-        WorkerProfileModel(
-          workerId: auth.userModel?.uid ?? 'worker_id',
-          name: auth.userModel?.fullName.isNotEmpty == true
-              ? auth.userModel!.fullName
-              : 'Worker',
-          phoneNumber: auth.userModel?.phoneNumber ?? '',
-          profession: 'Skilled Worker',
-          categoryIds: ['plumber'],
-          skills: ['Plumbing'],
-          serviceDescription: 'Skilled worker available for doorstep service.',
-          workingArea: 'City Wide',
-          isAvailable: true,
-        );
+    final worker = workerProvider.currentWorkerProfile;
+
+    if (worker == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -76,7 +146,7 @@ class WorkerHomeTab extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              'Hello, ${_getFirstName(worker.name)}',
+                              'Hello, ${worker.name}',
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: AppColors.pureWhite,
@@ -137,99 +207,7 @@ class WorkerHomeTab extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-
-          // Active Ongoing Job Banner Stream
-          StreamBuilder<List<ServiceRequestModel>>(
-            stream: requestProvider.getWorkerRequests(worker.workerId),
-            builder: (context, snapshot) {
-              final allRequests = snapshot.data ?? [];
-              final activeJobs = allRequests
-                  .where((r) =>
-                      r.status == AppConstants.statusAccepted ||
-                      r.status == AppConstants.statusOnTheWay ||
-                      r.status == AppConstants.statusArrived ||
-                      r.status == AppConstants.statusInProgress)
-                  .toList();
-
-              if (activeJobs.isEmpty) return const SizedBox.shrink();
-
-              final activeJob = activeJobs.first;
-
-              return Card(
-                elevation: 4,
-                shadowColor: AppColors.accentBlue.withValues(alpha: 0.25),
-                margin: const EdgeInsets.only(bottom: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  side: BorderSide(
-                    color: AppColors.accentBlue.withValues(alpha: 0.4),
-                    width: 1.2,
-                  ),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(18),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ActiveJobScreen(),
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppColors.accentBlue.withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.play_circle_fill_rounded,
-                            color: AppColors.accentBlue,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Active Job: ${activeJob.categoryName}',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryNavy,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Customer: ${activeJob.customerName} • ${activeJob.status}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.accentBlue,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 14,
-                          color: AppColors.primaryNavy,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          const SizedBox(height: 20),
 
           // Worker Summary Stats Row
           Row(
@@ -320,28 +298,64 @@ class WorkerHomeTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: AppColors.dividerColor),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.work_off_outlined,
+                        const Icon(Icons.inbox_rounded,
                             size: 52, color: AppColors.textLight),
-                        SizedBox(height: 10),
-                        Text(
-                          'No new jobs available right now.',
+                        const SizedBox(height: 10),
+                        const Text(
+                          'No new pending requests right now.',
                           style: TextStyle(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
+                        const SizedBox(height: 4),
+                        const Text(
                           'Stay online to receive instant doorstep job offers.',
                           style: TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 12,
                           ),
                         ),
+                        if (worker.workerId.contains('guest')) ...[
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryNavy,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                            ),
+                            icon: const Icon(Icons.bolt, size: 18),
+                            label: const Text(
+                              '⚡ Create Test Job Request',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            onPressed: () async {
+                              final req = ServiceRequestModel(
+                                id: 'req_test_${DateTime.now().millisecondsSinceEpoch}',
+                                customerId: 'guest_customer_cyn',
+                                customerName: 'Ali Raza (Guest Customer)',
+                                customerPhone: '+923009876543',
+                                workerId: worker.workerId,
+                                workerName: worker.name,
+                                workerPhone: worker.phoneNumber,
+                                categoryId: 'plumber',
+                                categoryName: 'Plumbing Service',
+                                problemDescription:
+                                    'Urgent: Kitchen sink pipe leaking water on floor. Need immediate repair.',
+                                customerLat: 31.5204,
+                                customerLng: 74.3587,
+                                customerAddress:
+                                    'House #42, Block B, Gulberg III, Lahore',
+                                status: AppConstants.statusPending,
+                              );
+                              await requestProvider.createRequest(req);
+                            },
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -439,35 +453,31 @@ class WorkerHomeTab extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.offWhite,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.dividerColor),
-                            ),
-                            child: Text(
-                              req.problemDescription,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColors.textPrimary,
-                                height: 1.3,
+                          // View Request Issue Details Modal Launcher
+                          if (req.problemDescription.isNotEmpty ||
+                              req.attachmentUrl != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.primaryNavy,
+                                  side: const BorderSide(
+                                      color: AppColors.primaryNavy, width: 1.2),
+                                  minimumSize: const Size.fromHeight(40),
+                                ),
+                                icon: const Icon(Icons.find_in_page_rounded,
+                                    size: 18),
+                                label: const Text(
+                                  'View Request Issue Details (Photo & Comment)',
+                                  style: TextStyle(
+                                      fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: () {
+                                  _showIssueDetailsModal(context, req);
+                                },
                               ),
                             ),
-                          ),
-                          if (req.attachmentUrl != null) ...[
-                            const SizedBox(height: 10),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                req.attachmentUrl!,
-                                height: 130,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ],
+                          const SizedBox(height: 6),
                           const SizedBox(height: 18),
                           Row(
                             children: [
@@ -504,11 +514,17 @@ class WorkerHomeTab extends StatelessWidget {
                                       customerId: req.customerId,
                                       workerId: req.workerId,
                                     );
+
                                     if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Job Accepted! Go to Active Job tab to track progress.'),
-                                          backgroundColor: AppColors.statusCompleted,
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ChatScreen(
+                                            requestId: req.id,
+                                            peerName: req.customerName,
+                                            peerRole: 'customer',
+                                            peerPhone: req.customerPhone,
+                                          ),
                                         ),
                                       );
                                     }

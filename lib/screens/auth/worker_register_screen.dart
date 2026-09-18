@@ -30,6 +30,23 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  final List<Map<String, String>> _categories = [
+    {'id': 'electrician', 'name': 'Electrician'},
+    {'id': 'plumber', 'name': 'Plumber'},
+    {'id': 'mason', 'name': 'Mason / Raj Mistri'},
+    {'id': 'carpenter', 'name': 'Carpenter'},
+    {'id': 'welder', 'name': 'Welder & Fabricator'},
+    {'id': 'ac_technician', 'name': 'AC & Refrigerator Technician'},
+    {'id': 'tailor', 'name': 'Tailor / Darzi'},
+    {'id': 'driver', 'name': 'Driver'},
+    {'id': 'auto_mechanic', 'name': 'Auto Mechanic'},
+    {'id': 'painter', 'name': 'Painter'},
+    {'id': 'cleaner', 'name': 'Home Cleaner / Housekeeping'},
+    {'id': 'laborer', 'name': 'General Laborer / Loader'},
+    {'id': 'tile_worker', 'name': 'Tile & Marble Worker'},
+    {'id': 'appliance_repair', 'name': 'Appliance Repair'},
+  ];
+
   final List<Map<String, dynamic>> _experienceLevels = [
     {'years': 1, 'label': 'Less than 1 year'},
     {'years': 2, 'label': '1 - 3 years'},
@@ -38,7 +55,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
     {'years': 10, 'label': '10+ years'},
   ];
 
-  final List<String> _selectedCategoryIds = ['electrician'];
+  String _selectedCategoryId = 'electrician';
+  String _selectedProfession = 'Electrician';
   int _selectedExperienceYears = 2;
 
   File? _profileImage;
@@ -149,27 +167,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
       return;
     }
 
-    if (_selectedCategoryIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least 1 or 2 trade skills.'),
-          backgroundColor: AppColors.statusRejected,
-        ),
-      );
-      return;
-    }
-
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    // Get main profession name from first selected category
-    String professionName = AppConstants.defaultCategories
-        .firstWhere((c) => c['id'] == _selectedCategoryIds.first)['name']!;
-
-    if (_selectedCategoryIds.length > 1) {
-      String secondName = AppConstants.defaultCategories
-          .firstWhere((c) => c['id'] == _selectedCategoryIds[1])['name']!;
-      professionName = '$professionName & $secondName';
-    }
 
     bool success = await authProvider.registerWorkerAdvanced(
       email: _emailController.text.trim(),
@@ -180,8 +178,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
       phoneNumber: _phoneController.text.trim(),
       address: _addressController.text.trim(),
       cnicNumber: _cnicController.text.trim(),
-      profession: professionName,
-      categoryId: _selectedCategoryIds.first,
+      profession: _selectedProfession,
+      categoryId: _selectedCategoryId,
       experienceYears: _selectedExperienceYears,
       profilePicBase64: _profileBase64,
       cnicFrontBase64: _cnicFrontBase64,
@@ -199,7 +197,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
           icon: const Icon(Icons.check_circle, size: 52, color: AppColors.availableGreen),
           title: const Text('Registration Successful!'),
           content: const Text(
-            'Your Worker account has been created and saved in Cloud Firestore.\nYou can now sign in with your registered email and password.',
+            'Your Service Provider account has been created and saved in Cloud Firestore.\nYou can now sign in with your registered email and password.',
             textAlign: TextAlign.center,
           ),
           actions: [
@@ -252,7 +250,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'Join as Worker',
+                  'Join as Service Provider / Worker',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -342,7 +340,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _fullNameController,
                   decoration: const InputDecoration(
-                    labelText: 'Full Name *',
+                    labelText: 'Pura Naam (Full Name) *',
                     prefixIcon: Icon(Icons.person_outline),
                   ),
                   validator: (val) {
@@ -358,12 +356,12 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _fatherNameController,
                   decoration: const InputDecoration(
-                    labelText: "Father Name *",
+                    labelText: "Walid ka Naam (Father's Name) *",
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Please enter Father Name';
+                      return 'Please enter Father\'s Name';
                     }
                     return null;
                   },
@@ -409,7 +407,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _addressController,
                   decoration: const InputDecoration(
-                    labelText: 'Current Address *',
+                    labelText: 'Mojuda Pata (Current Address / City) *',
                     prefixIcon: Icon(Icons.location_on_outlined),
                     hintText: 'e.g. Gulberg III, Lahore',
                   ),
@@ -438,58 +436,30 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // Peshwarana Hunar (Main Skill/Trade) Multi-Select Chips
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Main Skill *',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppColors.primaryNavy,
-                      ),
-                    ),
-                    Text(
-                      '${_selectedCategoryIds.length} Selected',
-                      style: const TextStyle(
-                        color: AppColors.accentBlue,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: AppConstants.defaultCategories.map((cat) {
-                    String catId = cat['id']!;
-                    String catName = cat['name']!;
-                    bool isSelected = _selectedCategoryIds.contains(catId);
-                    return FilterChip(
-                      label: Text(catName),
-                      selected: isSelected,
-                      selectedColor: AppColors.primaryNavy.withValues(alpha: 0.2),
-                      checkmarkColor: AppColors.primaryNavy,
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            if (!_selectedCategoryIds.contains(catId)) {
-                              _selectedCategoryIds.add(catId);
-                            }
-                          } else {
-                            if (_selectedCategoryIds.length > 1) {
-                              _selectedCategoryIds.remove(catId);
-                            }
-                          }
-                        });
-                      },
+                // Peshwarana Hunar (Main Skill/Trade) Dropdown
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedCategoryId,
+                  decoration: const InputDecoration(
+                    labelText: 'Peshwarana Hunar (Main Skill/Trade) *',
+                    prefixIcon: Icon(Icons.work_outline),
+                  ),
+                  items: _categories.map((cat) {
+                    return DropdownMenuItem<String>(
+                      value: cat['id']!,
+                      child: Text(cat['name']!),
                     );
                   }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        _selectedCategoryId = val;
+                        _selectedProfession = _categories
+                            .firstWhere((c) => c['id'] == val)['name']!;
+                      });
+                    }
+                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -497,7 +467,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 DropdownButtonFormField<int>(
                   initialValue: _selectedExperienceYears,
                   decoration: const InputDecoration(
-                    labelText: 'Experience *',
+                    labelText: 'Tajurba (Experience) *',
                     prefixIcon: Icon(Icons.history_edu),
                   ),
                   items: _experienceLevels.map((exp) {

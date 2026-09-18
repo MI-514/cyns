@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -28,8 +28,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   late double _wLng;
   late double _cLat;
   late double _cLng;
-  final MapController _mapController = MapController();
-
+  GoogleMapController? _mapController;
+  final Set<Marker> _markers = {};
+  final Set<Polyline> _polylines = {};
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<DocumentSnapshot>? _requestDocSubscription;
   Timer? _autoMovementTimer;
@@ -42,12 +43,13 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     _cLng = widget.request.customerLng;
     _wLat = widget.request.workerLat ?? (_cLat + 0.015);
     _wLng = widget.request.workerLng ?? (_cLng + 0.015);
+    _updateMarkersAndPolylines();
     _startLiveGpsStream();
     _listenToFirestoreWorkerLocation();
     _startContinuousLiveWorkerNavigation();
   }
 
-  /// Continuous Automatic Live Navigation
+  /// Continuous Automatic Live Navigation (Uber/Careem/InDrive style continuous movement)
   void _startContinuousLiveWorkerNavigation() {
     _autoMovementTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (!mounted) {
@@ -61,9 +63,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         _wLat = _cLat;
         _wLng = _cLng;
         timer.cancel();
-        if (mounted) {
-          setState(() {});
-        }
+        _updateMarkersAndPolylines();
         if (mounted && !_isCompletionHandled) {
           _isCompletionHandled = true;
           _showCompletionModal(widget.request);
@@ -72,14 +72,12 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         // Glides worker 15% closer every 3 seconds continuously
         _wLat += latDiff * 0.15;
         _wLng += lngDiff * 0.15;
-        if (mounted) {
-          setState(() {});
-        }
+        _updateMarkersAndPolylines();
 
         // Smooth camera follow
-        try {
-          _mapController.move(LatLng(_wLat, _wLng), _mapController.camera.zoom);
-        } catch (_) {}
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLng(LatLng(_wLat, _wLng)),
+        );
       }
     });
   }
@@ -106,6 +104,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         setState(() {
           _wLat = newWLat;
           _wLng = newWLng;
+          _updateMarkersAndPolylines();
         });
       }
 
@@ -181,8 +180,62 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       setState(() {
         _cLat = position.latitude;
         _cLng = position.longitude;
+        _updateMarkersAndPolylines();
       });
     });
+  }
+
+  void _updateMarkersAndPolylines() {
+    _markers.clear();
+    _polylines.clear();
+
+    double bearing = LocationService.calculateBearing(_wLat, _wLng, _cLat, _cLng);
+
+    // Customer Location Marker (Red Doorstep Pin)
+    _markers.add(
+      Marker(
+        markerId: const MarkerId('customer'),
+        position: LatLng(_cLat, _cLng),
+        infoWindow: InfoWindow(
+          title: 'Employer Doorstep Location',
+          snippet: widget.request.customerAddress,
+        ),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+      ),
+    );
+
+    // Worker Location Marker (Blue Navigation Marker with Heading Bearing)
+    _markers.add(
+      Marker(
+        markerId: const MarkerId('worker'),
+        position: LatLng(_wLat, _wLng),
+        rotation: bearing,
+        anchor: const Offset(0.5, 0.5),
+        infoWindow: InfoWindow(
+          title: 'Worker (${widget.request.workerName})',
+          snippet: 'En Route to ${widget.request.customerAddress}',
+        ),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      ),
+    );
+
+    // Live Route Polyline connecting Worker and Customer
+    _polylines.add(
+      Polyline(
+        polylineId: const PolylineId('route_line'),
+        points: [
+          LatLng(_wLat, _wLng),
+          LatLng(_cLat, _cLng),
+        ],
+        color: AppColors.primaryNavy,
+        width: 6,
+        patterns: [PatternItem.dash(15), PatternItem.gap(8)],
+      ),
+    );
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _showCallChoiceModal(BuildContext context, ServiceRequestModel req) {
@@ -202,9 +255,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                 const Icon(Icons.call, color: AppColors.primaryNavy, size: 28),
                 const SizedBox(width: 10),
                 Text(
-                  'In-App Calling (${req.workerName})',
+                  'Call ${req.workerName}',
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryNavy,
                   ),
@@ -213,7 +266,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Communication is kept 100% private & secure inside CYN App:',
+              'Select how you want to call and talk with the worker:',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 20),
@@ -253,7 +306,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
               ),
               title: const Text('In-App Video Call',
                   style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Live video camera call inside CYN App'),
+              subtitle: const Text('Live video camera to show issue to worker'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Navigator.pop(ctx);
@@ -270,6 +323,27 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                 );
               },
             ),
+            const Divider(),
+
+            // Option 3: Direct Phone Call (Cellular Dialer)
+            if (req.workerPhone.isNotEmpty)
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.availableGreen.withValues(alpha: 0.15),
+                  child: const Icon(Icons.phone, color: AppColors.availableGreen),
+                ),
+                title: const Text('Direct Phone Number Call',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text('Call ${req.workerPhone} via SIM'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final Uri telUri = Uri(scheme: 'tel', path: req.workerPhone);
+                  if (await canLaunchUrl(telUri)) {
+                    await launchUrl(telUri);
+                  }
+                },
+              ),
           ],
         ),
       ),
@@ -281,9 +355,11 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     _autoMovementTimer?.cancel();
     _positionSubscription?.cancel();
     _requestDocSubscription?.cancel();
-    _mapController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
+
+  bool _useVectorMap = false;
 
   @override
   Widget build(BuildContext context) {
@@ -301,87 +377,43 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Live Open Map Route - ${req.workerName}'),
+        title: Text('Live Route Map - ${req.workerName}'),
+        actions: [
+          IconButton(
+            icon: Icon(_useVectorMap ? Icons.map_rounded : Icons.radar_rounded),
+            tooltip: _useVectorMap ? 'Switch to Google Map' : 'Switch to In-App Vector Map',
+            onPressed: () {
+              setState(() => _useVectorMap = !_useVectorMap);
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: LatLng(_cLat, _cLng),
-              initialZoom: 14.5,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.cyns',
-              ),
-              PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points: [
-                      LatLng(_wLat, _wLng),
-                      LatLng(_cLat, _cLng),
-                    ],
-                    color: AppColors.primaryNavy,
-                    strokeWidth: 5.0,
+          _useVectorMap
+              ? _CustomVectorMapView(
+                  workerLat: _wLat,
+                  workerLng: _wLng,
+                  customerLat: _cLat,
+                  customerLng: _cLng,
+                  workerName: req.workerName,
+                  customerAddress: req.customerAddress,
+                )
+              : GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: LatLng(_cLat, _cLng),
+                    zoom: 14.5,
                   ),
-                ],
-              ),
-              MarkerLayer(
-                markers: [
-                  // Customer Red Pin Marker
-                  Marker(
-                    point: LatLng(_cLat, _cLng),
-                    width: 80,
-                    height: 80,
-                    child: const Column(
-                      children: [
-                        Icon(
-                          Icons.location_on_rounded,
-                          color: Colors.red,
-                          size: 40,
-                        ),
-                        Text(
-                          'Customer',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Worker Blue Pin Marker
-                  Marker(
-                    point: LatLng(_wLat, _wLng),
-                    width: 80,
-                    height: 80,
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.location_on_rounded,
-                          color: Colors.blue,
-                          size: 40,
-                        ),
-                        Text(
-                          req.workerName,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                  markers: _markers,
+                  polylines: _polylines,
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: true,
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
+                ),
 
-          // Top Info Banner Card
+          // Top Info Banner Card (Spacious, Wider, & Prominent)
           Positioned(
             top: 16,
             left: 14,
@@ -557,41 +589,76 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
+                    SizedBox(
+                      width: double.infinity,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryNavy,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        icon: const Icon(Icons.chat),
-                        label: const Text('Chat'),
+                        icon: const Icon(Icons.navigation_rounded,
+                            color: Colors.white, size: 20),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Start Google Maps Turn-by-Turn Navigation',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChatScreen(
-                                requestId: req.id,
-                                peerName: req.workerName,
-                                peerRole: 'worker',
-                              ),
-                            ),
-                          );
+                          LocationService.openTurnByTurnNavigation(
+                              _cLat, _cLng);
                         },
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.availableGreen,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primaryNavy,
+                              side: const BorderSide(
+                                  color: AppColors.primaryNavy),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            icon: const Icon(Icons.chat_bubble_outline_rounded,
+                                size: 18),
+                            label: const Text('Chat'),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ChatScreen(
+                                    requestId: req.id,
+                                    peerName: req.workerName,
+                                    peerRole: 'worker',
+                                    peerPhone: req.workerPhone,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                        icon: const Icon(Icons.phone),
-                        label: const Text('Call Worker'),
-                        onPressed: () => _showCallChoiceModal(context, req),
-                      ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.availableGreen,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            icon: const Icon(Icons.phone, size: 18),
+                            label: const Text('Call'),
+                            onPressed: () => _showCallChoiceModal(context, req),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -601,5 +668,250 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         ],
       ),
     );
+  }
+}
+
+class _CustomVectorMapView extends StatefulWidget {
+  final double workerLat;
+  final double workerLng;
+  final double customerLat;
+  final double customerLng;
+  final String workerName;
+  final String customerAddress;
+
+  const _CustomVectorMapView({
+    required this.workerLat,
+    required this.workerLng,
+    required this.customerLat,
+    required this.customerLng,
+    required this.workerName,
+    required this.customerAddress,
+  });
+
+  @override
+  State<_CustomVectorMapView> createState() => _CustomVectorMapViewState();
+}
+
+class _CustomVectorMapViewState extends State<_CustomVectorMapView> {
+  double _zoomLevel = 1.0;
+  Offset _centerOffset = Offset.zero;
+
+  @override
+  Widget build(BuildContext context) {
+    double bearing = LocationService.calculateBearing(
+      widget.workerLat,
+      widget.workerLng,
+      widget.customerLat,
+      widget.customerLng,
+    );
+
+    double distKm = LocationService.calculateDistanceKm(
+      widget.workerLat,
+      widget.workerLng,
+      widget.customerLat,
+      widget.customerLng,
+    );
+
+    return Container(
+      color: const Color(0xFF0F172A),
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            _centerOffset += details.delta;
+          });
+        },
+        child: Stack(
+          children: [
+            CustomPaint(
+              size: Size.infinite,
+              painter: _VectorMapPainter(
+                workerLat: widget.workerLat,
+                workerLng: widget.workerLng,
+                customerLat: widget.customerLat,
+                customerLng: widget.customerLng,
+                bearing: bearing,
+                zoomLevel: _zoomLevel,
+                panOffset: _centerOffset,
+              ),
+            ),
+            Positioned(
+              top: 150,
+              left: 20,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.redAccent, width: 1.5),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.home_rounded,
+                        color: Colors.redAccent, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Doorstep: ${widget.customerAddress}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 120,
+              right: 20,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.accentBlue, width: 1.5),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.near_me_rounded,
+                        color: AppColors.accentBlue, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${widget.workerName} (${LocationService.formatDistance(distKm)})',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              right: 16,
+              top: 200,
+              child: Column(
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'zoom_in_v',
+                    backgroundColor: AppColors.pureWhite,
+                    child: const Icon(Icons.add, color: AppColors.primaryNavy),
+                    onPressed: () {
+                      setState(() {
+                        if (_zoomLevel < 2.5) _zoomLevel += 0.25;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  FloatingActionButton.small(
+                    heroTag: 'zoom_out_v',
+                    backgroundColor: AppColors.pureWhite,
+                    child:
+                        const Icon(Icons.remove, color: AppColors.primaryNavy),
+                    onPressed: () {
+                      setState(() {
+                        if (_zoomLevel > 0.5) _zoomLevel -= 0.25;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  FloatingActionButton.small(
+                    heroTag: 'recenter_v',
+                    backgroundColor: AppColors.primaryNavy,
+                    child: const Icon(Icons.my_location, color: Colors.white),
+                    onPressed: () {
+                      setState(() {
+                        _zoomLevel = 1.0;
+                        _centerOffset = Offset.zero;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VectorMapPainter extends CustomPainter {
+  final double workerLat;
+  final double workerLng;
+  final double customerLat;
+  final double customerLng;
+  final double bearing;
+  final double zoomLevel;
+  final Offset panOffset;
+
+  _VectorMapPainter({
+    required this.workerLat,
+    required this.workerLng,
+    required this.customerLat,
+    required this.customerLng,
+    required this.bearing,
+    required this.zoomLevel,
+    required this.panOffset,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2) + panOffset;
+
+    final gridPaint = Paint()
+      ..color = const Color(0xFF1E293B)
+      ..strokeWidth = 1.2;
+
+    double step = 36.0 * zoomLevel;
+    for (double x = 0; x < size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    }
+    for (double y = 0; y < size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    double scale = 14000.0 * zoomLevel;
+    Offset customerPos = Offset(
+      center.dx + (customerLng - ((customerLng + workerLng) / 2)) * scale,
+      center.dy - (customerLat - ((customerLat + workerLat) / 2)) * scale,
+    );
+
+    Offset workerPos = Offset(
+      center.dx + (workerLng - ((customerLng + workerLng) / 2)) * scale,
+      center.dy - (workerLat - ((customerLat + workerLat) / 2)) * scale,
+    );
+
+    final routePaint = Paint()
+      ..color = AppColors.accentBlue
+      ..strokeWidth = 5.0
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawLine(workerPos, customerPos, routePaint);
+
+    final customerPinPaint = Paint()..color = Colors.redAccent;
+    canvas.drawCircle(customerPos, 12 * zoomLevel, customerPinPaint);
+    final customerInnerPaint = Paint()..color = Colors.white;
+    canvas.drawCircle(customerPos, 5 * zoomLevel, customerInnerPaint);
+
+    final workerPinPaint = Paint()..color = AppColors.availableGreen;
+    canvas.drawCircle(workerPos, 14 * zoomLevel, workerPinPaint);
+    final workerInnerPaint = Paint()..color = Colors.white;
+    canvas.drawCircle(workerPos, 6 * zoomLevel, workerInnerPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _VectorMapPainter oldDelegate) {
+    return oldDelegate.workerLat != workerLat ||
+        oldDelegate.workerLng != workerLng ||
+        oldDelegate.customerLat != customerLat ||
+        oldDelegate.customerLng != customerLng ||
+        oldDelegate.zoomLevel != zoomLevel ||
+        oldDelegate.panOffset != panOffset;
   }
 }

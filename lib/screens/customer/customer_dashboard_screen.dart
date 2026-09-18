@@ -5,7 +5,6 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/location_provider.dart';
 import '../shared/notification_center_screen.dart';
 import 'customer_home_tab.dart';
-import 'customer_job_history_tab.dart';
 import 'customer_profile_tab.dart';
 
 class CustomerDashboardScreen extends StatefulWidget {
@@ -30,7 +29,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
 
   final List<Widget> _tabs = const [
     CustomerHomeTab(),
-    CustomerJobHistoryTab(),
     CustomerProfileTab(),
   ];
 
@@ -75,39 +73,9 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
           ),
         ],
       ),
-      body: PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) async {
-          if (didPop) return;
-          if (_currentIndex != 0) {
-            setState(() => _currentIndex = 0);
-          } else {
-            bool? shouldExit = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Exit App'),
-                content: const Text('Are you sure you want to exit CYN?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('Cancel'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('Exit'),
-                  ),
-                ],
-              ),
-            );
-            if (shouldExit == true && context.mounted) {
-              Navigator.of(context).pop();
-            }
-          }
-        },
-        child: IndexedStack(
-          index: _currentIndex,
-          children: _tabs,
-        ),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _tabs,
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -119,11 +87,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
             label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment_outlined),
-            activeIcon: Icon(Icons.assignment_rounded),
-            label: 'My Bookings',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

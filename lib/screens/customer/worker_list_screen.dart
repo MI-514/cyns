@@ -173,7 +173,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: AppColors.primaryNavy.withValues(alpha: 0.2),
             width: 1,
@@ -188,7 +188,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                hasValidGps ? Icons.location_on : Icons.location_off,
+                hasValidGps ? Icons.location_on_rounded : Icons.location_off_rounded,
                 size: 16,
                 color: AppColors.pureWhite,
               ),
@@ -204,7 +204,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                         distanceText.toUpperCase(),
                         style: const TextStyle(
                           fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                           color: AppColors.primaryNavy,
                           letterSpacing: 0.5,
                         ),
@@ -217,13 +217,13 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.availableGreen
                                 .withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             '⚡ ~$etaText ETA',
                             style: const TextStyle(
                               fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w800,
                               color: AppColors.availableGreen,
                             ),
                           ),
@@ -281,15 +281,15 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
             if (location.isGpsDisabled || location.currentPosition == null)
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: AppColors.statusPending.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.statusPending),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.location_off,
+                    const Icon(Icons.location_off_rounded,
                         color: AppColors.statusPending, size: 24),
                     const SizedBox(width: 10),
                     const Expanded(
@@ -297,7 +297,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                         'GPS is turned off. Distances cannot be calculated accurately.',
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -324,16 +324,16 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                 decoration: InputDecoration(
                   hintText: 'Filter workers by name or skill...',
                   prefixIcon:
-                      const Icon(Icons.search, color: AppColors.primaryNavy),
+                      const Icon(Icons.search_rounded, color: AppColors.primaryNavy),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.arrow_forward),
+                    icon: const Icon(Icons.arrow_forward_rounded),
                     onPressed: _fetchWorkersOnly,
                   ),
                 ),
                 onSubmitted: (_) => _fetchWorkersOnly(),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
             // Nearby Workers Header
             Padding(
@@ -345,16 +345,23 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                     'Nearby Available ${widget.categoryName}s',
                     style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.primaryNavy,
                     ),
                   ),
-                  Text(
-                    '${workerProvider.searchResults.length} Found',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.availableGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${workerProvider.searchResults.length} Found',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.availableGreen,
+                      ),
                     ),
                   ),
                 ],
@@ -371,24 +378,24 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                 : workerProvider.searchResults.isEmpty
                     ? Container(
                         margin: const EdgeInsets.all(16),
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(28),
                         decoration: BoxDecoration(
                           color: AppColors.pureWhite,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(color: AppColors.dividerColor),
                         ),
                         child: Column(
                           children: [
-                            const Icon(Icons.search_off,
-                                size: 48, color: AppColors.textLight),
-                            const SizedBox(height: 8),
+                            const Icon(Icons.search_off_rounded,
+                                size: 52, color: AppColors.textLight),
+                            const SizedBox(height: 10),
                             Text(
                               'No available workers found for "${widget.categoryName}".',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
@@ -412,102 +419,16 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                           }
 
                           return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(16),
-                              leading: CircleAvatar(
-                                radius: 28,
-                                backgroundColor:
-                                    AppColors.primaryNavy.withValues(alpha: 0.1),
-                                child: const Icon(
-                                  Icons.person,
-                                  color: AppColors.primaryNavy,
-                                  size: 30,
-                                ),
-                              ),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      worker.name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.availableGreen
-                                          .withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Text(
-                                      'Available',
-                                      style: TextStyle(
-                                        color: AppColors.availableGreen,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${worker.profession} • ${worker.experienceYears} yrs exp',
-                                    style: const TextStyle(
-                                      color: AppColors.accentBlue,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-
-                                  // Prominent Location & Distance Banner
-                                  _buildWorkerLocationBanner(
-                                      context, worker, dist, hasValidGps),
-
-                                  Text(
-                                    worker.serviceDescription,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.star,
-                                          size: 16, color: AppColors.starGold),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${worker.rating} (${worker.reviewCount})',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      const Icon(Icons.work_outline,
-                                          size: 14, color: AppColors.textLight),
-                                      const SizedBox(width: 2),
-                                      Text(
-                                        '${worker.completedJobsCount} jobs',
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.textSecondary),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                            elevation: 3,
+                            shadowColor: const Color(0x0C0F172A),
+                            margin: const EdgeInsets.only(bottom: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              side: const BorderSide(
+                                  color: AppColors.dividerColor, width: 1.0),
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(18),
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -517,6 +438,129 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                   ),
                                 );
                               },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 28,
+                                          backgroundColor: AppColors.primaryNavy
+                                              .withValues(alpha: 0.1),
+                                          child: const Icon(
+                                            Icons.person_rounded,
+                                            color: AppColors.primaryNavy,
+                                            size: 30,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      worker.name,
+                                                      style: const TextStyle(
+                                                        fontWeight: FontWeight.w800,
+                                                        fontSize: 17,
+                                                        color: AppColors.primaryNavy,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                        horizontal: 8, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors.availableGreen
+                                                          .withValues(alpha: 0.15),
+                                                      borderRadius:
+                                                          BorderRadius.circular(12),
+                                                    ),
+                                                    child: const Text(
+                                                      'Available',
+                                                      style: TextStyle(
+                                                        color: AppColors.availableGreen,
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.w800,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 3),
+                                              Text(
+                                                '${worker.profession} • ${worker.experienceYears} yrs exp',
+                                                style: const TextStyle(
+                                                  color: AppColors.accentBlue,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    // Prominent Location & Distance Banner
+                                    _buildWorkerLocationBanner(
+                                        context, worker, dist, hasValidGps),
+
+                                    if (worker.serviceDescription.isNotEmpty)
+                                      Text(
+                                        worker.serviceDescription,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textSecondary,
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.star_rounded,
+                                            size: 18, color: AppColors.starGold),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${worker.rating} (${worker.reviewCount})',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 14),
+                                        const Icon(Icons.work_history_rounded,
+                                            size: 15, color: AppColors.textLight),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${worker.completedJobsCount} jobs',
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textSecondary,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        const Spacer(),
+                                        const Text(
+                                          'View Profile →',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.primaryNavy,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           );
                         },
@@ -572,38 +616,45 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.pureWhite,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.dividerColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: AppColors.primaryNavy.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'LOCATION-BASED WORKER SEARCH',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: AppColors.accentBlue,
-              letterSpacing: 1.0,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.accentBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              'LOCATION-BASED WORKER SEARCH',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppColors.accentBlue,
+                letterSpacing: 1.0,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             widget.categoryName,
             style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
               color: AppColors.primaryNavy,
             ),
           ),
@@ -660,8 +711,8 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
                       }
                     },
                     child: Container(
-                      width: 54,
-                      height: 54,
+                      width: 56,
+                      height: 56,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: widget.isGpsDisabled
@@ -670,17 +721,17 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
                         boxShadow: const [
                           BoxShadow(
                             color: Colors.black26,
-                            blurRadius: 8,
-                            offset: Offset(0, 3),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
                           ),
                         ],
                       ),
                       child: Icon(
                         widget.isGpsDisabled
-                            ? Icons.location_off
-                            : Icons.location_on,
+                            ? Icons.location_off_rounded
+                            : Icons.location_on_rounded,
                         color: AppColors.pureWhite,
-                        size: 30,
+                        size: 32,
                       ),
                     ),
                   ),
@@ -688,14 +739,14 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
               );
             },
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                widget.isGpsDisabled ? Icons.location_off : Icons.my_location,
-                size: 15,
+                widget.isGpsDisabled ? Icons.location_off_rounded : Icons.my_location_rounded,
+                size: 16,
                 color: widget.isGpsDisabled
                     ? AppColors.statusPending
                     : AppColors.accentBlue,
@@ -707,10 +758,10 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: widget.isGpsDisabled
                         ? FontWeight.bold
-                        : FontWeight.normal,
+                        : FontWeight.w500,
                     color: widget.isGpsDisabled
                         ? AppColors.statusPending
                         : AppColors.textSecondary,
@@ -719,7 +770,7 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 22),
 
           // Control Buttons: Cancel & Search
           Row(
@@ -728,8 +779,8 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.statusRejected,
-                    side: const BorderSide(color: AppColors.statusRejected),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: AppColors.statusRejected, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   icon: const Icon(Icons.cancel_outlined, size: 18),
                   label: const Text('Cancel'),
@@ -741,7 +792,7 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryNavy,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   icon: widget.isSearching
                       ? const SizedBox(
@@ -752,8 +803,14 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
                             strokeWidth: 2,
                           ),
                         )
-                      : const Icon(Icons.search, size: 18),
-                  label: Text(widget.isSearching ? 'Searching...' : 'Search & Dispatch'),
+                      : const Icon(Icons.near_me_rounded, size: 18),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      widget.isSearching ? 'Searching...' : 'Search & Dispatch',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
                   onPressed: widget.isSearching ? null : widget.onSearch,
                 ),
               ),
@@ -764,3 +821,4 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
     );
   }
 }
+

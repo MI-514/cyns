@@ -7,23 +7,28 @@ import '../models/category_model.dart';
 class CategoryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Fetch categories with fallback to local SQLite cache
+  /// Fetch categories with fallback to local SQLite cache and auto-seeding
   Future<List<CategoryModel>> getCategories() async {
     try {
       QuerySnapshot snapshot = await _firestore
           .collection(FirestoreCollections.categories)
-          .where('isActive', isEqualTo: true)
           .get();
 
       if (snapshot.docs.isNotEmpty) {
         List<CategoryModel> categories = snapshot.docs
             .map((doc) => CategoryModel.fromMap(
                 doc.data() as Map<String, dynamic>, doc.id))
+            .where((c) => c.isActive)
             .toList();
 
-        // Save to SQLite local cache
-        await SqliteService.instance.cacheCategories(categories);
-        return categories;
+        if (categories.isNotEmpty) {
+          // Save to SQLite local cache
+          await SqliteService.instance.cacheCategories(categories);
+          return categories;
+        }
+      } else {
+        // Seed default categories into Cloud Firestore for live production database
+        _seedDefaultCategories();
       }
     } catch (_) {}
 
@@ -41,6 +46,25 @@ class CategoryRepository {
               icon: cat['icon']!,
             ))
         .toList();
+  }
+
+  void _seedDefaultCategories() async {
+    try {
+      WriteBatch batch = _firestore.batch();
+      for (var cat in AppConstants.defaultCategories) {
+        DocumentReference ref = _firestore
+            .collection(FirestoreCollections.categories)
+            .doc(cat['id']);
+        batch.set(ref, {
+          'id': cat['id'],
+          'name': cat['name'],
+          'description': cat['description'],
+          'icon': cat['icon'],
+          'isActive': true,
+        });
+      }
+      await batch.commit();
+    } catch (_) {}
   }
 
   /// Admin: Add Category

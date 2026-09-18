@@ -41,15 +41,28 @@ class ReviewRepository {
       totalRating += (doc.get('rating') as num).toDouble();
     }
 
-    double avgRating = count > 0 ? (totalRating / count) : 0.0;
+    double avgRating = count > 0 ? (totalRating / count) : 5.0;
+
+    DocumentSnapshot workerDoc = await _firestore
+        .collection(FirestoreCollections.workers)
+        .doc(review.workerId)
+        .get();
+
+    int jobsCount = 1;
+    if (workerDoc.exists && workerDoc.data() != null) {
+      jobsCount =
+          ((workerDoc.get('completedJobsCount') as num?)?.toInt() ?? 0) + 1;
+    }
 
     await _firestore
         .collection(FirestoreCollections.workers)
         .doc(review.workerId)
-        .update({
+        .set({
       'rating': double.parse(avgRating.toStringAsFixed(1)),
       'reviewCount': count,
-    });
+      'completedJobsCount': jobsCount,
+      'isAvailable': true,
+    }, SetOptions(merge: true));
   }
 
   /// Stream of worker reviews

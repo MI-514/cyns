@@ -60,22 +60,34 @@ class ServiceRequestRepository {
       await _firestore
           .collection(FirestoreCollections.serviceRequests)
           .doc(requestId)
-          .update(updateData);
+          .set(updateData, SetOptions(merge: true));
 
-      // If completed, increment worker's completed jobs count
-      if (status == AppConstants.statusCompleted) {
-        DocumentSnapshot requestDoc = await _firestore
-            .collection(FirestoreCollections.serviceRequests)
-            .doc(requestId)
-            .get();
-        if (requestDoc.exists) {
-          String workerId = requestDoc.get('workerId');
-          await _firestore
-              .collection(FirestoreCollections.workers)
-              .doc(workerId)
-              .update({
-            'completedJobsCount': FieldValue.increment(1),
-          });
+      DocumentSnapshot requestDoc = await _firestore
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(requestId)
+          .get();
+
+      if (requestDoc.exists && requestDoc.data() != null) {
+        String workerId = requestDoc.get('workerId') ?? '';
+        if (workerId.isNotEmpty) {
+          if (status == AppConstants.statusAccepted ||
+              status == AppConstants.statusOnTheWay ||
+              status == AppConstants.statusArrived ||
+              status == AppConstants.statusInProgress) {
+            // Worker is occupied/on working
+            await _firestore
+                .collection(FirestoreCollections.workers)
+                .doc(workerId)
+                .set({'isAvailable': false}, SetOptions(merge: true));
+          } else if (status == AppConstants.statusCompleted ||
+              status == AppConstants.statusCancelled ||
+              status == AppConstants.statusRejected) {
+            // Worker is available again
+            await _firestore
+                .collection(FirestoreCollections.workers)
+                .doc(workerId)
+                .set({'isAvailable': true}, SetOptions(merge: true));
+          }
         }
       }
     } catch (_) {}

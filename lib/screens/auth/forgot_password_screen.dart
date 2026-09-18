@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
-import 'otp_verification_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -23,38 +22,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    String? generatedOtp =
-        await authProvider.sendPasswordResetOtp(_emailController.text.trim());
+    bool success = await authProvider.resetPassword(_emailController.text);
 
     setState(() => _isLoading = false);
 
     if (!mounted) return;
 
-    if (generatedOtp != null) {
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Reset Password OTP email sent to ${_emailController.text.trim()}! Please check your Gmail app.'),
+        const SnackBar(
+          content: Text('Password reset email sent! Please check your inbox.'),
           backgroundColor: AppColors.statusCompleted,
-          duration: const Duration(seconds: 4),
         ),
       );
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(
-            email: _emailController.text.trim(),
-            generatedOtp: generatedOtp,
-          ),
-        ),
-      );
+      Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.errorMessage.isNotEmpty
               ? authProvider.errorMessage
-              : 'Failed to send OTP code. Please check your email.'),
+              : 'Failed to send password reset email.'),
           backgroundColor: AppColors.statusRejected,
         ),
       );
@@ -68,7 +55,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         title: const Text('Reset Password'),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
@@ -76,7 +63,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Icon(
-                  Icons.mark_email_read_outlined,
+                  Icons.lock_reset_outlined,
                   size: 64,
                   color: AppColors.primaryNavy,
                 ),
@@ -92,21 +79,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Enter your registered email address below. We will verify if your email is registered in CYN and send a password reset OTP directly to your Gmail inbox.',
+                  'Enter your registered email address below and we will send you instructions to reset your password.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 32),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Registered Email Address',
+                    labelText: 'Email Address',
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Please enter your registered email';
+                      return 'Please enter your email';
                     }
                     if (!val.contains('@')) return 'Enter valid email';
                     return null;
@@ -124,7 +111,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text('Send OTP'),
+                      : const Text('Send Reset Link'),
                 ),
               ],
             ),

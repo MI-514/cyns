@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/app_colors.dart';
 
@@ -135,5 +136,33 @@ class LocationService {
     int h = totalMinutes ~/ 60;
     int m = totalMinutes % 60;
     return "${h}h ${m}m";
+  }
+
+  /// Launch Native Turn-by-Turn GPS Navigation directly in Google Maps App
+  static Future<void> openTurnByTurnNavigation(
+      double destinationLat, double destinationLng) async {
+    final Uri googleMapsUri = Uri.parse(
+        'google.navigation:q=$destinationLat,$destinationLng&mode=d');
+    final Uri fallbackUri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=$destinationLat,$destinationLng&travelmode=driving');
+
+    try {
+      if (await canLaunchUrl(googleMapsUri)) {
+        await launchUrl(googleMapsUri);
+        return;
+      }
+    } catch (_) {}
+
+    try {
+      if (await canLaunchUrl(fallbackUri)) {
+        await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
+  }
+
+  /// Calculate bearing angle in degrees between two coordinates for map marker heading rotation
+  static double calculateBearing(
+      double startLat, double startLng, double endLat, double endLng) {
+    return Geolocator.bearingBetween(startLat, startLng, endLat, endLng);
   }
 }

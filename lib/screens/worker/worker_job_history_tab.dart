@@ -6,6 +6,8 @@ import '../../core/constants/app_constants.dart';
 import '../../data/models/service_request_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/service_request_provider.dart';
+import '../shared/chat_screen.dart';
+import '../shared/map_tracking_screen.dart';
 
 class WorkerJobHistoryTab extends StatelessWidget {
   const WorkerJobHistoryTab({super.key});
@@ -27,7 +29,7 @@ class WorkerJobHistoryTab extends StatelessWidget {
           toolbarHeight: 48,
           bottom: const TabBar(
             tabs: [
-              Tab(text: 'Done Jobs'),
+              Tab(text: 'Active Jobs'),
               Tab(text: 'Rejected Jobs'),
               Tab(text: 'Missed Requests'),
             ],
@@ -42,8 +44,12 @@ class WorkerJobHistoryTab extends StatelessWidget {
 
             final requests = snapshot.data ?? [];
 
-            final doneReqs = requests
-                .where((r) => r.status == AppConstants.statusCompleted)
+            final activeReqs = requests
+                .where((r) =>
+                    r.status == AppConstants.statusAccepted ||
+                    r.status == AppConstants.statusOnTheWay ||
+                    r.status == AppConstants.statusArrived ||
+                    r.status == AppConstants.statusInProgress)
                 .toList();
 
             final rejectedReqs = requests
@@ -58,7 +64,7 @@ class WorkerJobHistoryTab extends StatelessWidget {
 
             return TabBarView(
               children: [
-                _DoneJobsList(requests: doneReqs),
+                _ActiveJobsList(requests: activeReqs),
                 _RejectedJobsList(requests: rejectedReqs),
                 _MissedRequestsList(requests: missedReqs),
               ],
@@ -70,17 +76,17 @@ class WorkerJobHistoryTab extends StatelessWidget {
   }
 }
 
-class _DoneJobsList extends StatelessWidget {
+class _ActiveJobsList extends StatelessWidget {
   final List<ServiceRequestModel> requests;
 
-  const _DoneJobsList({required this.requests});
+  const _ActiveJobsList({required this.requests});
 
   @override
   Widget build(BuildContext context) {
     if (requests.isEmpty) {
       return const Center(
         child: Text(
-          'No completed jobs yet.',
+          'No active jobs right now.',
           style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
         ),
       );
@@ -93,44 +99,89 @@ class _DoneJobsList extends StatelessWidget {
         final req = requests[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            leading: CircleAvatar(
-              backgroundColor: AppColors.availableGreen.withValues(alpha: 0.15),
-              child: const Icon(Icons.check_circle, color: AppColors.availableGreen),
-            ),
-            title: Text(
-              req.categoryName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      req.categoryName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppColors.primaryNavy,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.statusInProgress.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        req.status,
+                        style: const TextStyle(
+                          color: AppColors.statusInProgress,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text('Customer: ${req.customerName}',
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text('Customer: ${req.customerName}'),
-                const SizedBox(height: 2),
-                Text(
-                  req.customerAddress,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                Text(req.customerAddress,
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.chat),
+                        label: const Text('Chat'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(
+                                requestId: req.id,
+                                peerName: req.customerName,
+                                peerRole: 'customer',
+                                peerPhone: req.customerPhone,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryNavy,
+                        ),
+                        icon: const Icon(Icons.map),
+                        label: const Text('Live Map'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MapTrackingScreen(request: req),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.availableGreen.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                'Done',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.availableGreen,
-                ),
-              ),
             ),
           ),
         );

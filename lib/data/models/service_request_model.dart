@@ -50,6 +50,14 @@ class ServiceRequestModel {
   })  : createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
+  static DateTime _parseDate(dynamic val) {
+    if (val is Timestamp) return val.toDate();
+    if (val is DateTime) return val;
+    if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+    if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
+    return DateTime.now();
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -96,12 +104,8 @@ class ServiceRequestModel {
       workerLat: (map['workerLat'] as num?)?.toDouble(),
       workerLng: (map['workerLng'] as num?)?.toDouble(),
       status: map['status'] ?? 'Pending',
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : DateTime.now(),
-      updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : DateTime.now(),
+      createdAt: _parseDate(map['createdAt']),
+      updatedAt: _parseDate(map['updatedAt']),
       estimatedArrivalTime: map['estimatedArrivalTime'],
       distanceKm: (map['distanceKm'] as num?)?.toDouble(),
       hasBeenReviewed: map['hasBeenReviewed'] ?? false,

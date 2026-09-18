@@ -2,7 +2,7 @@ class AppConstants {
   static const String appName = 'CYN – Chase Your Needs';
   static const String appTagline = 'Connect with Skilled Workers Near You';
 
-  // Role Constants (Customer & Worker)
+  // Role Constants (Customer / Employer & Worker / Service Provider)
   static const String roleCustomer = 'customer';
   static const String roleWorker = 'worker';
 
@@ -83,6 +83,12 @@ class AppConstants {
       'name': 'Mobile/Computer Technician',
       'description': 'Laptop, PC & smartphone hardware and software troubleshooting.',
       'icon': 'devices',
+    },
+    {
+      'id': 'appliance_repair',
+      'name': 'Appliance Repair',
+      'description': 'Microwave, oven, water heater & general home electronics.',
+      'icon': 'home_repair_service',
     },
     {
       'id': 'welder',

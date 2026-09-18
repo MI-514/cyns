@@ -129,14 +129,16 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Guest Login for Customer & Worker Role Testing
   Future<void> loginAsGuest({required String role}) async {
-    String guestUid = 'guest_${DateTime.now().millisecondsSinceEpoch}';
+    String guestUid =
+        role == 'worker' ? 'guest_worker_cyn' : 'guest_customer_cyn';
     _userModel = UserModel(
       uid: guestUid,
       email: '$role.guest@cyns.app',
-      username: 'guest_${DateTime.now().millisecondsSinceEpoch}',
-      fullName: '${role == "worker" ? "Worker" : "Customer"} Guest',
-      phoneNumber: '+923000000000',
+      username: 'guest_${role}_cyn',
+      fullName: '${role == "worker" ? "Skilled Worker" : "Customer"} Guest',
+      phoneNumber: '+923001234567',
       role: role,
     );
     _state = AuthState.authenticated;
@@ -145,42 +147,20 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Strict Step-by-Step Email & Password Validated Login
   Future<bool> loginUser({
     required String email,
     required String password,
-    required String expectedRole,
   }) async {
     try {
       _state = AuthState.loading;
       _errorMessage = '';
       notifyListeners();
 
-      UserModel user = await _authRepository.loginUser(
+      _userModel = await _authRepository.loginUser(
         email: email,
         password: password,
       );
 
-      // STRICT ROLE VALIDATION: Verify registered role matches the login screen role!
-      if (user.role != expectedRole) {
-        await _authRepository.logout();
-        _userModel = null;
-        _state = AuthState.unauthenticated;
-
-        if (user.role == 'customer') {
-          _errorMessage =
-              'Access Denied: This account is registered as a Customer. Please switch to Customer Sign In.';
-        } else if (user.role == 'worker') {
-          _errorMessage =
-              'Access Denied: This account is registered as a Worker. Please switch to Worker Sign In.';
-        } else {
-          _errorMessage = 'Access Denied: Role mismatch for this account.';
-        }
-        notifyListeners();
-        return false;
-      }
-
-      _userModel = user;
       _state = AuthState.authenticated;
       notifyListeners();
       return true;
@@ -192,27 +172,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Send 6-Digit OTP for Registered Email Password Reset
-  Future<String?> sendPasswordResetOtp(String email) async {
+  Future<bool> resetPassword(String email) async {
     try {
       _errorMessage = '';
-      String otp = await _authRepository.sendPasswordResetOtp(email);
-      notifyListeners();
-      return otp;
-    } catch (e) {
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
-      notifyListeners();
-      return null;
-    }
-  }
-
-  /// Verify 6-Digit OTP
-  Future<bool> verifyOtp(String email, String inputOtp) async {
-    try {
-      _errorMessage = '';
-      bool isValid = await _authRepository.verifyOtp(email, inputOtp);
-      notifyListeners();
-      return isValid;
+      await _authRepository.sendPasswordResetEmail(email);
+      return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();

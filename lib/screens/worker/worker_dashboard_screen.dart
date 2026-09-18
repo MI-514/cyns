@@ -78,56 +78,25 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
           ),
         ],
       ),
-      body: PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) async {
-          if (didPop) return;
-          if (_currentIndex != 0) {
-            setState(() => _currentIndex = 0);
-          } else {
-            bool? shouldExit = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Exit App'),
-                content: const Text('Are you sure you want to exit CYN Worker?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('Cancel'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('Exit'),
-                  ),
-                ],
-              ),
-            );
-            if (shouldExit == true && context.mounted) {
-              Navigator.of(context).pop();
-            }
-          }
-        },
-        child: IndexedStack(
-          index: _currentIndex,
-          children: _tabs,
-        ),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _tabs,
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        type: BottomNavigationBarType.fixed,
         onTap: (index) {
           setState(() => _currentIndex = index);
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.inbox_outlined),
-            activeIcon: Icon(Icons.inbox_rounded),
+            icon: Icon(Icons.work_outline),
+            activeIcon: Icon(Icons.work),
             label: 'New Jobs',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history_outlined),
-            activeIcon: Icon(Icons.history_rounded),
-            label: 'Job History',
+            icon: Icon(Icons.task_alt),
+            activeIcon: Icon(Icons.task_alt_rounded),
+            label: 'Done Jobs',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

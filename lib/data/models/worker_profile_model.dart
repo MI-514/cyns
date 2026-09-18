@@ -49,6 +49,64 @@ class WorkerProfileModel {
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
+  static DateTime _parseDate(dynamic val) {
+    if (val is Timestamp) return val.toDate();
+    if (val is DateTime) return val;
+    if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+    if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
+    return DateTime.now();
+  }
+
+  WorkerProfileModel copyWith({
+    String? workerId,
+    String? username,
+    String? name,
+    String? fatherName,
+    String? phoneNumber,
+    String? address,
+    String? cnicNumber,
+    String? profilePicUrl,
+    String? profession,
+    List<String>? categoryIds,
+    List<String>? skills,
+    int? experienceYears,
+    String? serviceDescription,
+    String? workingArea,
+    bool? isAvailable,
+    double? latitude,
+    double? longitude,
+    double? rating,
+    int? reviewCount,
+    int? completedJobsCount,
+    bool? isApproved,
+    DateTime? createdAt,
+  }) {
+    return WorkerProfileModel(
+      workerId: workerId ?? this.workerId,
+      username: username ?? this.username,
+      name: name ?? this.name,
+      fatherName: fatherName ?? this.fatherName,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      address: address ?? this.address,
+      cnicNumber: cnicNumber ?? this.cnicNumber,
+      profilePicUrl: profilePicUrl ?? this.profilePicUrl,
+      profession: profession ?? this.profession,
+      categoryIds: categoryIds ?? this.categoryIds,
+      skills: skills ?? this.skills,
+      experienceYears: experienceYears ?? this.experienceYears,
+      serviceDescription: serviceDescription ?? this.serviceDescription,
+      workingArea: workingArea ?? this.workingArea,
+      isAvailable: isAvailable ?? this.isAvailable,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      completedJobsCount: completedJobsCount ?? this.completedJobsCount,
+      isApproved: isApproved ?? this.isApproved,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'workerId': workerId,
@@ -99,9 +157,7 @@ class WorkerProfileModel {
       reviewCount: map['reviewCount'] ?? 0,
       completedJobsCount: map['completedJobsCount'] ?? 0,
       isApproved: map['isApproved'] ?? true,
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : DateTime.now(),
+      createdAt: _parseDate(map['createdAt']),
     );
   }
 }

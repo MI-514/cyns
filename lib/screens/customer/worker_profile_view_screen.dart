@@ -189,6 +189,13 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                     children: [
                       // Header Info Card
                       Card(
+                        elevation: 3,
+                        shadowColor: const Color(0x0C0F172A),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: const BorderSide(
+                              color: AppColors.dividerColor, width: 1.0),
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.all(20.0),
                           child: Row(
@@ -198,9 +205,9 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                 backgroundColor:
                                     AppColors.primaryNavy.withValues(alpha: 0.1),
                                 child: const Icon(
-                                  Icons.person,
+                                  Icons.person_rounded,
                                   color: AppColors.primaryNavy,
-                                  size: 40,
+                                  size: 42,
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -208,52 +215,55 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      _worker!.name,
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primaryNavy,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            _worker!.name,
+                                            style: const TextStyle(
+                                              fontSize: 21,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.primaryNavy,
+                                            ),
+                                          ),
+                                        ),
+                                        const Icon(Icons.verified_rounded,
+                                            color: AppColors.accentBlue, size: 20),
+                                      ],
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       _worker!.profession,
                                       style: const TextStyle(
                                         fontSize: 14,
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: FontWeight.w800,
                                         color: AppColors.accentBlue,
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: _worker!.isAvailable
-                                                ? AppColors.availableGreen
-                                                    .withValues(alpha: 0.15)
-                                                : AppColors.unavailableRed
-                                                    .withValues(alpha: 0.15),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            _worker!.isAvailable
-                                                ? 'Available Now'
-                                                : 'Currently Unavailable',
-                                            style: TextStyle(
-                                              color: _worker!.isAvailable
-                                                  ? AppColors.availableGreen
-                                                  : AppColors.unavailableRed,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: _worker!.isAvailable
+                                            ? AppColors.availableGreen
+                                                .withValues(alpha: 0.15)
+                                            : AppColors.unavailableRed
+                                                .withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        _worker!.isAvailable
+                                            ? 'Available Now'
+                                            : 'Currently Unavailable',
+                                        style: TextStyle(
+                                          color: _worker!.isAvailable
+                                              ? AppColors.availableGreen
+                                              : AppColors.unavailableRed,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
                                         ),
-                                      ],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -266,33 +276,33 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
 
                       // Prominent Location & Distance Details Card
                       Card(
-                        color: AppColors.pureWhite,
                         elevation: 3,
+                        shadowColor: const Color(0x0C0F172A),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(20),
                           side: const BorderSide(
                               color: AppColors.primaryNavy, width: 1.2),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.all(18.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(8),
+                                    padding: const EdgeInsets.all(10),
                                     decoration: const BoxDecoration(
                                       color: AppColors.primaryNavy,
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
-                                      Icons.location_on,
+                                      Icons.location_on_rounded,
                                       color: AppColors.pureWhite,
-                                      size: 20,
+                                      size: 22,
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 14),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -301,8 +311,8 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                         const Text(
                                           'LOCATION & DISTANCE',
                                           style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
                                             color: AppColors.accentBlue,
                                             letterSpacing: 0.8,
                                           ),
@@ -312,8 +322,8 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                               ? LocationService.formatDistance(dist!)
                                               : 'GPS Location Off',
                                           style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
+                                            fontSize: 19,
+                                            fontWeight: FontWeight.w800,
                                             color: AppColors.primaryNavy,
                                           ),
                                         ),
@@ -323,7 +333,7 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                   if (hasValidGps)
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
+                                          horizontal: 10, vertical: 5),
                                       decoration: BoxDecoration(
                                         color: AppColors.availableGreen
                                             .withValues(alpha: 0.15),
@@ -332,43 +342,45 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                       child: Text(
                                         '⚡ ~${LocationService.calculateETA(dist!)} ETA',
                                         style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
                                           color: AppColors.availableGreen,
                                         ),
                                       ),
                                     ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 14),
                               const Divider(height: 1),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 14),
                               Row(
                                 children: [
-                                  const Icon(Icons.business,
-                                      size: 16, color: AppColors.textLight),
-                                  const SizedBox(width: 6),
+                                  const Icon(Icons.business_rounded,
+                                      size: 18, color: AppColors.textLight),
+                                  const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       'Service Area: ${_worker!.workingArea.isNotEmpty ? _worker!.workingArea : "City Wide"}',
                                       style: const TextStyle(
                                         fontSize: 13,
+                                        fontWeight: FontWeight.w600,
                                         color: AppColors.textSecondary,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 14),
                               SizedBox(
                                 width: double.infinity,
                                 child: OutlinedButton.icon(
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: AppColors.primaryNavy,
                                     side: const BorderSide(
-                                        color: AppColors.primaryNavy),
+                                        color: AppColors.primaryNavy, width: 1.5),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
                                   ),
-                                  icon: const Icon(Icons.map_outlined),
+                                  icon: const Icon(Icons.map_rounded, size: 18),
                                   label: const Text('View Worker on Live Map'),
                                   onPressed: () {
                                     double cLat =
@@ -419,7 +431,7 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                         children: [
                           Expanded(
                             child: _StatCard(
-                              icon: Icons.star,
+                              icon: Icons.star_rounded,
                               iconColor: AppColors.starGold,
                               title: 'Rating',
                               value: '${_worker!.rating} (${_worker!.reviewCount})',
@@ -428,7 +440,7 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: _StatCard(
-                              icon: Icons.work_history,
+                              icon: Icons.work_history_rounded,
                               iconColor: AppColors.accentBlue,
                               title: 'Jobs Done',
                               value: '${_worker!.completedJobsCount}',
@@ -437,7 +449,7 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: _StatCard(
-                              icon: Icons.badge,
+                              icon: Icons.badge_rounded,
                               iconColor: AppColors.statusInProgress,
                               title: 'Experience',
                               value: '${_worker!.experienceYears} Years',
@@ -445,39 +457,49 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 22),
 
                       // Service Description
                       const Text(
                         'Service Description',
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                           color: AppColors.primaryNavy,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        _worker!.serviceDescription.isNotEmpty
-                            ? _worker!.serviceDescription
-                            : 'No service description provided.',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          height: 1.4,
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.pureWhite,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.dividerColor),
+                        ),
+                        child: Text(
+                          _worker!.serviceDescription.isNotEmpty
+                              ? _worker!.serviceDescription
+                              : 'No service description provided.',
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            height: 1.4,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 22),
 
                       // Skills List
                       const Text(
                         'Skills & Specialties',
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                           color: AppColors.primaryNavy,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -487,9 +509,13 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                             backgroundColor:
                                 AppColors.primaryNavy.withValues(alpha: 0.08),
                             side: BorderSide.none,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             labelStyle: const TextStyle(
                               color: AppColors.primaryNavy,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
                             ),
                           );
                         }).toList(),
@@ -501,11 +527,11 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                         'Customer Reviews',
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                           color: AppColors.primaryNavy,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
 
                       StreamBuilder<List<ReviewModel>>(
                         stream: ReviewRepository()
@@ -518,10 +544,16 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                           }
                           final reviews = snapshot.data ?? [];
                           if (reviews.isEmpty) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12.0),
-                              child: Text(
-                                'No reviews yet for this worker.',
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppColors.pureWhite,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.dividerColor),
+                              ),
+                              child: const Text(
+                                'No customer reviews yet for this worker.',
                                 style: TextStyle(color: AppColors.textLight),
                               ),
                             );
@@ -533,21 +565,39 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                             itemBuilder: (context, index) {
                               final rev = reviews[index];
                               return Card(
-                                margin: const EdgeInsets.only(bottom: 8),
+                                elevation: 2,
+                                margin: const EdgeInsets.only(bottom: 10),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: const BorderSide(
+                                      color: AppColors.dividerColor, width: 0.8),
+                                ),
                                 child: ListTile(
-                                  leading: const CircleAvatar(
-                                    child: Icon(Icons.person),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  leading: CircleAvatar(
+                                    backgroundColor: AppColors.primaryNavy
+                                        .withValues(alpha: 0.1),
+                                    child: const Icon(Icons.person,
+                                        color: AppColors.primaryNavy),
                                   ),
-                                  title: Text(rev.customerName,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold)),
+                                  title: Text(
+                                    rev.customerName,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
+                                  ),
                                   subtitle: Text(rev.reviewText),
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.star,
-                                          color: AppColors.starGold, size: 16),
-                                      Text('${rev.rating}'),
+                                      const Icon(Icons.star_rounded,
+                                          color: AppColors.starGold, size: 18),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${rev.rating}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -565,21 +615,25 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
       bottomSheet: _worker == null
           ? null
           : Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               decoration: const BoxDecoration(
                 color: AppColors.pureWhite,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, -2),
+                    blurRadius: 12,
+                    offset: Offset(0, -4),
                   ),
                 ],
               ),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.send),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryNavy,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  icon: const Icon(Icons.near_me_rounded, size: 20),
                   label: const Text('Hire / Send Request (30s Timer)'),
                   onPressed: _worker!.isAvailable ? _directHireWorker : null,
                 ),
@@ -605,16 +659,21 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.dividerColor, width: 0.9),
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         child: Column(
           children: [
-            Icon(icon, color: iconColor, size: 22),
+            Icon(icon, color: iconColor, size: 24),
             const SizedBox(height: 6),
             Text(
               value,
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w800,
                 fontSize: 13,
                 color: AppColors.primaryNavy,
               ),
@@ -625,6 +684,7 @@ class _StatCard extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 11,
                 color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -633,3 +693,4 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
+

@@ -6,6 +6,13 @@ class AgoraService {
   /// Replace this with your actual App ID from https://console.agora.io
   static const String appId = "b1234567890abcdef1234567890abcdef";
 
+  /// Check if a valid custom Agora App ID has been provided
+  static bool get isAppIdConfigured {
+    return appId.isNotEmpty &&
+        appId != "YOUR_AGORA_APP_ID_HERE" &&
+        !appId.contains("1234567890abcdef");
+  }
+
   /// Request Microphone and Camera permissions for in-app calls
   static Future<bool> requestCallPermissions({bool isVideo = false}) async {
     Map<Permission, PermissionStatus> statuses = await [
@@ -13,8 +20,10 @@ class AgoraService {
       if (isVideo) Permission.camera,
     ].request();
 
-    bool micGranted = statuses[Permission.microphone] == PermissionStatus.granted;
-    bool camGranted = !isVideo || statuses[Permission.camera] == PermissionStatus.granted;
+    bool micGranted =
+        statuses[Permission.microphone] == PermissionStatus.granted;
+    bool camGranted =
+        !isVideo || statuses[Permission.camera] == PermissionStatus.granted;
 
     return micGranted && camGranted;
   }

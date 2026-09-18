@@ -6,7 +6,6 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/firestore_collections.dart';
 import '../../data/models/notification_model.dart';
 import '../../providers/auth_provider.dart';
-import '../customer/customer_request_status_screen.dart';
 
 class NotificationCenterScreen extends StatelessWidget {
   const NotificationCenterScreen({super.key});
@@ -59,44 +58,22 @@ class NotificationCenterScreen extends StatelessWidget {
                   d.data() as Map<String, dynamic>, d.id))
               .toList();
 
-          // Sort notifications newest first
-          notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: notifications.length,
             itemBuilder: (context, index) {
               final notif = notifications[index];
-              final relatedId = notif.relatedId;
-
               return Card(
                 margin: const EdgeInsets.only(bottom: 10),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor:
-                        AppColors.primaryNavy.withValues(alpha: 0.1),
-                    child: const Icon(Icons.notifications_active_rounded,
+                    backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
+                    child: const Icon(Icons.notifications,
                         color: AppColors.primaryNavy),
                   ),
-                  title: Text(
-                    notif.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  title: Text(notif.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(notif.body),
-                  trailing: const Icon(Icons.chevron_right_rounded,
-                      color: AppColors.textLight),
-                  onTap: () {
-                    if (relatedId != null && relatedId.isNotEmpty) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CustomerRequestStatusScreen(
-                            requestId: relatedId,
-                          ),
-                        ),
-                      );
-                    }
-                  },
                 ),
               );
             },

@@ -33,6 +33,9 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
   int _callDurationSeconds = 0;
   Timer? _durationTimer;
 
+  bool _isEngineError = false;
+  String _engineErrorMessage = '';
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +57,16 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
         ),
       );
       Navigator.pop(context);
+      return;
+    }
+
+    if (!AgoraService.isAppIdConfigured) {
+      setState(() {
+        _isEngineError = true;
+        _engineErrorMessage =
+            'Agora App ID not configured. Please paste your actual 32-character App ID from console.agora.io in lib/core/services/agora_service.dart.';
+      });
+      _startDurationTimer();
       return;
     }
 
@@ -103,9 +116,12 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to initialize call: $e')),
-      );
+      setState(() {
+        _isEngineError = true;
+        _engineErrorMessage =
+            'Invalid or expired Agora App ID. Please set a valid App ID in lib/core/services/agora_service.dart.';
+      });
+      _startDurationTimer();
     }
   }
 
@@ -234,89 +250,141 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
               ),
             ),
 
+            if (_isEngineError)
+              Positioned(
+                top: 70,
+                left: 20,
+                right: 20,
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade900.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded,
+                              color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Agora App ID Required for Live Stream',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _engineErrorMessage,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             // Bottom Control Bar
             Positioned(
               bottom: 30,
-              left: 20,
-              right: 20,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Mute Microphone Button
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: _isMuted ? Colors.red : Colors.white24,
-                    child: IconButton(
-                      icon: Icon(
-                        _isMuted ? Icons.mic_off : Icons.mic,
-                        color: AppColors.pureWhite,
-                        size: 26,
-                      ),
-                      onPressed: _toggleMute,
-                    ),
-                  ),
-
-                  // End Call Button
-                  CircleAvatar(
-                    radius: 34,
-                    backgroundColor: Colors.red,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.call_end,
-                        color: AppColors.pureWhite,
-                        size: 32,
-                      ),
-                      onPressed: _endCall,
-                    ),
-                  ),
-
-                  if (widget.isVideoCall) ...[
-                    // Toggle Video On/Off Button
+              left: 12,
+              right: 12,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Mute Microphone Button
                     CircleAvatar(
-                      radius: 28,
-                      backgroundColor:
-                          _isVideoMuted ? Colors.red : Colors.white24,
+                      radius: 26,
+                      backgroundColor: _isMuted ? Colors.red : Colors.white24,
                       child: IconButton(
                         icon: Icon(
-                          _isVideoMuted
-                              ? Icons.videocam_off
-                              : Icons.videocam,
+                          _isMuted ? Icons.mic_off : Icons.mic,
                           color: AppColors.pureWhite,
-                          size: 26,
+                          size: 24,
                         ),
-                        onPressed: _toggleVideo,
+                        onPressed: _toggleMute,
                       ),
                     ),
-                    // Switch Camera Button
+                    const SizedBox(width: 14),
+
+                    // End Call Button
                     CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Colors.white24,
+                      radius: 32,
+                      backgroundColor: Colors.red,
                       child: IconButton(
                         icon: const Icon(
-                          Icons.cameraswitch,
+                          Icons.call_end,
                           color: AppColors.pureWhite,
-                          size: 26,
+                          size: 30,
                         ),
-                        onPressed: _switchCamera,
+                        onPressed: _endCall,
                       ),
                     ),
-                  ] else
-                    // Speaker Button
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: _isSpeaker
-                          ? AppColors.accentBlue
-                          : Colors.white24,
-                      child: IconButton(
-                        icon: Icon(
-                          _isSpeaker ? Icons.volume_up : Icons.volume_off,
-                          color: AppColors.pureWhite,
-                          size: 26,
+                    const SizedBox(width: 14),
+
+                    if (widget.isVideoCall) ...[
+                      // Toggle Video On/Off Button
+                      CircleAvatar(
+                        radius: 26,
+                        backgroundColor:
+                            _isVideoMuted ? Colors.red : Colors.white24,
+                        child: IconButton(
+                          icon: Icon(
+                            _isVideoMuted
+                                ? Icons.videocam_off
+                                : Icons.videocam,
+                            color: AppColors.pureWhite,
+                            size: 24,
+                          ),
+                          onPressed: _toggleVideo,
                         ),
-                        onPressed: _toggleSpeaker,
                       ),
-                    ),
-                ],
+                      const SizedBox(width: 14),
+
+                      // Switch Camera Button
+                      CircleAvatar(
+                        radius: 26,
+                        backgroundColor: Colors.white24,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.cameraswitch,
+                            color: AppColors.pureWhite,
+                            size: 24,
+                          ),
+                          onPressed: _switchCamera,
+                        ),
+                      ),
+                    ] else
+                      // Speaker Button
+                      CircleAvatar(
+                        radius: 26,
+                        backgroundColor: _isSpeaker
+                            ? AppColors.accentBlue
+                            : Colors.white24,
+                        child: IconButton(
+                          icon: Icon(
+                            _isSpeaker ? Icons.volume_up : Icons.volume_off,
+                            color: AppColors.pureWhite,
+                            size: 24,
+                          ),
+                          onPressed: _toggleSpeaker,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ],

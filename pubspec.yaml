@@ -41,8 +41,6 @@ dependencies:
   flutter_rating_bar: ^4.0.1
   agora_rtc_engine: ^6.3.2
   permission_handler: ^11.3.1
-  flutter_map: ^7.0.2
-  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:
