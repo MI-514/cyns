@@ -4,7 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 class AgoraService {
   /// Default Agora App ID.
   /// Replace this with your actual App ID from https://console.agora.io
-  static const String appId = "b1234567890abcdef1234567890abcdef";
+  static const String appId = "7e464d979334457192d2bb3972935912";
 
   /// Check if a valid custom Agora App ID has been provided
   static bool get isAppIdConfigured {
