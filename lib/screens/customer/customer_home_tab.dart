@@ -6,7 +6,8 @@ import '../../data/models/category_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/location_provider.dart';
-import 'create_service_request_screen.dart';
+
+import 'worker_list_screen.dart';
 
 class CustomerHomeTab extends StatefulWidget {
   const CustomerHomeTab({super.key});
@@ -33,14 +34,30 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
 
   IconData _getCategoryIcon(String name) {
     String lower = name.toLowerCase();
-    if (lower.contains('plumb')) return Icons.plumbing_rounded;
-    if (lower.contains('electr')) return Icons.electric_bolt_rounded;
-    if (lower.contains('mechan') || lower.contains('auto')) return Icons.car_repair_rounded;
-    if (lower.contains('paint')) return Icons.format_paint_rounded;
-    if (lower.contains('carpenter') || lower.contains('wood')) return Icons.carpenter_rounded;
-    if (lower.contains('clean')) return Icons.cleaning_services_rounded;
-    if (lower.contains('ac') || lower.contains('appliance')) return Icons.ac_unit_rounded;
-    if (lower.contains('tech') || lower.contains('repair')) return Icons.build_rounded;
+    if (lower.contains('plumb')) {
+      return Icons.plumbing_rounded;
+    }
+    if (lower.contains('electr')) {
+      return Icons.electric_bolt_rounded;
+    }
+    if (lower.contains('mechan') || lower.contains('auto')) {
+      return Icons.car_repair_rounded;
+    }
+    if (lower.contains('paint')) {
+      return Icons.format_paint_rounded;
+    }
+    if (lower.contains('carpenter') || lower.contains('wood')) {
+      return Icons.carpenter_rounded;
+    }
+    if (lower.contains('clean')) {
+      return Icons.cleaning_services_rounded;
+    }
+    if (lower.contains('ac') || lower.contains('appliance')) {
+      return Icons.ac_unit_rounded;
+    }
+    if (lower.contains('tech') || lower.contains('repair')) {
+      return Icons.build_rounded;
+    }
     return Icons.handyman_rounded;
   }
 
@@ -167,7 +184,8 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
               },
               decoration: InputDecoration(
                 hintText: 'Search service categories (Plumber, Electrician...)',
-                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryNavy),
+                prefixIcon: const Icon(Icons.search_rounded,
+                    color: AppColors.primaryNavy),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -279,7 +297,8 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.primaryNavy.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
@@ -333,99 +352,103 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                       builder: (context, constraints) {
                         double screenWidth = constraints.maxWidth;
                         int crossAxisCount = screenWidth > 600 ? 3 : 2;
-                        double childAspectRatio = screenWidth > 360 ? 1.02 : 0.92;
+                        double childAspectRatio =
+                            screenWidth > 360 ? 1.02 : 0.92;
 
                         return GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: displayedCategories.length,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: crossAxisCount,
                             crossAxisSpacing: 14,
                             mainAxisSpacing: 14,
                             childAspectRatio: childAspectRatio,
                           ),
                           itemBuilder: (context, index) {
-                        final cat = displayedCategories[index];
-                        final catColor = _getCategoryColor(index);
-                        final catIcon = _getCategoryIcon(cat.name);
+                            final cat = displayedCategories[index];
+                            final catColor = _getCategoryColor(index);
+                            final catIcon = _getCategoryIcon(cat.name);
 
-                        return Card(
-                          elevation: 3,
-                          shadowColor: const Color(0x0C0F172A),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                            side: const BorderSide(
-                              color: AppColors.dividerColor,
-                              width: 1.0,
-                            ),
-                          ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(18),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => CreateServiceRequestScreen(
-                                    categoryId: cat.id,
-                                    categoryName: cat.name,
+                            return Card(
+                              elevation: 3,
+                              shadowColor: const Color(0x0C0F172A),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                side: const BorderSide(
+                                  color: AppColors.dividerColor,
+                                  width: 1.0,
+                                ),
+                              ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(18),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          WorkerListScreen(
+                                        selectedCategoryId: cat.id,
+                                        categoryName: cat.name,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              catColor.withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                        child: Icon(
+                                          catIcon,
+                                          color: catColor,
+                                          size: 32,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        cat.name,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.primaryNavy,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        cat.description,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textSecondary,
+                                          height: 1.2,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(14),
-                                    decoration: BoxDecoration(
-                                      color: catColor.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Icon(
-                                      catIcon,
-                                      color: catColor,
-                                      size: 32,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    cat.name,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.primaryNavy,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    cat.description,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.textSecondary,
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                ],
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         );
                       },
-                    );
-                  },
-                ),
+                    ),
         ],
       ),
     );
   }
 }
-

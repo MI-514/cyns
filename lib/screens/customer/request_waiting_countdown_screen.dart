@@ -73,8 +73,7 @@ class _RequestWaitingCountdownScreenState
       if (status == AppConstants.statusAccepted) {
         _isHandled = true;
         _timer?.cancel();
-        ServiceRequestModel updated = ServiceRequestModel.fromMap(
-            data, doc.id);
+        ServiceRequestModel updated = ServiceRequestModel.fromMap(data, doc.id);
         _navigateToChat(updated);
       } else if (status == AppConstants.statusRejected) {
         _isHandled = true;
@@ -82,33 +81,6 @@ class _RequestWaitingCountdownScreenState
         _handleRejection();
       }
     });
-  }
-
-  void _simulateWorkerAccept() {
-    _timer?.cancel();
-    _subscription?.cancel();
-    _isHandled = true;
-
-    ServiceRequestModel acceptedReq = ServiceRequestModel(
-      id: widget.request.id,
-      customerId: widget.request.customerId,
-      customerName: widget.request.customerName,
-      customerPhone: widget.request.customerPhone,
-      workerId: widget.request.workerId,
-      workerName: widget.request.workerName,
-      workerPhone: widget.request.workerPhone,
-      categoryId: widget.request.categoryId,
-      categoryName: widget.request.categoryName,
-      problemDescription: widget.request.problemDescription,
-      customerLat: widget.request.customerLat,
-      customerLng: widget.request.customerLng,
-      customerAddress: widget.request.customerAddress,
-      workerLat: widget.request.workerLat,
-      workerLng: widget.request.workerLng,
-      status: AppConstants.statusAccepted,
-    );
-
-    _navigateToChat(acceptedReq);
   }
 
   void _handleTimeout() async {
@@ -257,9 +229,9 @@ class _RequestWaitingCountdownScreenState
       workerName: nextWorker.name,
       workerPhone: nextWorker.phoneNumber,
       categoryId: widget.request.categoryId,
-      categoryName: nextWorker.profession,
-      problemDescription:
-          'InDrive-Style Auto Hiring Offer for ${nextWorker.profession}',
+      categoryName: widget.request.categoryName, // Keep original requested category name
+      problemDescription: widget.request.problemDescription, // Preserve user's typed issue!
+      attachmentUrl: widget.request.attachmentUrl, // Preserve attached image!
       customerLat: widget.request.customerLat,
       customerLng: widget.request.customerLng,
       customerAddress: widget.request.customerAddress,
@@ -314,6 +286,7 @@ class _RequestWaitingCountdownScreenState
           requestId: updatedRequest.id,
           peerName: updatedRequest.workerName,
           peerRole: 'worker',
+          peerId: updatedRequest.workerId,
           peerPhone: updatedRequest.workerPhone,
         ),
       ),
@@ -342,7 +315,8 @@ class _RequestWaitingCountdownScreenState
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.pureWhite),
+          icon:
+              const Icon(Icons.arrow_back_rounded, color: AppColors.pureWhite),
           onPressed: () {
             _timer?.cancel();
             _subscription?.cancel();
@@ -581,22 +555,6 @@ class _RequestWaitingCountdownScreenState
                 ),
               ),
               const SizedBox(height: 12),
-
-              // Test Mode Button
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.availableGreen,
-                ),
-                icon: const Icon(Icons.check_circle_outline, size: 18),
-                label: const FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    'Simulate Worker Acceptance (Test Mode)',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                ),
-                onPressed: _simulateWorkerAccept,
-              ),
             ],
           ),
         ),

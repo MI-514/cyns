@@ -161,7 +161,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
     if (_cnicFrontImage == null || _cnicBackImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please upload both CNIC Front and Back images for verification.'),
+          content: Text(
+              'Please upload both CNIC Front and Back images for verification.'),
           backgroundColor: AppColors.statusRejected,
         ),
       );
@@ -194,8 +195,10 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          icon: const Icon(Icons.check_circle, size: 52, color: AppColors.availableGreen),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          icon: const Icon(Icons.check_circle,
+              size: 52, color: AppColors.availableGreen),
           title: const Text('Registration Successful! 🎉'),
           content: const Text(
             'Your Service Provider account has been created and saved in Cloud Firestore.\nYou can now sign in with your registered email and password.',
@@ -261,7 +264,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 const SizedBox(height: 6),
                 const Text(
                   'Enter your details, unique username, trade skills, and CNIC photos to register in Cloud Firestore',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 24),
 
@@ -273,7 +277,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                       children: [
                         CircleAvatar(
                           radius: 48,
-                          backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
+                          backgroundColor:
+                              AppColors.primaryNavy.withValues(alpha: 0.1),
                           backgroundImage: _profileImage != null
                               ? FileImage(_profileImage!)
                               : null,
@@ -291,7 +296,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                               color: AppColors.primaryNavy,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                            child: const Icon(Icons.edit,
+                                size: 16, color: Colors.white),
                           ),
                         ),
                       ],
@@ -303,7 +309,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                     padding: EdgeInsets.only(top: 6.0),
                     child: Text(
                       'Profile Photo / Selfie (Optional)',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
                     ),
                   ),
                 ),
@@ -505,7 +512,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                         child: Container(
                           height: 110,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryNavy.withValues(alpha: 0.05),
+                            color:
+                                AppColors.primaryNavy.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: _cnicFrontImage != null
@@ -518,15 +526,19 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
                                   child: Image.file(_cnicFrontImage!,
-                                      fit: BoxFit.cover, width: double.infinity),
+                                      fit: BoxFit.cover,
+                                      width: double.infinity),
                                 )
                               : const Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.add_a_photo, color: AppColors.primaryNavy),
+                                    Icon(Icons.add_a_photo,
+                                        color: AppColors.primaryNavy),
                                     SizedBox(height: 4),
                                     Text('CNIC Front Image',
-                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                         ),
@@ -539,7 +551,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                         child: Container(
                           height: 110,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryNavy.withValues(alpha: 0.05),
+                            color:
+                                AppColors.primaryNavy.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: _cnicBackImage != null
@@ -552,15 +565,19 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
                                   child: Image.file(_cnicBackImage!,
-                                      fit: BoxFit.cover, width: double.infinity),
+                                      fit: BoxFit.cover,
+                                      width: double.infinity),
                                 )
                               : const Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.add_a_photo, color: AppColors.primaryNavy),
+                                    Icon(Icons.add_a_photo,
+                                        color: AppColors.primaryNavy),
                                     SizedBox(height: 4),
                                     Text('CNIC Back Image',
-                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                         ),
@@ -579,7 +596,9 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                     prefixIcon: const Icon(Icons.lock_outlined),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                       ),
                       onPressed: () {
                         setState(() => _obscurePassword = !_obscurePassword);

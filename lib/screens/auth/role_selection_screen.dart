@@ -1,36 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
-import '../../providers/auth_provider.dart';
-import '../customer/customer_dashboard_screen.dart';
-import '../worker/worker_dashboard_screen.dart';
 import 'login_screen.dart';
+import 'quick_login_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
-
-  void _loginGuest(BuildContext context, String role) async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    await auth.loginAsGuest(role: role);
-
-    if (!context.mounted) return;
-
-    if (role == AppConstants.roleWorker) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const WorkerDashboardScreen()),
-        (route) => false,
-      );
-    } else {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const CustomerDashboardScreen()),
-        (route) => false,
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,11 +88,98 @@ class RoleSelectionScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
+
+              // Quick Re-login Tile for Returning User
+              FutureBuilder<SharedPreferences>(
+                future: SharedPreferences.getInstance(),
+                builder: (context, snapshot) {
+                  final prefs = snapshot.data;
+                  final savedName = prefs?.getString('saved_user_name');
+                  final savedEmail = prefs?.getString('saved_user_email');
+                  final savedRole = prefs?.getString('saved_user_role') ??
+                      AppConstants.roleCustomer;
+                  final savedPic = prefs?.getString('saved_user_pic');
+
+                  if (savedName == null ||
+                      savedName.isEmpty ||
+                      savedEmail == null ||
+                      savedEmail.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.pureWhite,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: AppColors.accentBlue.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryNavy.withValues(alpha: 0.06),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      leading: CircleAvatar(
+                        backgroundColor:
+                            AppColors.primaryNavy.withValues(alpha: 0.1),
+                        child: Text(
+                          savedName[0].toUpperCase(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryNavy,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        'Continue as $savedName',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primaryNavy,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '$savedEmail • ${savedRole == AppConstants.roleWorker ? "Worker" : "Customer"}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 16,
+                        color: AppColors.accentBlue,
+                      ),
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => QuickLoginScreen(
+                              savedName: savedName,
+                              savedEmail: savedEmail,
+                              savedRole: savedRole,
+                              savedPic: savedPic,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
 
               // Instruction Banner
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: AppColors.accentBlue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
@@ -187,42 +251,6 @@ class RoleSelectionScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Subtle Clean Guest Quick Access Links
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton.icon(
-                    onPressed: () =>
-                        _loginGuest(context, AppConstants.roleCustomer),
-                    icon: const Icon(Icons.person_outline_rounded,
-                        size: 16, color: AppColors.accentBlue),
-                    label: const Text(
-                      'Guest Customer',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primaryNavy,
-                      ),
-                    ),
-                  ),
-                  const Text(' • ',
-                      style: TextStyle(color: AppColors.textSecondary)),
-                  TextButton.icon(
-                    onPressed: () =>
-                        _loginGuest(context, AppConstants.roleWorker),
-                    icon: const Icon(Icons.engineering_outlined,
-                        size: 16, color: AppColors.accentBlue),
-                    label: const Text(
-                      'Guest Worker',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primaryNavy,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 12),
             ],
           ),
@@ -341,7 +369,8 @@ class _RoleActionCard extends StatelessWidget {
               // Action Button inside Card
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
                   color: badgeColor,
                   borderRadius: BorderRadius.circular(14),

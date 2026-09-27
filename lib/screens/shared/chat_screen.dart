@@ -19,11 +19,14 @@ import '../../providers/service_request_provider.dart';
 import '../customer/rating_review_screen.dart';
 import 'agora_call_screen.dart';
 import 'map_tracking_screen.dart';
+import '../../core/services/call_signaling_service.dart';
+import '../../core/services/notification_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String requestId;
   final String peerName;
   final String peerRole;
+  final String peerId;
   final String? peerPhone;
 
   const ChatScreen({
@@ -31,6 +34,7 @@ class ChatScreen extends StatefulWidget {
     required this.requestId,
     required this.peerName,
     required this.peerRole,
+    required this.peerId,
     this.peerPhone,
   });
 
@@ -51,7 +55,24 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _makeInAppVoiceCall() {
+  void _makeInAppVoiceCall() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    String callerId = auth.userModel?.uid ?? '';
+    String callerName = auth.userModel?.fullName ?? 'User';
+
+    String signalId = '';
+    try {
+      signalId = await CallSignalingService.initiateCall(
+        callerId: callerId,
+        callerName: callerName,
+        receiverId: widget.requestId, // use requestId as context
+        receiverName: widget.peerName,
+        channelId: widget.requestId,
+        isVideo: false,
+      );
+    } catch (_) {}
+
+    if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -60,12 +81,30 @@ class _ChatScreenState extends State<ChatScreen> {
           peerName: widget.peerName,
           peerRole: widget.peerRole,
           isVideoCall: false,
+          signalId: signalId,
         ),
       ),
     );
   }
 
-  void _startInAppVideoCall() {
+  void _startInAppVideoCall() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    String callerId = auth.userModel?.uid ?? '';
+    String callerName = auth.userModel?.fullName ?? 'User';
+
+    String signalId = '';
+    try {
+      signalId = await CallSignalingService.initiateCall(
+        callerId: callerId,
+        callerName: callerName,
+        receiverId: widget.requestId,
+        receiverName: widget.peerName,
+        channelId: widget.requestId,
+        isVideo: true,
+      );
+    } catch (_) {}
+
+    if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -74,6 +113,7 @@ class _ChatScreenState extends State<ChatScreen> {
           peerName: widget.peerName,
           peerRole: widget.peerRole,
           isVideoCall: true,
+          signalId: signalId,
         ),
       ),
     );
@@ -101,29 +141,10 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (_) {}
 
     if (!mounted) return;
-    ServiceRequestModel dummyReq = ServiceRequestModel(
-      id: widget.requestId,
-      customerId: 'c1',
-      customerName: 'Customer',
-      customerPhone: widget.peerPhone ?? '',
-      workerId: 'w1',
-      workerName: widget.peerName,
-      workerPhone: widget.peerPhone ?? '',
-      categoryId: 'cat',
-      categoryName: 'Service',
-      problemDescription: '',
-      customerLat: 31.5204,
-      customerLng: 74.3587,
-      customerAddress: 'Gulberg III, Lahore',
-      workerLat: 31.5050,
-      workerLng: 74.3450,
-      status: 'accepted',
-    );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MapTrackingScreen(request: dummyReq),
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Unable to load tracking data. Please try again.'),
+        backgroundColor: AppColors.statusRejected,
       ),
     );
   }
@@ -152,6 +173,15 @@ class _ChatScreenState extends State<ChatScreen> {
       senderRole: auth.userModel?.role ?? 'customer',
       message: text,
       attachmentUrl: attachmentUrl,
+    );
+    
+    // Background Chat Notification Alert
+    await NotificationService.sendNotification(
+      userId: widget.peerId,
+      title: 'New Message from ${auth.userModel?.fullName ?? 'User'}',
+      body: attachmentUrl != null ? '📷 Sent an image' : text,
+      type: 'chat',
+      relatedId: widget.requestId,
     );
 
     _messageController.clear();
@@ -352,7 +382,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     icon: const Icon(Icons.monetization_on_outlined, size: 14),
                     label: const FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text('Start Bid', style: TextStyle(fontSize: 11))),
+                        child:
+                            Text('Start Bid', style: TextStyle(fontSize: 11))),
                     onPressed: _showBidDialog,
                   ),
                 ),
@@ -366,7 +397,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     icon: const Icon(Icons.check_circle_outline, size: 14),
                     label: const FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text('Accept Deal', style: TextStyle(fontSize: 11))),
+                        child: Text('Accept Deal',
+                            style: TextStyle(fontSize: 11))),
                     onPressed: () async {
                       await requestProvider.updateStatus(
                         requestId: req.id,
@@ -391,7 +423,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   icon: const Icon(Icons.map_rounded, size: 18),
                   label: const Text(
                       'Start Route to Customer (Open In-App Live Map)',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   onPressed: () async {
                     await requestProvider.updateStatus(
                       requestId: req.id,
@@ -428,10 +461,12 @@ class _ChatScreenState extends State<ChatScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primaryNavy,
                       side: const BorderSide(color: AppColors.primaryNavy),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
                     ),
                     icon: const Icon(Icons.map_rounded, size: 14),
-                    label: const Text('Open In-App Map', style: TextStyle(fontSize: 11)),
+                    label: const Text('Open In-App Map',
+                        style: TextStyle(fontSize: 11)),
                     onPressed: _openLiveMapTracking,
                   ),
                 ],
@@ -492,10 +527,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryNavy,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                     ),
                     icon: const Icon(Icons.map_rounded, size: 14),
-                    label: const Text('Track Live Map', style: TextStyle(fontSize: 11)),
+                    label: const Text('Track Live Map',
+                        style: TextStyle(fontSize: 11)),
                     onPressed: _openLiveMapTracking,
                   ),
                 ],
@@ -510,8 +547,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   icon: const Icon(Icons.doorbell_rounded, size: 18),
-                  label: const Text('Worker Arrived - Acknowledge & Start Service',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: const Text(
+                      'Worker Arrived - Acknowledge & Start Service',
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   onPressed: () async {
                     HapticFeedback.heavyImpact();
                     SystemSound.play(SystemSoundType.click);
@@ -594,7 +633,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   icon: const Icon(Icons.star_rounded, size: 18),
                   label: const Text('Confirm Work Done & Rate Worker',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -734,7 +774,8 @@ class _ChatScreenState extends State<ChatScreen> {
             SafeArea(
               child: IconButton(
                 padding: const EdgeInsets.all(16),
-                icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+                icon: const Icon(Icons.close_rounded,
+                    color: Colors.white, size: 28),
                 onPressed: () => Navigator.pop(ctx),
               ),
             ),
@@ -898,7 +939,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 return _buildLiveJobActionBanner(
                   context,
                   req,
-                  auth.userModel?.role ?? (widget.peerRole == 'worker' ? 'customer' : 'worker'),
+                  auth.userModel?.role ??
+                      (widget.peerRole == 'worker' ? 'customer' : 'worker'),
                 );
               },
             ),
@@ -923,7 +965,8 @@ class _ChatScreenState extends State<ChatScreen> {
                             Container(
                               padding: const EdgeInsets.all(22),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryNavy.withValues(alpha: 0.08),
+                                color: AppColors.primaryNavy
+                                    .withValues(alpha: 0.08),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -974,8 +1017,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 12),
                           constraints: BoxConstraints(
-                            maxWidth:
-                                MediaQuery.of(context).size.width * 0.78,
+                            maxWidth: MediaQuery.of(context).size.width * 0.78,
                           ),
                           decoration: BoxDecoration(
                             color: isMe

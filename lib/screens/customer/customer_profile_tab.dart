@@ -18,7 +18,8 @@ class CustomerProfileTab extends StatelessWidget {
           children: [
             Icon(Icons.logout_rounded, color: AppColors.statusRejected),
             SizedBox(width: 10),
-            Text('Confirm Logout', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('Confirm Logout',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         content: const Text('Are you sure you want to sign out from CYN App?'),
@@ -37,7 +38,8 @@ class CustomerProfileTab extends StatelessWidget {
               if (context.mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+                  MaterialPageRoute(
+                      builder: (_) => const RoleSelectionScreen()),
                   (route) => false,
                 );
               }
@@ -90,7 +92,8 @@ class CustomerProfileTab extends StatelessWidget {
                       ),
                       child: CircleAvatar(
                         radius: 44,
-                        backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
+                        backgroundColor:
+                            AppColors.primaryNavy.withValues(alpha: 0.1),
                         child: Text(
                           user?.fullName.isNotEmpty == true
                               ? user!.fullName[0].toUpperCase()
@@ -187,7 +190,6 @@ class CustomerProfileTab extends StatelessWidget {
                     ],
                   ),
                   const Divider(height: 24),
-
                   _ProfileDetailRow(
                     icon: Icons.person_outline_rounded,
                     label: 'Full Name',
@@ -196,7 +198,9 @@ class CustomerProfileTab extends StatelessWidget {
                   _ProfileDetailRow(
                     icon: Icons.alternate_email_rounded,
                     label: 'Username',
-                    value: user?.username.isNotEmpty == true ? '@${user!.username}' : 'N/A',
+                    value: user?.username.isNotEmpty == true
+                        ? '@${user!.username}'
+                        : 'N/A',
                   ),
                   _ProfileDetailRow(
                     icon: Icons.email_outlined,
@@ -236,9 +240,11 @@ class CustomerProfileTab extends StatelessWidget {
                       color: AppColors.primaryNavy.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.settings_outlined, color: AppColors.primaryNavy),
+                    child: const Icon(Icons.settings_outlined,
+                        color: AppColors.primaryNavy),
                   ),
-                  title: const Text('App Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: const Text('App Settings',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () {
                     Navigator.push(
@@ -255,13 +261,16 @@ class CustomerProfileTab extends StatelessWidget {
                       color: AppColors.primaryNavy.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.help_outline_rounded, color: AppColors.primaryNavy),
+                    child: const Icon(Icons.help_outline_rounded,
+                        color: AppColors.primaryNavy),
                   ),
-                  title: const Text('Help & Support', style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: const Text('Help & Support',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Contact support at support@cyns.com')),
+                      const SnackBar(
+                          content: Text('Contact support at support@cyns.com')),
                     );
                   },
                 ),
@@ -273,11 +282,14 @@ class CustomerProfileTab extends StatelessWidget {
                       color: AppColors.statusRejected.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.logout_rounded, color: AppColors.statusRejected),
+                    child: const Icon(Icons.logout_rounded,
+                        color: AppColors.statusRejected),
                   ),
                   title: const Text(
                     'Logout Account',
-                    style: TextStyle(color: AppColors.statusRejected, fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                        color: AppColors.statusRejected,
+                        fontWeight: FontWeight.w800),
                   ),
                   onTap: () => _showLogoutDialog(context, auth),
                 ),
@@ -346,4 +358,3 @@ class _ProfileDetailRow extends StatelessWidget {
     );
   }
 }
-

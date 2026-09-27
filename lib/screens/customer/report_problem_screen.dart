@@ -99,12 +99,12 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 24),
-
               TextFormField(
                 controller: _reasonController,
                 decoration: const InputDecoration(
                   labelText: 'Reason / Subject',
-                  hintText: 'e.g. Unprofessional behavior, No show, Safety concern',
+                  hintText:
+                      'e.g. Unprofessional behavior, No show, Safety concern',
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
@@ -114,13 +114,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 },
               ),
               const SizedBox(height: 16),
-
               TextFormField(
                 controller: _detailsController,
                 maxLines: 4,
                 decoration: const InputDecoration(
                   labelText: 'Detailed Explanation',
-                  hintText: 'Describe exactly what happened during or before the service...',
+                  hintText:
+                      'Describe exactly what happened during or before the service...',
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
@@ -130,7 +130,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                 },
               ),
               const SizedBox(height: 28),
-
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitReport,
                 child: _isSubmitting

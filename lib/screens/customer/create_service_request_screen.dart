@@ -14,6 +14,7 @@ import '../../providers/category_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/service_request_provider.dart';
 import '../../providers/worker_provider.dart';
+import '../shared/location_picker_screen.dart';
 import 'request_waiting_countdown_screen.dart';
 
 class CreateServiceRequestScreen extends StatefulWidget {
@@ -43,6 +44,8 @@ class _CreateServiceRequestScreenState
   String? _selectedCategoryName;
   File? _selectedImage;
   bool _isUploading = false;
+  double? _pickedLat;
+  double? _pickedLng;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -57,6 +60,27 @@ class _CreateServiceRequestScreenState
     } else {
       _selectedCategoryId = widget.categoryId;
       _selectedCategoryName = widget.categoryName;
+    }
+  }
+
+  Future<void> _openLocationPicker() async {
+    final location = Provider.of<LocationProvider>(context, listen: false);
+    final result = await Navigator.push<LocationPickerResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(
+          initialLat: _pickedLat ?? location.currentPosition?.latitude,
+          initialLng: _pickedLng ?? location.currentPosition?.longitude,
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _pickedLat = result.latitude;
+        _pickedLng = result.longitude;
+        _addressController.text = result.address;
+      });
     }
   }
 
@@ -87,7 +111,8 @@ class _CreateServiceRequestScreenState
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryNavy,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
                     ),
                     onPressed: () async {
                       Navigator.pop(ctx);
@@ -104,7 +129,8 @@ class _CreateServiceRequestScreenState
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.starGold,
                       foregroundColor: AppColors.primaryNavy,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
                     ),
                     onPressed: () async {
                       Navigator.pop(ctx);
@@ -131,8 +157,7 @@ class _CreateServiceRequestScreenState
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final location = Provider.of<LocationProvider>(context, listen: false);
-    final workerProvider =
-        Provider.of<WorkerProvider>(context, listen: false);
+    final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
     final requestProvider =
         Provider.of<ServiceRequestProvider>(context, listen: false);
     final categoryProvider =
@@ -142,8 +167,8 @@ class _CreateServiceRequestScreenState
 
     await location.fetchCurrentLocation(context: context);
 
-    double cLat = location.currentPosition?.latitude ?? 31.5204;
-    double cLng = location.currentPosition?.longitude ?? 74.3587;
+    double cLat = _pickedLat ?? location.currentPosition?.latitude ?? 31.5204;
+    double cLng = _pickedLng ?? location.currentPosition?.longitude ?? 74.3587;
 
     String catId = _selectedCategoryId ?? widget.categoryId ?? 'general';
     String catName = _selectedCategoryName ?? widget.categoryName ?? 'Service';
@@ -481,20 +506,94 @@ class _CreateServiceRequestScreenState
               const SizedBox(height: 20),
 
               // Location / Address
-              const Text(
-                'Service Location Address *',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primaryNavy,
-                ),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Service Location Address *',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primaryNavy,
+                      ),
+                    ),
+                  ),
+                  if (_pickedLat != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.availableGreen
+                            .withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_circle,
+                              size: 14,
+                              color: AppColors.availableGreen),
+                          SizedBox(width: 4),
+                          Text(
+                            'GPS Set',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.availableGreen,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
+              // Pick Location on Map Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.accentBlue,
+                    side: BorderSide(
+                      color: _pickedLat != null
+                          ? AppColors.availableGreen
+                          : AppColors.accentBlue,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: Icon(
+                    _pickedLat != null
+                        ? Icons.edit_location_alt
+                        : Icons.map_rounded,
+                    size: 20,
+                    color: _pickedLat != null
+                        ? AppColors.availableGreen
+                        : AppColors.accentBlue,
+                  ),
+                  label: Text(
+                    _pickedLat != null
+                        ? 'Change Location on Map'
+                        : '📍 Pick Exact Location on Map',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: _pickedLat != null
+                          ? AppColors.availableGreen
+                          : AppColors.accentBlue,
+                    ),
+                  ),
+                  onPressed: _openLocationPicker,
+                ),
+              ),
+              const SizedBox(height: 10),
               TextFormField(
                 controller: _addressController,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.location_on_rounded,
                       color: AppColors.primaryNavy),
+                  hintText: 'Or type your address manually',
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {

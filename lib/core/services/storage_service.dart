@@ -15,9 +15,8 @@ class StorageService {
     try {
       final ext = p.extension(file.path);
       final ref = _storage.ref().child('$folder/$filename$ext');
-      final uploadTask = await ref
-          .putFile(file)
-          .timeout(const Duration(seconds: 5));
+      final uploadTask =
+          await ref.putFile(file).timeout(const Duration(seconds: 5));
       final downloadUrl = await uploadTask.ref.getDownloadURL();
       return downloadUrl;
     } catch (_) {
@@ -25,7 +24,8 @@ class StorageService {
       try {
         final bytes = await file.readAsBytes();
         final base64String = base64Encode(bytes);
-        String mimeType = file.path.endsWith('.png') ? 'image/png' : 'image/jpeg';
+        String mimeType =
+            file.path.endsWith('.png') ? 'image/png' : 'image/jpeg';
         return 'data:$mimeType;base64,$base64String';
       } catch (_) {
         return null;

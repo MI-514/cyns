@@ -48,13 +48,13 @@ class UserModel {
   factory UserModel.fromMap(Map<String, dynamic> map, String docId) {
     return UserModel(
       uid: docId,
-      email: map['email'] ?? '',
-      username: map['username'] ?? '',
-      fullName: map['fullName'] ?? '',
-      phoneNumber: map['phoneNumber'] ?? '',
-      role: map['role'] ?? 'customer',
-      profilePicUrl: map['profilePicUrl'] ?? '',
-      isVerified: map['isVerified'] ?? false,
+      email: map['email']?.toString() ?? '',
+      username: map['username']?.toString() ?? '',
+      fullName: map['fullName']?.toString() ?? '',
+      phoneNumber: map['phoneNumber']?.toString() ?? '',
+      role: map['role']?.toString() ?? 'customer',
+      profilePicUrl: map['profilePicUrl']?.toString() ?? '',
+      isVerified: map['isVerified'] == true || map['isVerified'] == 'true',
       createdAt: _parseDate(map['createdAt']),
     );
   }

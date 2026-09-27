@@ -17,12 +17,14 @@ class ServiceRequestModel {
   final String customerAddress;
   final double? workerLat;
   final double? workerLng;
-  final String status; // Pending, Accepted, Rejected, Cancelled, On the Way, Arrived, In Progress, Completed
+  final String
+      status; // Pending, Accepted, Rejected, Cancelled, On the Way, Arrived, In Progress, Completed
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? estimatedArrivalTime;
   final double? distanceKm;
   final bool hasBeenReviewed;
+  final String? completionOtp;
 
   ServiceRequestModel({
     required this.id,
@@ -47,6 +49,7 @@ class ServiceRequestModel {
     this.estimatedArrivalTime,
     this.distanceKm,
     this.hasBeenReviewed = false,
+    this.completionOtp,
   })  : createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
@@ -82,6 +85,7 @@ class ServiceRequestModel {
       'estimatedArrivalTime': estimatedArrivalTime,
       'distanceKm': distanceKm,
       'hasBeenReviewed': hasBeenReviewed,
+      'completionOtp': completionOtp,
     };
   }
 
@@ -109,6 +113,7 @@ class ServiceRequestModel {
       estimatedArrivalTime: map['estimatedArrivalTime'],
       distanceKm: (map['distanceKm'] as num?)?.toDouble(),
       hasBeenReviewed: map['hasBeenReviewed'] ?? false,
+      completionOtp: map['completionOtp'],
     );
   }
 }

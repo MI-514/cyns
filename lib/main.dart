@@ -12,6 +12,7 @@ import 'providers/location_provider.dart';
 import 'providers/service_request_provider.dart';
 import 'providers/worker_provider.dart';
 import 'screens/splash/splash_screen.dart';
+import 'core/widgets/call_listener_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +47,11 @@ class CynApp extends StatelessWidget {
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.navyWhiteTheme,
+        builder: (context, child) {
+          return CallListenerWrapper(
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         home: const SplashScreen(),
       ),
     );

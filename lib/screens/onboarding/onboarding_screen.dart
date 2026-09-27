@@ -134,11 +134,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   final slide = _slides[index];
                   return LayoutBuilder(
                     builder: (context, constraints) {
-                      double circleSize = constraints.maxHeight > 500 ? 170 : 130;
+                      double circleSize =
+                          constraints.maxHeight > 500 ? 170 : 130;
                       return SingleChildScrollView(
                         physics: const ClampingScrollPhysics(),
                         child: ConstrainedBox(
-                          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                          constraints:
+                              BoxConstraints(minHeight: constraints.maxHeight),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -151,19 +153,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   shape: BoxShape.circle,
                                   gradient: LinearGradient(
                                     colors: [
-                                      AppColors.primaryNavy.withValues(alpha: 0.12),
-                                      AppColors.accentBlue.withValues(alpha: 0.06),
+                                      AppColors.primaryNavy
+                                          .withValues(alpha: 0.12),
+                                      AppColors.accentBlue
+                                          .withValues(alpha: 0.06),
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
                                   border: Border.all(
-                                    color: AppColors.accentBlue.withValues(alpha: 0.2),
+                                    color: AppColors.accentBlue
+                                        .withValues(alpha: 0.2),
                                     width: 2,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primaryNavy.withValues(alpha: 0.08),
+                                      color: AppColors.primaryNavy
+                                          .withValues(alpha: 0.08),
                                       blurRadius: 24,
                                       offset: const Offset(0, 10),
                                     ),
@@ -191,7 +197,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 14, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: AppColors.accentBlue.withValues(alpha: 0.1),
+                                  color: AppColors.accentBlue
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -286,7 +293,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         _currentPage == _slides.length - 1
                             ? 'Get Started'
                             : 'Next',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(width: 8),
                       const Icon(Icons.arrow_forward_rounded, size: 20),
@@ -301,4 +309,3 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 }
-

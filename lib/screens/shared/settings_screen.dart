@@ -131,7 +131,8 @@ class SettingsScreen extends StatelessWidget {
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text('CYN respects user privacy and data security.')),
+                          content: Text(
+                              'CYN respects user privacy and data security.')),
                     );
                   },
                 ),
@@ -143,4 +144,3 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
-

@@ -38,7 +38,8 @@ class WorkerProvider extends ChangeNotifier {
 
   Future<void> toggleAvailability(String workerId, bool isAvailable) async {
     if (_currentWorkerProfile != null) {
-      _currentWorkerProfile = _currentWorkerProfile!.copyWith(isAvailable: isAvailable);
+      _currentWorkerProfile =
+          _currentWorkerProfile!.copyWith(isAvailable: isAvailable);
       notifyListeners();
     }
     await _repository.toggleAvailability(workerId, isAvailable);

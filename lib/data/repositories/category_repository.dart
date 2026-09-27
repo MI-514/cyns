@@ -10,9 +10,8 @@ class CategoryRepository {
   /// Fetch categories with fallback to local SQLite cache and auto-seeding
   Future<List<CategoryModel>> getCategories() async {
     try {
-      QuerySnapshot snapshot = await _firestore
-          .collection(FirestoreCollections.categories)
-          .get();
+      QuerySnapshot snapshot =
+          await _firestore.collection(FirestoreCollections.categories).get();
 
       if (snapshot.docs.isNotEmpty) {
         List<CategoryModel> categories = snapshot.docs

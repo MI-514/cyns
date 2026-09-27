@@ -21,10 +21,12 @@ class WorkerProfileTab extends StatelessWidget {
           children: [
             Icon(Icons.logout_rounded, color: AppColors.statusRejected),
             SizedBox(width: 10),
-            Text('Confirm Logout', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('Confirm Logout',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: const Text('Are you sure you want to sign out from CYN Worker?'),
+        content:
+            const Text('Are you sure you want to sign out from CYN Worker?'),
         actions: [
           OutlinedButton(
             onPressed: () => Navigator.pop(ctx),
@@ -40,7 +42,8 @@ class WorkerProfileTab extends StatelessWidget {
               if (context.mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+                  MaterialPageRoute(
+                      builder: (_) => const RoleSelectionScreen()),
                   (route) => false,
                 );
               }
@@ -198,7 +201,8 @@ class WorkerProfileTab extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      const Icon(Icons.star_rounded, color: AppColors.starGold, size: 22),
+                      const Icon(Icons.star_rounded,
+                          color: AppColors.starGold, size: 22),
                       const SizedBox(height: 4),
                       Text(
                         '${worker?.rating ?? 5.0} ★',
@@ -295,7 +299,8 @@ class WorkerProfileTab extends StatelessWidget {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.engineering_rounded, color: AppColors.primaryNavy),
+                      Icon(Icons.engineering_rounded,
+                          color: AppColors.primaryNavy),
                       SizedBox(width: 10),
                       Text(
                         'Service Provider Profile Details',
@@ -308,7 +313,6 @@ class WorkerProfileTab extends StatelessWidget {
                     ],
                   ),
                   const Divider(height: 24),
-
                   _WorkerDetailRow(
                     icon: Icons.person_outline_rounded,
                     label: 'Full Name',
@@ -380,7 +384,8 @@ class WorkerProfileTab extends StatelessWidget {
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primaryNavy,
-                side: const BorderSide(color: AppColors.primaryNavy, width: 1.5),
+                side:
+                    const BorderSide(color: AppColors.primaryNavy, width: 1.5),
                 padding: const EdgeInsets.symmetric(vertical: 15),
               ),
               icon: const Icon(Icons.edit_note_rounded, size: 22),
@@ -418,13 +423,13 @@ class WorkerProfileTab extends StatelessWidget {
                     child: const Icon(Icons.settings_outlined,
                         color: AppColors.primaryNavy),
                   ),
-                  title: const Text('App Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: const Text('App Settings',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const SettingsScreen()),
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
                     );
                   },
                 ),
@@ -439,13 +444,14 @@ class WorkerProfileTab extends StatelessWidget {
                     child: const Icon(Icons.help_outline_rounded,
                         color: AppColors.primaryNavy),
                   ),
-                  title: const Text('Help & Worker Support', style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: const Text('Help & Worker Support',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content:
-                              Text('Contact support at worker-support@cyns.com')),
+                          content: Text(
+                              'Contact support at worker-support@cyns.com')),
                     );
                   },
                 ),
@@ -457,7 +463,8 @@ class WorkerProfileTab extends StatelessWidget {
                       color: AppColors.statusRejected.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.logout_rounded, color: AppColors.statusRejected),
+                    child: const Icon(Icons.logout_rounded,
+                        color: AppColors.statusRejected),
                   ),
                   title: const Text(
                     'Logout Account',
@@ -532,4 +539,3 @@ class _WorkerDetailRow extends StatelessWidget {
     );
   }
 }
-

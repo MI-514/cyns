@@ -20,7 +20,30 @@ class ServiceRequestProvider extends ChangeNotifier {
       _errorMessage = '';
       notifyListeners();
 
-      String requestId = await _repository.createServiceRequest(request);
+      String otp = (1000 + DateTime.now().millisecondsSinceEpoch % 9000).toString();
+      
+      ServiceRequestModel requestWithOtp = ServiceRequestModel(
+        id: request.id,
+        customerId: request.customerId,
+        customerName: request.customerName,
+        customerPhone: request.customerPhone,
+        workerId: request.workerId,
+        workerName: request.workerName,
+        workerPhone: request.workerPhone,
+        categoryId: request.categoryId,
+        categoryName: request.categoryName,
+        problemDescription: request.problemDescription,
+        attachmentUrl: request.attachmentUrl,
+        customerLat: request.customerLat,
+        customerLng: request.customerLng,
+        customerAddress: request.customerAddress,
+        workerLat: request.workerLat,
+        workerLng: request.workerLng,
+        status: request.status,
+        completionOtp: otp,
+      );
+
+      String requestId = await _repository.createServiceRequest(requestWithOtp);
 
       // Send notification to worker
       await NotificationService.sendNotification(

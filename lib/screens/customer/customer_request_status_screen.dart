@@ -8,6 +8,7 @@ import '../../data/models/service_request_model.dart';
 import '../../providers/service_request_provider.dart';
 import '../shared/chat_screen.dart';
 import '../shared/map_tracking_screen.dart';
+import 'worker_profile_view_screen.dart';
 import 'rating_review_screen.dart';
 
 class CustomerRequestStatusScreen extends StatelessWidget {
@@ -85,7 +86,8 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                    border:
+                        Border.all(color: statusColor.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     children: [
@@ -127,54 +129,80 @@ class CustomerRequestStatusScreen extends StatelessWidget {
 
                 // Worker Details Card
                 Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Assigned Worker',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: AppColors.primaryNavy,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => WorkerProfileViewScreen(
+                            workerId: req.workerId,
                           ),
                         ),
-                        const Divider(height: 20),
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 24,
-                              backgroundColor:
-                                  AppColors.primaryNavy.withValues(alpha: 0.1),
-                              child: const Icon(Icons.person,
-                                  color: AppColors.primaryNavy),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    req.workerName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  Text(
-                                    req.workerPhone,
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Assigned Worker',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: AppColors.primaryNavy,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                              const Text(
+                                'View Profile →',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.accentBlue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 20),
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 24,
+                                backgroundColor:
+                                    AppColors.primaryNavy.withValues(alpha: 0.1),
+                                child: const Icon(Icons.person,
+                                    color: AppColors.primaryNavy),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      req.workerName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    Text(
+                                      req.workerPhone,
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -219,6 +247,68 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                
+                if (req.completionOtp != null &&
+                    req.status != AppConstants.statusCompleted &&
+                    req.status != AppConstants.statusCancelled &&
+                    req.status != AppConstants.statusRejected) ...[
+                  const SizedBox(height: 16),
+                  Card(
+                    color: AppColors.starGold.withValues(alpha: 0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: AppColors.starGold, width: 2),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Job Completion OTP',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: AppColors.primaryNavy,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Share this 4-digit code with the worker only when the job is fully complete.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppColors.starGold,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              req.completionOtp!,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 2,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
 
                 // Action Buttons based on status
@@ -248,6 +338,7 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                                   requestId: req.id,
                                   peerName: req.workerName,
                                   peerRole: 'worker',
+                                  peerId: req.workerId,
                                 ),
                               ),
                             );
@@ -299,7 +390,10 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                   ),
                 ],
 
-                if (req.status == AppConstants.statusPending) ...[
+                if (req.status != AppConstants.statusCompleted &&
+                    req.status != AppConstants.statusCancelled &&
+                    req.status != AppConstants.statusRejected) ...[
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -310,12 +404,37 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                       icon: const Icon(Icons.cancel_outlined),
                       label: const Text('Cancel Request'),
                       onPressed: () async {
-                        await requestProvider.updateStatus(
-                          requestId: req.id,
-                          status: AppConstants.statusCancelled,
-                          customerId: req.customerId,
-                          workerId: req.workerId,
+                        bool? confirm = await showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Cancel Job?'),
+                            content: const Text(
+                              'Are you sure you want to cancel this request? If the worker is already on the way, this may affect your profile rating.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('No, Keep It'),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.statusRejected,
+                                ),
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Yes, Cancel'),
+                              ),
+                            ],
+                          ),
                         );
+
+                        if (confirm == true) {
+                          await requestProvider.updateStatus(
+                            requestId: req.id,
+                            status: AppConstants.statusCancelled,
+                            customerId: req.customerId,
+                            workerId: req.workerId,
+                          );
+                        }
                       },
                     ),
                   ),
@@ -404,9 +523,8 @@ class _StatusStepper extends StatelessWidget {
                       child: Text(
                         steps[index],
                         style: TextStyle(
-                          fontWeight: isCurrent
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          fontWeight:
+                              isCurrent ? FontWeight.bold : FontWeight.normal,
                           color: isDone
                               ? AppColors.textPrimary
                               : AppColors.textLight,

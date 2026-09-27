@@ -18,9 +18,14 @@ class AppNetworkImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl.startsWith('data:image')) {
+    final cleanUrl = imageUrl.trim();
+    if (cleanUrl.isEmpty) {
+      return _buildPlaceholder();
+    }
+
+    if (cleanUrl.startsWith('data:image')) {
       try {
-        final base64Data = imageUrl.split(',').last;
+        final base64Data = cleanUrl.split(',').last;
         final Uint8List bytes = base64Decode(base64Data);
         return Image.memory(
           bytes,
@@ -34,8 +39,12 @@ class AppNetworkImage extends StatelessWidget {
       }
     }
 
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      return _buildPlaceholder();
+    }
+
     return Image.network(
-      imageUrl,
+      cleanUrl,
       width: width,
       height: height,
       fit: fit,

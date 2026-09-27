@@ -37,7 +37,8 @@ class LocationService {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.location_off, size: 48, color: AppColors.statusPending),
+        icon: const Icon(Icons.location_off,
+            size: 48, color: AppColors.statusPending),
         title: const Text('GPS Location is OFF'),
         content: const Text(
           'Your device GPS location service is currently turned off.\n\nPlease turn on Location/GPS to find nearby skilled workers accurately.',
@@ -66,7 +67,8 @@ class LocationService {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.security, size: 48, color: AppColors.statusRejected),
+        icon: const Icon(Icons.security,
+            size: 48, color: AppColors.statusRejected),
         title: const Text('Location Permission Needed'),
         content: const Text(
           'Location permission was denied. Please grant location access in App Settings to search nearby service providers.',
@@ -91,7 +93,8 @@ class LocationService {
   }
 
   /// Get readable address from coordinates
-  static Future<String> getAddressFromCoordinates(double lat, double lng) async {
+  static Future<String> getAddressFromCoordinates(
+      double lat, double lng) async {
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
       if (placemarks.isNotEmpty) {
@@ -112,7 +115,8 @@ class LocationService {
     if (startLat == 0.0 || startLng == 0.0 || endLat == 0.0 || endLng == 0.0) {
       return 0.0;
     }
-    double meters = Geolocator.distanceBetween(startLat, startLng, endLat, endLng);
+    double meters =
+        Geolocator.distanceBetween(startLat, startLng, endLat, endLng);
     return meters / 1000.0;
   }
 
@@ -141,8 +145,8 @@ class LocationService {
   /// Launch Native Turn-by-Turn GPS Navigation directly in Google Maps App
   static Future<void> openTurnByTurnNavigation(
       double destinationLat, double destinationLng) async {
-    final Uri googleMapsUri = Uri.parse(
-        'google.navigation:q=$destinationLat,$destinationLng&mode=d');
+    final Uri googleMapsUri =
+        Uri.parse('google.navigation:q=$destinationLat,$destinationLng&mode=d');
     final Uri fallbackUri = Uri.parse(
         'https://www.google.com/maps/dir/?api=1&destination=$destinationLat,$destinationLng&travelmode=driving');
 

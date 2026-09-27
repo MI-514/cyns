@@ -14,8 +14,7 @@ class ChatRepository {
         .where(field, isEqualTo: userId)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) =>
-                ChatModel.fromMap(doc.data(), doc.id))
+            .map((doc) => ChatModel.fromMap(doc.data(), doc.id))
             .toList());
   }
 
@@ -28,8 +27,7 @@ class ChatRepository {
         .orderBy('timestamp', descending: false)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => MessageModel.fromMap(
-                doc.data(), doc.id))
+            .map((doc) => MessageModel.fromMap(doc.data(), doc.id))
             .toList());
   }
 
@@ -60,10 +58,7 @@ class ChatRepository {
         .add(msg.toMap());
 
     // Update last message in chat summary
-    await _firestore
-        .collection(FirestoreCollections.chats)
-        .doc(chatId)
-        .update({
+    await _firestore.collection(FirestoreCollections.chats).doc(chatId).update({
       'lastMessage': message.isNotEmpty ? message : 'Sent an attachment',
       'lastMessageTime': FieldValue.serverTimestamp(),
     });

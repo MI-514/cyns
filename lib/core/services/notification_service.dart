@@ -26,7 +26,6 @@ class NotificationService {
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
-        
         // Enable Foreground & Lock Screen Heads-Up Banners
         await FirebaseMessaging.instance
             .setForegroundNotificationPresentationOptions(
@@ -60,7 +59,8 @@ class NotificationService {
           .add({
         'userId': workerId,
         'title': '🚨 New 30s Job Offer: $categoryName',
-        'body': 'Immediate hiring request from $customerName! Tap to accept before 30s expires.',
+        'body':
+            'Immediate hiring request from $customerName! Tap to accept before 30s expires.',
         'type': 'job_offer',
         'relatedId': requestId,
         'isRead': false,

@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../providers/category_provider.dart';
-import 'create_service_request_screen.dart';
+
+import 'worker_list_screen.dart';
 
 class ServiceCategoriesScreen extends StatelessWidget {
   const ServiceCategoriesScreen({super.key});
@@ -40,15 +41,15 @@ class ServiceCategoriesScreen extends StatelessWidget {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CreateServiceRequestScreen(
-                                  categoryId: cat.id,
-                                  categoryName: cat.name,
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => WorkerListScreen(
+                                    selectedCategoryId: cat.id,
+                                    categoryName: cat.name,
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
                           },
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),

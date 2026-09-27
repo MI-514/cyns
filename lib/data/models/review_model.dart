@@ -9,6 +9,8 @@ class ReviewModel {
   final String customerProfilePic;
   final double rating;
   final String reviewText;
+  final List<String> tags;
+  final int tipAmount;
   final DateTime createdAt;
 
   ReviewModel({
@@ -20,6 +22,8 @@ class ReviewModel {
     this.customerProfilePic = '',
     required this.rating,
     required this.reviewText,
+    this.tags = const [],
+    this.tipAmount = 0,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -41,20 +45,46 @@ class ReviewModel {
       'customerProfilePic': customerProfilePic,
       'rating': rating,
       'reviewText': reviewText,
+      'tags': tags,
+      'tipAmount': tipAmount,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 
   factory ReviewModel.fromMap(Map<String, dynamic> map, String docId) {
+    List<String> parseTags(dynamic val) {
+      if (val is List) {
+        return val
+            .map((e) => e?.toString() ?? '')
+            .where((s) => s.isNotEmpty)
+            .toList();
+      }
+      return [];
+    }
+
+    int parseTip(dynamic val) {
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? 0;
+      return 0;
+    }
+
+    double parseRating(dynamic val) {
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val) ?? 5.0;
+      return 5.0;
+    }
+
     return ReviewModel(
       id: docId,
-      requestId: map['requestId'] ?? '',
-      workerId: map['workerId'] ?? '',
-      customerId: map['customerId'] ?? '',
-      customerName: map['customerName'] ?? '',
-      customerProfilePic: map['customerProfilePic'] ?? '',
-      rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
-      reviewText: map['reviewText'] ?? '',
+      requestId: map['requestId']?.toString() ?? '',
+      workerId: map['workerId']?.toString() ?? '',
+      customerId: map['customerId']?.toString() ?? '',
+      customerName: map['customerName']?.toString() ?? '',
+      customerProfilePic: map['customerProfilePic']?.toString() ?? '',
+      rating: parseRating(map['rating']),
+      reviewText: map['reviewText']?.toString() ?? '',
+      tags: parseTags(map['tags']),
+      tipAmount: parseTip(map['tipAmount']),
       createdAt: _parseDate(map['createdAt']),
     );
   }

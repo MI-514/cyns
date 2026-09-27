@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/services/agora_service.dart';
+import '../../core/services/call_signaling_service.dart';
 
 class AgoraCallScreen extends StatefulWidget {
   final String channelId;
   final String peerName;
   final String peerRole;
   final bool isVideoCall;
+  final String? signalId; // Firestore call signal doc ID
 
   const AgoraCallScreen({
     super.key,
@@ -17,6 +19,7 @@ class AgoraCallScreen extends StatefulWidget {
     required this.peerName,
     required this.peerRole,
     this.isVideoCall = false,
+    this.signalId,
   });
 
   @override
@@ -52,7 +55,8 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Microphone/Camera permission is required for calling.'),
+          content:
+              Text('Microphone/Camera permission is required for calling.'),
           backgroundColor: AppColors.statusRejected,
         ),
       );
@@ -64,9 +68,8 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
       setState(() {
         _isEngineError = true;
         _engineErrorMessage =
-            'Agora App ID not configured. Please paste your actual 32-character App ID from console.agora.io in lib/core/services/agora_service.dart.';
+            'Agora App ID not configured.\n\nPlease set your Agora App ID in:\nlib/core/services/agora_service.dart\n\nGet one free at console.agora.io';
       });
-      _startDurationTimer();
       return;
     }
 
@@ -88,11 +91,14 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
               _remoteUid = remoteUid;
             });
           },
-          onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
+          onUserOffline: (RtcConnection connection, int remoteUid,
+              UserOfflineReasonType reason) {
             if (!mounted) return;
             setState(() {
               _remoteUid = null;
             });
+            // Other user left — end call
+            _endCall();
           },
           onError: (ErrorCodeType err, String msg) {
             debugPrint("Agora Engine Error [$err]: $msg");
@@ -102,10 +108,9 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
               if (err == ErrorCodeType.errInvalidToken ||
                   err == ErrorCodeType.errTokenExpired) {
                 _engineErrorMessage =
-                    'Agora Token Expired / Invalid ($err).\nTo test calls without token expiration, create a "Testing Mode" project in console.agora.io.';
+                    'Agora Token Expired or Invalid.\n\nCreate a "Testing Mode" project in console.agora.io for token-free testing, or generate a fresh token.';
               } else {
-                _engineErrorMessage =
-                    'Agora Call Notice ($err): $msg.\nCall UI active in local fallback mode.';
+                _engineErrorMessage = 'Call connection error ($err): $msg';
               }
             });
           },
@@ -120,41 +125,22 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
         await _engine!.setEnableSpeakerphone(_isSpeaker);
       }
 
-      try {
-        await _engine!.joinChannel(
-          token: AgoraService.token,
-          channelId: widget.channelId,
-          uid: 0,
-          options: const ChannelMediaOptions(
-            clientRoleType: ClientRoleType.clientRoleBroadcaster,
-            channelProfile: ChannelProfileType.channelProfileCommunication,
-          ),
-        );
-      } catch (joinErr) {
-        debugPrint("Primary joinChannel failed: $joinErr. Trying fallback...");
-        if (AgoraService.token.isNotEmpty) {
-          await _engine!.joinChannel(
-            token: AgoraService.token,
-            channelId: "cyns_channel",
-            uid: 0,
-            options: const ChannelMediaOptions(
-              clientRoleType: ClientRoleType.clientRoleBroadcaster,
-              channelProfile: ChannelProfileType.channelProfileCommunication,
-            ),
-          );
-        } else {
-          rethrow;
-        }
-      }
+      await _engine!.joinChannel(
+        token: AgoraService.token,
+        channelId: widget.channelId,
+        uid: 0,
+        options: const ChannelMediaOptions(
+          clientRoleType: ClientRoleType.clientRoleBroadcaster,
+          channelProfile: ChannelProfileType.channelProfileCommunication,
+        ),
+      );
     } catch (e) {
       debugPrint("Agora Init Exception: $e");
       if (!mounted) return;
       setState(() {
         _isEngineError = true;
-        _engineErrorMessage =
-            'Agora Connection Notice: $e.\nCall screen active in fallback mode. Create a "Testing Mode" project in console.agora.io for zero-token live streams.';
+        _engineErrorMessage = 'Failed to connect call: $e';
       });
-      _startDurationTimer();
     }
   }
 
@@ -204,8 +190,18 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
 
   void _endCall() async {
     _durationTimer?.cancel();
-    await _engine?.leaveChannel();
-    await _engine?.release();
+    try {
+      await _engine?.leaveChannel();
+      await _engine?.release();
+    } catch (_) {}
+
+    // End call signal in Firestore
+    if (widget.signalId != null && widget.signalId!.isNotEmpty) {
+      try {
+        await CallSignalingService.endCall(widget.signalId!);
+      } catch (_) {}
+    }
+
     if (!mounted) return;
     Navigator.pop(context);
   }
@@ -226,7 +222,12 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
         child: Stack(
           children: [
             // Video Call Views or Voice Call Center
-            widget.isVideoCall ? _buildVideoViews() : _buildVoiceCallCenter(),
+            if (_isEngineError)
+              _buildErrorView()
+            else if (widget.isVideoCall)
+              _buildVideoViews()
+            else
+              _buildVoiceCallCenter(),
 
             // Top Status Bar
             Positioned(
@@ -247,13 +248,15 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          widget.isVideoCall ? Icons.videocam : Icons.phone_in_talk,
+                          widget.isVideoCall
+                              ? Icons.videocam
+                              : Icons.phone_in_talk,
                           color: AppColors.pureWhite,
                           size: 16,
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          widget.isVideoCall ? 'In-App Video Call' : 'In-App Voice Call',
+                          widget.isVideoCall ? 'Video Call' : 'Voice Call',
                           style: const TextStyle(
                             color: AppColors.pureWhite,
                             fontSize: 12,
@@ -263,162 +266,168 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.availableGreen.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _formatDuration(_callDurationSeconds),
-                      style: const TextStyle(
-                        color: AppColors.pureWhite,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                  if (!_isEngineError)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.availableGreen.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _formatDuration(_callDurationSeconds),
+                        style: const TextStyle(
+                          color: AppColors.pureWhite,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
 
-            if (_isEngineError)
+            // Bottom Control Bar (only when call is active)
+            if (!_isEngineError)
               Positioned(
-                top: 70,
-                left: 20,
-                right: 20,
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade900.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                bottom: 30,
+                left: 12,
+                right: 12,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.warning_amber_rounded,
-                              color: Colors.white, size: 20),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Agora App ID Required for Live Stream',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
+                      CircleAvatar(
+                        radius: 26,
+                        backgroundColor: _isMuted ? Colors.red : Colors.white24,
+                        child: IconButton(
+                          icon: Icon(
+                            _isMuted ? Icons.mic_off : Icons.mic,
+                            color: AppColors.pureWhite,
+                            size: 24,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        _engineErrorMessage,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                          height: 1.3,
+                          onPressed: _toggleMute,
                         ),
                       ),
+                      const SizedBox(width: 14),
+                      CircleAvatar(
+                        radius: 32,
+                        backgroundColor: Colors.red,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.call_end,
+                            color: AppColors.pureWhite,
+                            size: 30,
+                          ),
+                          onPressed: _endCall,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      if (widget.isVideoCall) ...[
+                        CircleAvatar(
+                          radius: 26,
+                          backgroundColor:
+                              _isVideoMuted ? Colors.red : Colors.white24,
+                          child: IconButton(
+                            icon: Icon(
+                              _isVideoMuted
+                                  ? Icons.videocam_off
+                                  : Icons.videocam,
+                              color: AppColors.pureWhite,
+                              size: 24,
+                            ),
+                            onPressed: _toggleVideo,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        CircleAvatar(
+                          radius: 26,
+                          backgroundColor: Colors.white24,
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.cameraswitch,
+                              color: AppColors.pureWhite,
+                              size: 24,
+                            ),
+                            onPressed: _switchCamera,
+                          ),
+                        ),
+                      ] else
+                        CircleAvatar(
+                          radius: 26,
+                          backgroundColor: _isSpeaker
+                              ? AppColors.accentBlue
+                              : Colors.white24,
+                          child: IconButton(
+                            icon: Icon(
+                              _isSpeaker ? Icons.volume_up : Icons.volume_off,
+                              color: AppColors.pureWhite,
+                              size: 24,
+                            ),
+                            onPressed: _toggleSpeaker,
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            // Bottom Control Bar
-            Positioned(
-              bottom: 30,
-              left: 12,
-              right: 12,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Mute Microphone Button
-                    CircleAvatar(
-                      radius: 26,
-                      backgroundColor: _isMuted ? Colors.red : Colors.white24,
-                      child: IconButton(
-                        icon: Icon(
-                          _isMuted ? Icons.mic_off : Icons.mic,
-                          color: AppColors.pureWhite,
-                          size: 24,
-                        ),
-                        onPressed: _toggleMute,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-
-                    // End Call Button
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundColor: Colors.red,
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.call_end,
-                          color: AppColors.pureWhite,
-                          size: 30,
-                        ),
-                        onPressed: _endCall,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-
-                    if (widget.isVideoCall) ...[
-                      // Toggle Video On/Off Button
-                      CircleAvatar(
-                        radius: 26,
-                        backgroundColor:
-                            _isVideoMuted ? Colors.red : Colors.white24,
-                        child: IconButton(
-                          icon: Icon(
-                            _isVideoMuted
-                                ? Icons.videocam_off
-                                : Icons.videocam,
-                            color: AppColors.pureWhite,
-                            size: 24,
-                          ),
-                          onPressed: _toggleVideo,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-
-                      // Switch Camera Button
-                      CircleAvatar(
-                        radius: 26,
-                        backgroundColor: Colors.white24,
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.cameraswitch,
-                            color: AppColors.pureWhite,
-                            size: 24,
-                          ),
-                          onPressed: _switchCamera,
-                        ),
-                      ),
-                    ] else
-                      // Speaker Button
-                      CircleAvatar(
-                        radius: 26,
-                        backgroundColor: _isSpeaker
-                            ? AppColors.accentBlue
-                            : Colors.white24,
-                        child: IconButton(
-                          icon: Icon(
-                            _isSpeaker ? Icons.volume_up : Icons.volume_off,
-                            color: AppColors.pureWhite,
-                            size: 24,
-                          ),
-                          onPressed: _toggleSpeaker,
-                        ),
-                      ),
-                  ],
-                ),
+  /// Error view with clear message and exit button
+  Widget _buildErrorView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
               ),
+              child: const Icon(
+                Icons.phone_disabled_rounded,
+                size: 56,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Call Connection Failed',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.pureWhite,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _engineErrorMessage,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.pureWhite.withValues(alpha: 0.7),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              ),
+              icon: const Icon(Icons.close_rounded),
+              label: const Text('Exit Call',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: _endCall,
             ),
           ],
         ),
@@ -453,9 +462,7 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
           Text(
             _remoteUid != null
                 ? 'Connected - Talking'
-                : (_localUserJoined || _isEngineError
-                    ? 'In-App Call Active'
-                    : 'Ringing & Connecting...'),
+                : (_localUserJoined ? 'Ringing...' : 'Connecting...'),
             style: const TextStyle(
               fontSize: 14,
               color: AppColors.textLight,
@@ -469,7 +476,6 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
   Widget _buildVideoViews() {
     return Stack(
       children: [
-        // Remote Video View
         Center(
           child: _remoteUid != null && _engine != null
               ? AgoraVideoView(
@@ -486,14 +492,12 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
                         size: 64, color: AppColors.pureWhite),
                     const SizedBox(height: 12),
                     Text(
-                      'Waiting for ${widget.peerName} to join video call...',
+                      'Waiting for ${widget.peerName} to join...',
                       style: const TextStyle(color: AppColors.textLight),
                     ),
                   ],
                 ),
         ),
-
-        // Local Video Preview Thumbnail
         if (_localUserJoined && _engine != null && !_isVideoMuted)
           Positioned(
             right: 20,

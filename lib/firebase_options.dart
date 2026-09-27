@@ -50,7 +50,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '724329772950',
     projectId: 'cyns-f77ec',
     storageBucket: 'cyns-f77ec.firebasestorage.app',
-    iosClientId: '724329772950-7bbrrmh9dn1tqc9lf9g6ntg4b80akl39.apps.googleusercontent.com',
+    iosClientId:
+        '724329772950-7bbrrmh9dn1tqc9lf9g6ntg4b80akl39.apps.googleusercontent.com',
     iosBundleId: 'com.example.cyns',
   );
   static const FirebaseOptions macos = FirebaseOptions(
@@ -59,7 +60,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '724329772950',
     projectId: 'cyns-f77ec',
     storageBucket: 'cyns-f77ec.firebasestorage.app',
-    iosClientId: '724329772950-7bbrrmh9dn1tqc9lf9g6ntg4b80akl39.apps.googleusercontent.com',
+    iosClientId:
+        '724329772950-7bbrrmh9dn1tqc9lf9g6ntg4b80akl39.apps.googleusercontent.com',
     iosBundleId: 'com.example.cyns',
   );
 

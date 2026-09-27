@@ -135,28 +135,61 @@ class WorkerProfileModel {
   }
 
   factory WorkerProfileModel.fromMap(Map<String, dynamic> map, String docId) {
+    List<String> parseStringList(dynamic val) {
+      if (val is List) {
+        return val
+            .map((e) => e?.toString() ?? '')
+            .where((s) => s.isNotEmpty)
+            .toList();
+      } else if (val is String && val.isNotEmpty) {
+        return [val];
+      }
+      return [];
+    }
+
+    int parseInt(dynamic val, [int defaultValue = 0]) {
+      if (val is num) return val.toInt();
+      if (val is String) return int.tryParse(val) ?? defaultValue;
+      return defaultValue;
+    }
+
+    double parseDouble(dynamic val, [double defaultValue = 0.0]) {
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val) ?? defaultValue;
+      return defaultValue;
+    }
+
+    double? parseNullableDouble(dynamic val) {
+      if (val == null) return null;
+      if (val is num) return val.toDouble();
+      if (val is String && val.isNotEmpty) return double.tryParse(val);
+      return null;
+    }
+
     return WorkerProfileModel(
       workerId: docId,
-      username: map['username'] ?? '',
-      name: map['name'] ?? '',
-      fatherName: map['fatherName'] ?? '',
-      phoneNumber: map['phoneNumber'] ?? '',
-      address: map['address'] ?? '',
-      cnicNumber: map['cnicNumber'] ?? '',
-      profilePicUrl: map['profilePicUrl'] ?? '',
-      profession: map['profession'] ?? '',
-      categoryIds: List<String>.from(map['categoryIds'] ?? []),
-      skills: List<String>.from(map['skills'] ?? []),
-      experienceYears: map['experienceYears'] ?? 1,
-      serviceDescription: map['serviceDescription'] ?? '',
-      workingArea: map['workingArea'] ?? map['address'] ?? '',
-      isAvailable: map['isAvailable'] ?? true,
-      latitude: (map['latitude'] as num?)?.toDouble(),
-      longitude: (map['longitude'] as num?)?.toDouble(),
-      rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
-      reviewCount: map['reviewCount'] ?? 0,
-      completedJobsCount: map['completedJobsCount'] ?? 0,
-      isApproved: map['isApproved'] ?? true,
+      username: map['username']?.toString() ?? '',
+      name: map['name']?.toString() ?? '',
+      fatherName: map['fatherName']?.toString() ?? '',
+      phoneNumber: map['phoneNumber']?.toString() ?? '',
+      address: map['address']?.toString() ?? '',
+      cnicNumber: map['cnicNumber']?.toString() ?? '',
+      profilePicUrl: map['profilePicUrl']?.toString() ?? '',
+      profession: map['profession']?.toString() ?? '',
+      categoryIds: parseStringList(map['categoryIds']),
+      skills: parseStringList(map['skills']),
+      experienceYears: parseInt(map['experienceYears'], 1),
+      serviceDescription: map['serviceDescription']?.toString() ?? '',
+      workingArea: (map['workingArea'] ?? map['address'])?.toString() ?? '',
+      isAvailable: map['isAvailable'] == true ||
+          map['isAvailable'] == null ||
+          map['isAvailable'] == 'true',
+      latitude: parseNullableDouble(map['latitude']),
+      longitude: parseNullableDouble(map['longitude']),
+      rating: parseDouble(map['rating'], 0.0),
+      reviewCount: parseInt(map['reviewCount'], 0),
+      completedJobsCount: parseInt(map['completedJobsCount'], 0),
+      isApproved: map['isApproved'] != false && map['isApproved'] != 'false',
       createdAt: _parseDate(map['createdAt']),
     );
   }

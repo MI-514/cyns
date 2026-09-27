@@ -52,7 +52,8 @@ class AuthRepository {
     // Verify username uniqueness
     bool isAvailable = await isUsernameAvailable(cleanUsername);
     if (!isAvailable) {
-      throw Exception("Username '$cleanUsername' is already taken. Please choose another unique username.");
+      throw Exception(
+          "Username '$cleanUsername' is already taken. Please choose another unique username.");
     }
 
     try {
@@ -79,10 +80,7 @@ class AuthRepository {
           .catchError((_) {});
 
       if (role == 'customer') {
-        _firestore
-            .collection(FirestoreCollections.customers)
-            .doc(uid)
-            .set({
+        _firestore.collection(FirestoreCollections.customers).doc(uid).set({
           'customerId': uid,
           'username': cleanUsername,
           'name': fullName,
@@ -95,7 +93,8 @@ class AuthRepository {
       return userModel;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
-        throw Exception("An account already exists for this email. Please sign in instead.");
+        throw Exception(
+            "An account already exists for this email. Please sign in instead.");
       } else if (e.code == 'weak-password') {
         throw Exception("Password should be at least 6 characters.");
       } else if (e.code == 'invalid-email') {
@@ -130,7 +129,8 @@ class AuthRepository {
     // Verify username uniqueness
     bool isAvailable = await isUsernameAvailable(cleanUsername);
     if (!isAvailable) {
-      throw Exception("Username '$cleanUsername' is already taken. Please choose another unique username.");
+      throw Exception(
+          "Username '$cleanUsername' is already taken. Please choose another unique username.");
     }
 
     try {
@@ -150,10 +150,7 @@ class AuthRepository {
       );
 
       // Save in users collection in real time
-      await _firestore
-          .collection(FirestoreCollections.users)
-          .doc(uid)
-          .set({
+      await _firestore.collection(FirestoreCollections.users).doc(uid).set({
         'uid': uid,
         'email': email.trim(),
         'username': cleanUsername,
@@ -165,10 +162,7 @@ class AuthRepository {
       });
 
       // Save in workers collection in real time for live map & search
-      await _firestore
-          .collection(FirestoreCollections.workers)
-          .doc(uid)
-          .set({
+      await _firestore.collection(FirestoreCollections.workers).doc(uid).set({
         'workerId': uid,
         'username': cleanUsername,
         'name': fullName.trim(),
@@ -183,7 +177,8 @@ class AuthRepository {
         'categoryIds': [categoryId],
         'skills': [profession],
         'experienceYears': experienceYears,
-        'serviceDescription': '$profession with $experienceYears+ years of experience in $address.',
+        'serviceDescription':
+            '$profession with $experienceYears+ years of experience in $address.',
         'workingArea': address.trim(),
         'isAvailable': true,
         'isApproved': true,
@@ -198,7 +193,8 @@ class AuthRepository {
       return userModel;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
-        throw Exception("An account already exists for this email. Please sign in instead.");
+        throw Exception(
+            "An account already exists for this email. Please sign in instead.");
       } else if (e.code == 'weak-password') {
         throw Exception("Password should be at least 6 characters.");
       } else if (e.code == 'invalid-email') {
@@ -226,37 +222,30 @@ class AuthRepository {
       String uid = cred.user!.uid;
       UserModel? userModel;
 
-      // Fast Firestore document fetch
+      // Fetch user profile from Firestore
       try {
         DocumentSnapshot doc = await _firestore
             .collection(FirestoreCollections.users)
             .doc(uid)
             .get()
-            .timeout(const Duration(seconds: 3));
+            .timeout(const Duration(seconds: 5));
 
         if (doc.exists && doc.data() != null) {
-          userModel = UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+          userModel =
+              UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
         }
       } catch (_) {}
 
       if (userModel == null) {
-        String inferredRole = email.toLowerCase().contains('worker')
-            ? 'worker'
-            : 'customer';
-
-        userModel = UserModel(
-          uid: uid,
-          email: cred.user!.email ?? email.trim(),
-          username: email.split('@').first,
-          fullName: cred.user!.displayName ?? email.split('@').first,
-          phoneNumber: cred.user!.phoneNumber ?? '',
-          role: expectedRole ?? inferredRole,
-        );
+        await _auth.signOut();
+        throw Exception(
+            "Account data not found. Your profile may not be set up correctly. Please register again.");
       }
 
       // Enforce Strict Cross-Role Login Block
       if (expectedRole != null && expectedRole.isNotEmpty) {
-        if (userModel.role.trim().toLowerCase() != expectedRole.trim().toLowerCase()) {
+        if (userModel.role.trim().toLowerCase() !=
+            expectedRole.trim().toLowerCase()) {
           await _auth.signOut();
           String registeredRoleName = userModel.role.toLowerCase() == 'worker'
               ? 'Service Provider'
@@ -272,18 +261,27 @@ class AuthRepository {
       String code = e.code.toLowerCase();
       String msg = (e.message ?? '').toLowerCase();
 
-      if (code == 'wrong-password' || msg.contains('password') || msg.contains('invalid_password')) {
-        throw Exception("Incorrect password. Please check your password and try again.");
-      } else if (code == 'user-not-found' || msg.contains('user-not-found') || msg.contains('user_not_found') || msg.contains('no user')) {
-        throw Exception("No account registered with this email. Please register first.");
+      if (code == 'wrong-password' ||
+          msg.contains('password') ||
+          msg.contains('invalid_password')) {
+        throw Exception(
+            "Incorrect password. Please check your password and try again.");
+      } else if (code == 'user-not-found' ||
+          msg.contains('user-not-found') ||
+          msg.contains('user_not_found') ||
+          msg.contains('no user')) {
+        throw Exception(
+            "No account registered with this email. Please register first.");
       } else if (code == 'invalid-credential') {
-        throw Exception("Incorrect password or email. Please check your credentials.");
+        throw Exception(
+            "Incorrect password or email. Please check your credentials.");
       } else if (code == 'invalid-email') {
         throw Exception("Invalid email address format.");
       } else if (code == 'user-disabled') {
         throw Exception("This account has been suspended or disabled.");
       } else {
-        throw Exception(e.message ?? "Authentication failed. Please check your credentials.");
+        throw Exception(e.message ??
+            "Authentication failed. Please check your credentials.");
       }
     } catch (e) {
       rethrow;

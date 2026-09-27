@@ -29,8 +29,8 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final worker =
-        Provider.of<WorkerProvider>(context, listen: false).currentWorkerProfile;
+    final worker = Provider.of<WorkerProvider>(context, listen: false)
+        .currentWorkerProfile;
     if (worker != null) {
       _professionController.text = worker.profession;
       _skillsController.text = worker.skills.join(', ');
@@ -113,7 +113,8 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
                 shadowColor: const Color(0x0C0F172A),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
-                  side: const BorderSide(color: AppColors.dividerColor, width: 1.0),
+                  side: const BorderSide(
+                      color: AppColors.dividerColor, width: 1.0),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -161,11 +162,13 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
                         spacing: 8,
                         runSpacing: 8,
                         children: categoryProvider.categories.map((cat) {
-                          bool isSelected = _selectedCategoryIds.contains(cat.id);
+                          bool isSelected =
+                              _selectedCategoryIds.contains(cat.id);
                           return FilterChip(
                             label: Text(cat.name),
                             selected: isSelected,
-                            selectedColor: AppColors.primaryNavy.withValues(alpha: 0.15),
+                            selectedColor:
+                                AppColors.primaryNavy.withValues(alpha: 0.15),
                             checkmarkColor: AppColors.primaryNavy,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -213,7 +216,8 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
                         controller: _skillsController,
                         decoration: const InputDecoration(
                           labelText: 'Skills & Tools (Comma separated)',
-                          hintText: 'Pipe Fitting, Drain Clearing, Water Heater Repair',
+                          hintText:
+                              'Pipe Fitting, Drain Clearing, Water Heater Repair',
                           prefixIcon: Icon(Icons.handyman_outlined),
                         ),
                       ),
@@ -236,7 +240,8 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
                         maxLines: 4,
                         decoration: const InputDecoration(
                           labelText: 'Service Description & Introduction',
-                          hintText: 'Write a brief description of your services and tools...',
+                          hintText:
+                              'Write a brief description of your services and tools...',
                         ),
                       ),
                     ],
@@ -244,7 +249,6 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -265,7 +269,8 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
                           ),
                         )
                       : const Text('Save Profile Updates',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
                   onPressed: _isSaving ? null : _handleSave,
                 ),
               ),

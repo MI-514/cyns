@@ -72,8 +72,7 @@ class ReviewRepository {
         .where('workerId', isEqualTo: workerId)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => ReviewModel.fromMap(
-                doc.data(), doc.id))
+            .map((doc) => ReviewModel.fromMap(doc.data(), doc.id))
             .toList());
   }
 }

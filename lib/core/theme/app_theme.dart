@@ -96,7 +96,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.pureWhite,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.dividerColor),
@@ -115,9 +116,11 @@ class AppTheme {
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.statusRejected, width: 2),
+          borderSide:
+              const BorderSide(color: AppColors.statusRejected, width: 2),
         ),
-        labelStyle: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+        labelStyle: const TextStyle(
+            color: AppColors.textSecondary, fontWeight: FontWeight.w500),
         hintStyle: const TextStyle(color: AppColors.textLight, fontSize: 14),
         prefixIconColor: AppColors.primaryNavy,
         suffixIconColor: AppColors.textSecondary,
@@ -130,8 +133,10 @@ class AppTheme {
         unselectedItemColor: AppColors.textSecondary,
         elevation: 12,
         type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
+        selectedLabelStyle:
+            TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        unselectedLabelStyle:
+            TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
       ),
 
       // TabBar Theme
@@ -162,15 +167,27 @@ class AppTheme {
 
       // Text Theme
       textTheme: const TextTheme(
-        displayLarge: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800),
-        headlineMedium: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 24),
-        titleLarge: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 18),
-        titleMedium: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
-        bodyLarge: TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.normal),
+        displayLarge: TextStyle(
+            color: AppColors.textPrimary, fontWeight: FontWeight.w800),
+        headlineMedium: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 24),
+        titleLarge: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 18),
+        titleMedium: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 16),
+        bodyLarge: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 15,
+            fontWeight: FontWeight.normal),
         bodyMedium: TextStyle(color: AppColors.textSecondary, fontSize: 14),
         bodySmall: TextStyle(color: AppColors.textLight, fontSize: 12),
       ),
     );
   }
 }
-

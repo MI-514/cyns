@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
+import '../auth/quick_login_screen.dart';
 import '../auth/role_selection_screen.dart';
 import '../customer/customer_dashboard_screen.dart';
 import '../worker/worker_dashboard_screen.dart';
@@ -56,15 +57,33 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigateToNext() async {
-    await Future.delayed(const Duration(milliseconds: 2200));
+    // Wait for initial animation
+    await Future.delayed(const Duration(milliseconds: 1800));
     if (!mounted) return;
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    // Give Firebase a small window to resolve auth state if initializing
+    int waitLoops = 0;
+    while (waitLoops < 8 &&
+        (auth.state == AuthState.uninitialized ||
+            auth.state == AuthState.loading)) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      waitLoops++;
+      if (!mounted) return;
+    }
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool isOnboardingCompleted = prefs.getBool('is_onboarding_completed') ?? false;
+    bool isOnboardingCompleted =
+        prefs.getBool('is_onboarding_completed') ?? false;
+    String? savedName = prefs.getString('saved_user_name');
+    String? savedEmail = prefs.getString('saved_user_email');
+    String? savedRole = prefs.getString('saved_user_role');
+    String? savedPic = prefs.getString('saved_user_pic');
 
     if (!mounted) return;
 
+    // 1. Actively Authenticated with active Firebase session -> Direct to Dashboard!
     if (auth.isAuthenticated && auth.userModel != null) {
       String role = auth.userModel!.role;
       if (role == AppConstants.roleWorker) {
@@ -78,19 +97,42 @@ class _SplashScreenState extends State<SplashScreen>
           MaterialPageRoute(builder: (_) => const CustomerDashboardScreen()),
         );
       }
-    } else if (isOnboardingCompleted) {
-      // Skip Onboarding on returning app launches
+      return;
+    }
+
+    // 2. Previously logged-in user on this phone -> Quick Welcome Back Screen!
+    if (savedName != null &&
+        savedName.trim().isNotEmpty &&
+        savedEmail != null &&
+        savedEmail.trim().isNotEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => QuickLoginScreen(
+            savedName: savedName,
+            savedEmail: savedEmail,
+            savedRole: savedRole ?? AppConstants.roleCustomer,
+            savedPic: savedPic,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // 3. Onboarding was previously completed -> Role Selection
+    if (isOnboardingCompleted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
       );
-    } else {
-      // Fresh Install -> Show Onboarding Screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-      );
+      return;
     }
+
+    // 4. Fresh Install -> Onboarding Screen
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+    );
   }
 
   @override
@@ -130,7 +172,8 @@ class _SplashScreenState extends State<SplashScreen>
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.accentBlue.withValues(alpha: 0.4),
+                              color:
+                                  AppColors.accentBlue.withValues(alpha: 0.4),
                               blurRadius: 30,
                               spreadRadius: 4,
                               offset: const Offset(0, 8),
@@ -225,4 +268,3 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 }
-

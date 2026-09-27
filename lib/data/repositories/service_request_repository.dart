@@ -14,10 +14,7 @@ class ServiceRequestRepository {
           .add(request.toMap());
 
       // Initialize corresponding chat doc
-      await _firestore
-          .collection(FirestoreCollections.chats)
-          .doc(ref.id)
-          .set({
+      await _firestore.collection(FirestoreCollections.chats).doc(ref.id).set({
         'id': ref.id,
         'requestId': ref.id,
         'customerId': request.customerId,
@@ -129,8 +126,7 @@ class ServiceRequestRepository {
           .where('customerId', isEqualTo: customerId)
           .snapshots()
           .map((snapshot) => snapshot.docs
-              .map((doc) => ServiceRequestModel.fromMap(
-                  doc.data(), doc.id))
+              .map((doc) => ServiceRequestModel.fromMap(doc.data(), doc.id))
               .toList());
     } catch (_) {
       return const Stream.empty();
@@ -148,8 +144,8 @@ class ServiceRequestRepository {
           .collection(FirestoreCollections.serviceRequests)
           .snapshots()
           .map((snapshot) => snapshot.docs
-              .map((doc) => ServiceRequestModel.fromMap(doc.data(), doc.id))
-              .where((req) {
+                  .map((doc) => ServiceRequestModel.fromMap(doc.data(), doc.id))
+                  .where((req) {
                 // Return requests assigned to this specific worker
                 if (req.workerId == workerId) return true;
 
@@ -172,8 +168,7 @@ class ServiceRequestRepository {
                   }
                 }
                 return false;
-              })
-              .toList());
+              }).toList());
     } catch (_) {
       return const Stream.empty();
     }
@@ -187,8 +182,7 @@ class ServiceRequestRepository {
           .doc(requestId)
           .snapshots()
           .map((doc) => doc.exists && doc.data() != null
-              ? ServiceRequestModel.fromMap(
-                  doc.data()!, doc.id)
+              ? ServiceRequestModel.fromMap(doc.data()!, doc.id)
               : null);
     } catch (_) {
       return const Stream.empty();

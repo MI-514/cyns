@@ -19,8 +19,13 @@ import 'request_waiting_countdown_screen.dart';
 
 class WorkerProfileViewScreen extends StatefulWidget {
   final String workerId;
+  final WorkerProfileModel? worker;
 
-  const WorkerProfileViewScreen({super.key, required this.workerId});
+  const WorkerProfileViewScreen({
+    super.key,
+    required this.workerId,
+    this.worker,
+  });
 
   @override
   State<WorkerProfileViewScreen> createState() =>
@@ -34,26 +39,41 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
   @override
   void initState() {
     super.initState();
+    _worker = widget.worker;
+    _isLoading = widget.worker == null;
     _loadProfile();
   }
 
   void _loadProfile() async {
-    final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
-    await workerProvider.fetchWorkerProfile(widget.workerId);
-    setState(() {
-      _worker = workerProvider.currentWorkerProfile;
-      _isLoading = false;
-    });
+    try {
+      final workerProvider =
+          Provider.of<WorkerProvider>(context, listen: false);
+      await workerProvider.fetchWorkerProfile(widget.workerId);
+      if (!mounted) return;
 
-    if (_worker != null) {
-      // Save in SQLite recently viewed workers
-      SqliteService.instance.saveRecentWorker(
-        workerId: _worker!.workerId,
-        name: _worker!.name,
-        profession: _worker!.profession,
-        rating: _worker!.rating,
-        profilePicUrl: _worker!.profilePicUrl,
-      );
+      setState(() {
+        _worker = workerProvider.currentWorkerProfile ?? _worker;
+        _isLoading = false;
+      });
+
+      if (_worker != null) {
+        // Save in SQLite recently viewed workers safely
+        try {
+          await SqliteService.instance.saveRecentWorker(
+            workerId: _worker!.workerId,
+            name: _worker!.name,
+            profession: _worker!.profession,
+            rating: _worker!.rating,
+            profilePicUrl: _worker!.profilePicUrl,
+          );
+        } catch (_) {}
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -152,8 +172,9 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
         location.currentPosition != null &&
         _worker!.latitude != null &&
         _worker!.longitude != null) {
-      dist = location.calculateDistance(_worker!.latitude!, _worker!.longitude!);
-      hasValidGps = true;
+      dist =
+          location.calculateDistance(_worker!.latitude!, _worker!.longitude!);
+      hasValidGps = dist > 0 || (dist == 0 && location.currentPosition!.latitude == _worker!.latitude);
     }
 
     return Scaffold(
@@ -202,8 +223,8 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                             children: [
                               CircleAvatar(
                                 radius: 36,
-                                backgroundColor:
-                                    AppColors.primaryNavy.withValues(alpha: 0.1),
+                                backgroundColor: AppColors.primaryNavy
+                                    .withValues(alpha: 0.1),
                                 child: const Icon(
                                   Icons.person_rounded,
                                   color: AppColors.primaryNavy,
@@ -228,7 +249,8 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                           ),
                                         ),
                                         const Icon(Icons.verified_rounded,
-                                            color: AppColors.accentBlue, size: 20),
+                                            color: AppColors.accentBlue,
+                                            size: 20),
                                       ],
                                     ),
                                     const SizedBox(height: 4),
@@ -318,8 +340,9 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                           ),
                                         ),
                                         Text(
-                                          hasValidGps
-                                              ? LocationService.formatDistance(dist!)
+                                          (hasValidGps && dist != null)
+                                              ? LocationService.formatDistance(
+                                                  dist)
                                               : 'GPS Location Off',
                                           style: const TextStyle(
                                             fontSize: 19,
@@ -330,7 +353,7 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                       ],
                                     ),
                                   ),
-                                  if (hasValidGps)
+                                  if (hasValidGps && dist != null)
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 10, vertical: 5),
@@ -340,7 +363,7 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
-                                        '⚡ ~${LocationService.calculateETA(dist!)} ETA',
+                                        '⚡ ~${LocationService.calculateETA(dist)} ETA',
                                         style: const TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w800,
@@ -377,8 +400,10 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: AppColors.primaryNavy,
                                     side: const BorderSide(
-                                        color: AppColors.primaryNavy, width: 1.5),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                        color: AppColors.primaryNavy,
+                                        width: 1.5),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
                                   ),
                                   icon: const Icon(Icons.map_rounded, size: 18),
                                   label: const Text('View Worker on Live Map'),
@@ -434,7 +459,8 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                               icon: Icons.star_rounded,
                               iconColor: AppColors.starGold,
                               title: 'Rating',
-                              value: '${_worker!.rating} (${_worker!.reviewCount})',
+                              value:
+                                  '${_worker!.rating} (${_worker!.reviewCount})',
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -550,7 +576,8 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                               decoration: BoxDecoration(
                                 color: AppColors.pureWhite,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.dividerColor),
+                                border:
+                                    Border.all(color: AppColors.dividerColor),
                               ),
                               child: const Text(
                                 'No customer reviews yet for this worker.',
@@ -570,7 +597,8 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   side: const BorderSide(
-                                      color: AppColors.dividerColor, width: 0.8),
+                                      color: AppColors.dividerColor,
+                                      width: 0.8),
                                 ),
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.symmetric(
@@ -586,7 +614,58 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold),
                                   ),
-                                  subtitle: Text(rev.reviewText),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(rev.reviewText),
+                                      if (rev.tags.isNotEmpty || rev.tipAmount > 0) ...[
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 4,
+                                          runSpacing: 4,
+                                          children: rev.tags.map((tag) => Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryNavy.withValues(alpha: 0.05),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              tag,
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                color: AppColors.primaryNavy,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          )).toList()..addAll([
+                                            if (rev.tipAmount > 0)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.starGold.withValues(alpha: 0.2),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const Icon(Icons.favorite, size: 10, color: Colors.red),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      'Tipped Rs ${rev.tipAmount}',
+                                                      style: const TextStyle(
+                                                        fontSize: 10,
+                                                        color: Colors.brown,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                          ]),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -611,7 +690,6 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                     ],
                   ),
                 ),
-
       bottomSheet: _worker == null
           ? null
           : Container(
@@ -693,4 +771,3 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
-

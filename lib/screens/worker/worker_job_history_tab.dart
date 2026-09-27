@@ -119,7 +119,8 @@ class _ActiveJobsList extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.statusInProgress.withValues(alpha: 0.15),
+                        color:
+                            AppColors.statusInProgress.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -138,7 +139,8 @@ class _ActiveJobsList extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text(req.customerAddress,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 13)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -154,6 +156,7 @@ class _ActiveJobsList extends StatelessWidget {
                                 requestId: req.id,
                                 peerName: req.customerName,
                                 peerRole: 'customer',
+                                peerId: req.customerId,
                                 peerPhone: req.customerPhone,
                               ),
                             ),
@@ -233,7 +236,8 @@ class _RejectedJobsList extends StatelessWidget {
                   req.customerAddress,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -286,7 +290,8 @@ class _MissedRequestsList extends StatelessWidget {
             contentPadding: const EdgeInsets.all(16),
             leading: CircleAvatar(
               backgroundColor: AppColors.statusPending.withValues(alpha: 0.15),
-              child: const Icon(Icons.call_missed, color: AppColors.statusPending),
+              child:
+                  const Icon(Icons.call_missed, color: AppColors.statusPending),
             ),
             title: const Text(
               'Missed Request',

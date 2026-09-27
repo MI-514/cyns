@@ -59,7 +59,8 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.play_circle_outline, size: 64, color: AppColors.textLight),
+                Icon(Icons.play_circle_outline,
+                    size: 64, color: AppColors.textLight),
                 SizedBox(height: 16),
                 Text(
                   'No active job right now.',
@@ -92,7 +93,8 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.work, color: AppColors.accentBlue, size: 30),
+                    const Icon(Icons.work,
+                        color: AppColors.accentBlue, size: 30),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -223,11 +225,13 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                     icon: const Icon(Icons.navigation_rounded),
                     label: const Text(
                       'Start Route & GPS Navigation',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     onPressed: () async {
                       double? wLat = locationProvider.currentPosition?.latitude;
-                      double? wLng = locationProvider.currentPosition?.longitude;
+                      double? wLng =
+                          locationProvider.currentPosition?.longitude;
                       double dist = LocationService.calculateDistanceKm(
                         wLat ?? 0,
                         wLng ?? 0,
@@ -306,12 +310,77 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                     icon: const Icon(Icons.check_circle),
                     label: const Text('Mark Service as Completed'),
                     onPressed: () async {
-                      await requestProvider.updateStatus(
-                        requestId: activeJob.id,
-                        status: AppConstants.statusCompleted,
-                        customerId: activeJob.customerId,
-                        workerId: activeJob.workerId,
+                      if (activeJob.completionOtp == null) {
+                        // Fallback for old requests
+                        await requestProvider.updateStatus(
+                          requestId: activeJob.id,
+                          status: AppConstants.statusCompleted,
+                          customerId: activeJob.customerId,
+                          workerId: activeJob.workerId,
+                        );
+                        return;
+                      }
+
+                      String enteredOtp = '';
+                      bool? success = await showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Enter Completion OTP'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'Ask the customer for the 4-digit Job Completion OTP shown on their screen.',
+                              ),
+                              const SizedBox(height: 16),
+                              TextField(
+                                keyboardType: TextInputType.number,
+                                maxLength: 4,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 8),
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  hintText: '0000',
+                                ),
+                                onChanged: (v) => enteredOtp = v,
+                              ),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                if (enteredOtp == activeJob.completionOtp) {
+                                  Navigator.pop(ctx, true);
+                                } else {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Invalid OTP! Ask the customer again.'),
+                                      backgroundColor: AppColors.statusRejected,
+                                    ),
+                                  );
+                                }
+                              },
+                              child: const Text('Verify & Complete'),
+                            ),
+                          ],
+                        ),
                       );
+
+                      if (success == true) {
+                        await requestProvider.updateStatus(
+                          requestId: activeJob.id,
+                          status: AppConstants.statusCompleted,
+                          customerId: activeJob.customerId,
+                          workerId: activeJob.workerId,
+                        );
+                      }
                     },
                   ),
                 ),
@@ -345,6 +414,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                           requestId: activeJob.id,
                           peerName: activeJob.customerName,
                           peerRole: 'customer',
+                          peerId: activeJob.customerId,
                           peerPhone: activeJob.customerPhone,
                         ),
                       ),
@@ -386,7 +456,8 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => MapTrackingScreen(request: activeJob),
+                            builder: (_) =>
+                                MapTrackingScreen(request: activeJob),
                           ),
                         );
                       },
@@ -394,6 +465,55 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 24),
+              // Cancel Job Button for Worker
+              if (activeJob.status != AppConstants.statusCompleted &&
+                  activeJob.status != AppConstants.statusCancelled) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.statusRejected,
+                    ),
+                    icon: const Icon(Icons.cancel_outlined, size: 18),
+                    label: const Text('Cancel Job',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () async {
+                      bool? confirm = await showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Cancel Job?'),
+                          content: const Text(
+                            'Are you sure you want to cancel this job? This will notify the customer and may affect your completion rate.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('No, Keep It'),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.statusRejected,
+                              ),
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Yes, Cancel Job'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        await requestProvider.updateStatus(
+                          requestId: activeJob.id,
+                          status: AppConstants.statusCancelled,
+                          customerId: activeJob.customerId,
+                          workerId: activeJob.workerId,
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
             ],
           ),
         );

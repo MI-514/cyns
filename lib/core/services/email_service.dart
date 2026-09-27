@@ -42,7 +42,8 @@ class EmailService {
     required String subject,
   }) async {
     try {
-      debugPrint("[$subject] Sending 6-Digit OTP ($otpCode) to $recipientEmail");
+      debugPrint(
+          "[$subject] Sending 6-Digit OTP ($otpCode) to $recipientEmail");
 
       final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
       final client = HttpClient();

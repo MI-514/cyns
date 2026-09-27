@@ -7,7 +7,7 @@ import '../../core/services/notification_service.dart';
 import '../../data/models/service_request_model.dart';
 import '../../providers/service_request_provider.dart';
 import '../../providers/worker_provider.dart';
-import '../shared/chat_screen.dart';
+import '../shared/map_tracking_screen.dart';
 
 class WorkerHomeTab extends StatelessWidget {
   const WorkerHomeTab({super.key});
@@ -50,7 +50,8 @@ class WorkerHomeTab extends StatelessWidget {
             ),
             Text(
               'Address: ${req.customerAddress}',
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -73,7 +74,8 @@ class WorkerHomeTab extends StatelessWidget {
                 req.problemDescription.isNotEmpty
                     ? req.problemDescription
                     : 'No text comment provided.',
-                style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                style:
+                    const TextStyle(fontSize: 13, color: AppColors.textPrimary),
               ),
             ),
             if (req.attachmentUrl != null) ...[
@@ -259,7 +261,8 @@ class WorkerHomeTab extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.accentBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -385,7 +388,8 @@ class WorkerHomeTab extends StatelessWidget {
                     margin: const EdgeInsets.only(bottom: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
-                      side: const BorderSide(color: AppColors.dividerColor, width: 1.0),
+                      side: const BorderSide(
+                          color: AppColors.dividerColor, width: 1.0),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(18.0),
@@ -402,7 +406,8 @@ class WorkerHomeTab extends StatelessWidget {
                               color: AppColors.starGold.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color: AppColors.starGold.withValues(alpha: 0.5)),
+                                  color: AppColors.starGold
+                                      .withValues(alpha: 0.5)),
                             ),
                             child: const Row(
                               children: [
@@ -458,8 +463,8 @@ class WorkerHomeTab extends StatelessWidget {
                             children: [
                               CircleAvatar(
                                 radius: 14,
-                                backgroundColor:
-                                    AppColors.primaryNavy.withValues(alpha: 0.1),
+                                backgroundColor: AppColors.primaryNavy
+                                    .withValues(alpha: 0.1),
                                 child: const Icon(Icons.person,
                                     size: 16, color: AppColors.primaryNavy),
                               ),
@@ -512,7 +517,8 @@ class WorkerHomeTab extends StatelessWidget {
                                 label: const Text(
                                   'View Request Issue Details (Photo & Comment)',
                                   style: TextStyle(
-                                      fontSize: 12, fontWeight: FontWeight.bold),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 onPressed: () {
                                   _showIssueDetailsModal(context, req);
@@ -528,8 +534,10 @@ class WorkerHomeTab extends StatelessWidget {
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: AppColors.statusRejected,
                                     side: const BorderSide(
-                                        color: AppColors.statusRejected, width: 1.5),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                        color: AppColors.statusRejected,
+                                        width: 1.5),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
                                   ),
                                   onPressed: () async {
                                     await requestProvider.updateStatus(
@@ -547,7 +555,8 @@ class WorkerHomeTab extends StatelessWidget {
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.statusCompleted,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
                                   ),
                                   onPressed: () async {
                                     await requestProvider.updateStatus(
@@ -561,12 +570,7 @@ class WorkerHomeTab extends StatelessWidget {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => ChatScreen(
-                                            requestId: req.id,
-                                            peerName: req.customerName,
-                                            peerRole: 'customer',
-                                            peerPhone: req.customerPhone,
-                                          ),
+                                          builder: (_) => MapTrackingScreen(request: req),
                                         ),
                                       );
                                     }

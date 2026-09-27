@@ -3,15 +3,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_constants.dart';
 import '../../core/services/location_service.dart';
-import '../../data/models/service_request_model.dart';
 import '../../data/models/worker_profile_model.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
-import '../../providers/service_request_provider.dart';
 import '../../providers/worker_provider.dart';
-import 'request_waiting_countdown_screen.dart';
+import 'create_service_request_screen.dart';
 import 'worker_profile_view_screen.dart';
 
 class WorkerListScreen extends StatefulWidget {
@@ -32,14 +28,13 @@ class WorkerListScreen extends StatefulWidget {
 
 class _WorkerListScreenState extends State<WorkerListScreen> {
   late TextEditingController _searchController;
-  bool _isAutoDispatching = false;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController(text: widget.searchQuery ?? '');
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchAndAutoDispatchNearestWorker();
+      _fetchWorkersOnly();
     });
   }
 
@@ -57,103 +52,15 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
     );
   }
 
-  void _fetchAndAutoDispatchNearestWorker() async {
-    setState(() => _isAutoDispatching = true);
 
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final loc = Provider.of<LocationProvider>(context, listen: false);
-    final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
-    final requestProvider =
-        Provider.of<ServiceRequestProvider>(context, listen: false);
-
-    await loc.fetchCurrentLocation(context: context);
-
-    if (!mounted) return;
-
-    await workerProvider.searchWorkers(
-      categoryId: widget.selectedCategoryId,
-      customerLat: loc.currentPosition?.latitude,
-      customerLng: loc.currentPosition?.longitude,
-      query: _searchController.text,
-    );
-
-    if (!mounted) return;
-
-    if (workerProvider.searchResults.isNotEmpty) {
-      final nearestWorker = workerProvider.searchResults.first;
-
-      double cLat = loc.currentPosition?.latitude ?? 31.5204;
-      double cLng = loc.currentPosition?.longitude ?? 74.3587;
-
-      ServiceRequestModel autoRequest = ServiceRequestModel(
-        id: '',
-        customerId: auth.userModel?.uid ?? 'c1',
-        customerName: auth.userModel?.fullName ?? 'Customer',
-        customerPhone: auth.userModel?.phoneNumber ?? '',
-        workerId: nearestWorker.workerId,
-        workerName: nearestWorker.name,
-        workerPhone: nearestWorker.phoneNumber,
-        categoryId: widget.selectedCategoryId,
-        categoryName: widget.categoryName,
-        problemDescription:
-            'Instant Location-Based Hiring Request for ${widget.categoryName}',
-        customerLat: cLat,
-        customerLng: cLng,
-        customerAddress: loc.currentAddress,
-        workerLat: nearestWorker.latitude ?? cLat,
-        workerLng: nearestWorker.longitude ?? cLng,
-        status: AppConstants.statusPending,
-      );
-
-      String? reqId = await requestProvider.createRequest(autoRequest);
-
-      setState(() => _isAutoDispatching = false);
-
-      if (!mounted) return;
-
-      if (reqId != null) {
-        ServiceRequestModel createdReq = ServiceRequestModel(
-          id: reqId,
-          customerId: autoRequest.customerId,
-          customerName: autoRequest.customerName,
-          customerPhone: autoRequest.customerPhone,
-          workerId: autoRequest.workerId,
-          workerName: autoRequest.workerName,
-          workerPhone: autoRequest.workerPhone,
-          categoryId: autoRequest.categoryId,
-          categoryName: autoRequest.categoryName,
-          problemDescription: autoRequest.problemDescription,
-          customerLat: autoRequest.customerLat,
-          customerLng: autoRequest.customerLng,
-          customerAddress: autoRequest.customerAddress,
-          workerLat: autoRequest.workerLat,
-          workerLng: autoRequest.workerLng,
-          status: autoRequest.status,
-        );
-
-        // Auto transition to 30s Live Timer Screen for Nearest Worker
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RequestWaitingCountdownScreen(
-              request: createdReq,
-              attemptedWorkerIds: [nearestWorker.workerId],
-            ),
-          ),
-        );
-        return;
-      }
-    }
-
-    setState(() => _isAutoDispatching = false);
-  }
 
   Widget _buildWorkerLocationBanner(BuildContext context,
       WorkerProfileModel worker, double? dist, bool hasValidGps) {
-    String distanceText = hasValidGps
-        ? LocationService.formatDistance(dist!)
+    String distanceText = (hasValidGps && dist != null)
+        ? LocationService.formatDistance(dist)
         : "GPS OFF (Tap to enable)";
-    String etaText = hasValidGps ? LocationService.calculateETA(dist!) : "";
+    String etaText =
+        (hasValidGps && dist != null) ? LocationService.calculateETA(dist) : "";
 
     return GestureDetector(
       onTap: () {
@@ -188,7 +95,9 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                hasValidGps ? Icons.location_on_rounded : Icons.location_off_rounded,
+                hasValidGps
+                    ? Icons.location_on_rounded
+                    : Icons.location_off_rounded,
                 size: 16,
                 color: AppColors.pureWhite,
               ),
@@ -215,8 +124,8 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.availableGreen
-                                .withValues(alpha: 0.2),
+                            color:
+                                AppColors.availableGreen.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -269,9 +178,9 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
             _LocationRadarWidget(
               categoryName: widget.categoryName,
               address: location.currentAddress,
-              isSearching: workerProvider.isLoading || _isAutoDispatching,
+              isSearching: workerProvider.isLoading,
               isGpsDisabled: location.isGpsDisabled,
-              onSearch: _fetchAndAutoDispatchNearestWorker,
+              onSearch: _fetchWorkersOnly,
               onCancel: () {
                 Navigator.pop(context);
               },
@@ -323,8 +232,8 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Filter workers by name or skill...',
-                  prefixIcon:
-                      const Icon(Icons.search_rounded, color: AppColors.primaryNavy),
+                  prefixIcon: const Icon(Icons.search_rounded,
+                      color: AppColors.primaryNavy),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.arrow_forward_rounded),
                     onPressed: _fetchWorkersOnly,
@@ -350,7 +259,8 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.availableGreen.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
@@ -369,8 +279,41 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
             ),
             const SizedBox(height: 12),
 
+                        // Instant Auto-Dispatch Button
+                        if (workerProvider.searchResults.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.starGold,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              icon: const Icon(Icons.bolt, size: 24),
+                              label: const Text(
+                                'Instant Auto-Dispatch (Find Nearest)',
+                                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CreateServiceRequestScreen(
+                                      categoryId: widget.selectedCategoryId,
+                                      categoryName: widget.categoryName,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          
+                        const SizedBox(height: 16),
             // Workers List
-            workerProvider.isLoading || _isAutoDispatching
+            workerProvider.isLoading
                 ? const Padding(
                     padding: EdgeInsets.all(32.0),
                     child: CircularProgressIndicator(),
@@ -434,7 +377,9 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => WorkerProfileViewScreen(
-                                        workerId: worker.workerId),
+                                      workerId: worker.workerId,
+                                      worker: worker,
+                                    ),
                                   ),
                                 );
                               },
@@ -467,27 +412,36 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                                     child: Text(
                                                       worker.name,
                                                       style: const TextStyle(
-                                                        fontWeight: FontWeight.w800,
+                                                        fontWeight:
+                                                            FontWeight.w800,
                                                         fontSize: 17,
-                                                        color: AppColors.primaryNavy,
+                                                        color: AppColors
+                                                            .primaryNavy,
                                                       ),
                                                     ),
                                                   ),
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(
-                                                        horizontal: 8, vertical: 3),
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3),
                                                     decoration: BoxDecoration(
-                                                      color: AppColors.availableGreen
-                                                          .withValues(alpha: 0.15),
+                                                      color: AppColors
+                                                          .availableGreen
+                                                          .withValues(
+                                                              alpha: 0.15),
                                                       borderRadius:
-                                                          BorderRadius.circular(12),
+                                                          BorderRadius.circular(
+                                                              12),
                                                     ),
                                                     child: const Text(
                                                       'Available',
                                                       style: TextStyle(
-                                                        color: AppColors.availableGreen,
+                                                        color: AppColors
+                                                            .availableGreen,
                                                         fontSize: 10,
-                                                        fontWeight: FontWeight.w800,
+                                                        fontWeight:
+                                                            FontWeight.w800,
                                                       ),
                                                     ),
                                                   ),
@@ -527,7 +481,8 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                     Row(
                                       children: [
                                         const Icon(Icons.star_rounded,
-                                            size: 18, color: AppColors.starGold),
+                                            size: 18,
+                                            color: AppColors.starGold),
                                         const SizedBox(width: 4),
                                         Text(
                                           '${worker.rating} (${worker.reviewCount})',
@@ -538,7 +493,8 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                         ),
                                         const SizedBox(width: 14),
                                         const Icon(Icons.work_history_rounded,
-                                            size: 15, color: AppColors.textLight),
+                                            size: 15,
+                                            color: AppColors.textLight),
                                         const SizedBox(width: 4),
                                         Text(
                                           '${worker.completedJobsCount} jobs',
@@ -745,7 +701,9 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                widget.isGpsDisabled ? Icons.location_off_rounded : Icons.my_location_rounded,
+                widget.isGpsDisabled
+                    ? Icons.location_off_rounded
+                    : Icons.my_location_rounded,
                 size: 16,
                 color: widget.isGpsDisabled
                     ? AppColors.statusPending
@@ -779,7 +737,8 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.statusRejected,
-                    side: const BorderSide(color: AppColors.statusRejected, width: 1.5),
+                    side: const BorderSide(
+                        color: AppColors.statusRejected, width: 1.5),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   icon: const Icon(Icons.cancel_outlined, size: 18),
@@ -821,4 +780,3 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
     );
   }
 }
-

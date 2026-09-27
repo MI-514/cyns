@@ -21,13 +21,15 @@ class AppConstants {
     {
       'id': 'plumber',
       'name': 'Plumber',
-      'description': 'Water leakages, pipe repairs, tap installation & drainage solutions.',
+      'description':
+          'Water leakages, pipe repairs, tap installation & drainage solutions.',
       'icon': 'plumbing',
     },
     {
       'id': 'electrician',
       'name': 'Electrician',
-      'description': 'Wiring, short circuits, switchboard repair & light installation.',
+      'description':
+          'Wiring, short circuits, switchboard repair & light installation.',
       'icon': 'electrical_services',
     },
     {
@@ -45,7 +47,8 @@ class AppConstants {
     {
       'id': 'painter',
       'name': 'Painter',
-      'description': 'Interior & exterior wall painting, touch-ups & polishing.',
+      'description':
+          'Interior & exterior wall painting, touch-ups & polishing.',
       'icon': 'format_paint',
     },
     {
@@ -69,25 +72,29 @@ class AppConstants {
     {
       'id': 'refrigerator_technician',
       'name': 'Refrigerator Technician',
-      'description': 'Fridge cooling repair, gas leak repair & thermostat replacement.',
+      'description':
+          'Fridge cooling repair, gas leak repair & thermostat replacement.',
       'icon': 'kitchen',
     },
     {
       'id': 'washing_machine_technician',
       'name': 'Washing Machine Technician',
-      'description': 'Automatic & semi-automatic machine repair & drum service.',
+      'description':
+          'Automatic & semi-automatic machine repair & drum service.',
       'icon': 'local_laundry_service',
     },
     {
       'id': 'computer_technician',
       'name': 'Mobile/Computer Technician',
-      'description': 'Laptop, PC & smartphone hardware and software troubleshooting.',
+      'description':
+          'Laptop, PC & smartphone hardware and software troubleshooting.',
       'icon': 'devices',
     },
     {
       'id': 'appliance_repair',
       'name': 'Appliance Repair',
-      'description': 'Microwave, oven, water heater & general home electronics.',
+      'description':
+          'Microwave, oven, water heater & general home electronics.',
       'icon': 'home_repair_service',
     },
     {

@@ -30,6 +30,12 @@ class AuthProvider extends ChangeNotifier {
           _state = AuthState.authenticated;
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_role', _userModel!.role);
+          await prefs.setString('saved_user_name', _userModel!.fullName);
+          await prefs.setString('saved_user_email', _userModel!.email);
+          await prefs.setString('saved_user_role', _userModel!.role);
+          await prefs.setString('saved_user_pic', _userModel!.profilePicUrl);
+          await prefs.setString('saved_user_id', _userModel!.uid);
+          await prefs.setBool('is_onboarding_completed', true);
         } else {
           _state = AuthState.unauthenticated;
         }
@@ -129,24 +135,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Guest Login for Customer & Worker Role Testing
-  Future<void> loginAsGuest({required String role}) async {
-    String guestUid =
-        role == 'worker' ? 'guest_worker_cyn' : 'guest_customer_cyn';
-    _userModel = UserModel(
-      uid: guestUid,
-      email: '$role.guest@cyns.app',
-      username: 'guest_${role}_cyn',
-      fullName: '${role == "worker" ? "Skilled Worker" : "Customer"} Guest',
-      phoneNumber: '+923001234567',
-      role: role,
-    );
-    _state = AuthState.authenticated;
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_role', role);
-    notifyListeners();
-  }
-
   Future<bool> loginUser({
     required String email,
     required String password,
@@ -166,6 +154,12 @@ class AuthProvider extends ChangeNotifier {
       _state = AuthState.authenticated;
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_role', _userModel!.role);
+      await prefs.setString('saved_user_name', _userModel!.fullName);
+      await prefs.setString('saved_user_email', _userModel!.email);
+      await prefs.setString('saved_user_role', _userModel!.role);
+      await prefs.setString('saved_user_pic', _userModel!.profilePicUrl);
+      await prefs.setString('saved_user_id', _userModel!.uid);
+      await prefs.setBool('is_onboarding_completed', true);
       notifyListeners();
       return true;
     } catch (e) {

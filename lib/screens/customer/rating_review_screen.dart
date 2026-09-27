@@ -21,6 +21,25 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
   double _rating = 5.0;
   final _reviewController = TextEditingController();
   bool _isSubmitting = false;
+  final List<String> _selectedTags = [];
+  int _selectedTip = 0;
+  final List<int> _tipAmounts = [0, 50, 100, 200, 500];
+
+  final List<String> _positiveTags = [
+    'On Time',
+    'Professional',
+    'Excellent Quality',
+    'Friendly',
+    'Quick'
+  ];
+
+  final List<String> _negativeTags = [
+    'Late',
+    'Unprofessional',
+    'Messy',
+    'Overcharged',
+    'Slow'
+  ];
 
   void _submitReview() async {
     if (_reviewController.text.trim().isEmpty) {
@@ -41,6 +60,8 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
       customerName: auth.userModel?.fullName ?? 'Customer',
       rating: _rating,
       reviewText: _reviewController.text.trim(),
+      tags: _selectedTags,
+      tipAmount: _selectedTip,
     );
 
     try {
@@ -77,7 +98,8 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.star_rate_rounded, size: 72, color: AppColors.starGold),
+            const Icon(Icons.star_rate_rounded,
+                size: 72, color: AppColors.starGold),
             const SizedBox(height: 16),
             Text(
               'Rate ${widget.request.workerName}',
@@ -110,9 +132,89 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
                   color: AppColors.starGold,
                 ),
                 onRatingUpdate: (rating) {
-                  setState(() => _rating = rating);
+                  setState(() {
+                    _rating = rating;
+                    _selectedTags.clear(); // reset tags on rating change
+                  });
                 },
               ),
+            ),
+            const SizedBox(height: 24),
+
+            // Dynamic Tags
+            Text(
+              _rating >= 4.0 ? 'What did you like?' : 'What went wrong?',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: AppColors.primaryNavy,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8.0,
+              runSpacing: 8.0,
+              alignment: WrapAlignment.center,
+              children: (_rating >= 4.0 ? _positiveTags : _negativeTags)
+                  .map(
+                    (tag) => FilterChip(
+                      label: Text(tag),
+                      selected: _selectedTags.contains(tag),
+                      selectedColor: AppColors.primaryNavy.withValues(alpha: 0.1),
+                      checkmarkColor: AppColors.primaryNavy,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedTags.add(tag);
+                          } else {
+                            _selectedTags.remove(tag);
+                          }
+                        });
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 32),
+
+            // Tip Section
+            const Text(
+              'Show your appreciation with a tip (Optional)',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: AppColors.primaryNavy,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: _tipAmounts.map((amount) {
+                final isSelected = _selectedTip == amount;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedTip = amount),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.starGold : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? AppColors.starGold : AppColors.dividerColor,
+                        width: 2,
+                      ),
+                    ),
+                    child: Text(
+                      amount == 0 ? 'None' : 'Rs $amount',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.black : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 32),
 
@@ -122,7 +224,8 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
               maxLines: 4,
               decoration: const InputDecoration(
                 labelText: 'Write Your Feedback',
-                hintText: 'Share details about worker punctuality, skills, and behavior...',
+                hintText:
+                    'Share details about worker punctuality, skills, and behavior...',
               ),
             ),
             const SizedBox(height: 32),

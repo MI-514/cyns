@@ -69,10 +69,17 @@ class CustomerJobHistoryTab extends StatelessWidget {
 
             return TabBarView(
               children: [
-                _RequestListView(requests: activeReqs, emptyText: 'No active service requests.'),
-                _RequestListView(requests: pendingReqs, emptyText: 'No pending requests.'),
-                _RequestListView(requests: completedReqs, emptyText: 'No completed requests.'),
-                _RequestListView(requests: cancelledReqs, emptyText: 'No cancelled or rejected requests.'),
+                _RequestListView(
+                    requests: activeReqs,
+                    emptyText: 'No active service requests.'),
+                _RequestListView(
+                    requests: pendingReqs, emptyText: 'No pending requests.'),
+                _RequestListView(
+                    requests: completedReqs,
+                    emptyText: 'No completed requests.'),
+                _RequestListView(
+                    requests: cancelledReqs,
+                    emptyText: 'No cancelled or rejected requests.'),
               ],
             );
           },
@@ -149,7 +156,8 @@ class _RequestListView extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => CustomerRequestStatusScreen(requestId: req.id),
+                  builder: (_) =>
+                      CustomerRequestStatusScreen(requestId: req.id),
                 ),
               );
             },

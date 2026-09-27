@@ -78,27 +78,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleGuestLogin() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.loginAsGuest(role: _role);
-
-    if (!mounted) return;
-
-    if (_role == AppConstants.roleWorker) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const WorkerDashboardScreen()),
-        (route) => false,
-      );
-    } else {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const CustomerDashboardScreen()),
-        (route) => false,
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -172,7 +151,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   shadowColor: const Color(0x0C0F172A),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
-                    side: const BorderSide(color: AppColors.dividerColor, width: 1.0),
+                    side: const BorderSide(
+                        color: AppColors.dividerColor, width: 1.0),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(20.0),
@@ -190,7 +170,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (val == null || val.trim().isEmpty) {
                               return 'Please enter your email';
                             }
-                            if (!val.contains('@')) return 'Enter a valid email';
+                            if (!val.contains('@')) {
+                              return 'Enter a valid email';
+                            }
                             return null;
                           },
                         ),
@@ -210,7 +192,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     : Icons.visibility,
                               ),
                               onPressed: () {
-                                setState(() => _obscurePassword = !_obscurePassword);
+                                setState(
+                                    () => _obscurePassword = !_obscurePassword);
                               },
                             ),
                           ),
@@ -261,87 +244,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   )
                                 : const Text('Sign In',
                                     style: TextStyle(
-                                        fontSize: 16, fontWeight: FontWeight.bold)),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold)),
                           ),
                         ),
+
+
                       ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Beautiful Guest Quick Access Option
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: authProvider.state == AuthState.loading
-                        ? null
-                        : _handleGuestLogin,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.pureWhite,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.accentBlue.withValues(alpha: 0.3),
-                          width: 1.2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryNavy.withValues(alpha: 0.04),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.accentBlue.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.explore_rounded,
-                              color: AppColors.accentBlue,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Explore as Guest ${_role == AppConstants.roleWorker ? "Worker" : "Customer"}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primaryNavy,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                const Text(
-                                  'Skip sign in and browse features instantly',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 14,
-                            color: AppColors.accentBlue,
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),
@@ -371,7 +280,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => RegisterScreen(selectedRole: _role),
+                              builder: (_) =>
+                                  RegisterScreen(selectedRole: _role),
                             ),
                           );
                         }

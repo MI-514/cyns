@@ -45,8 +45,8 @@ class NotificationCenterScreen extends StatelessWidget {
                   SizedBox(height: 12),
                   Text(
                     'No notifications yet.',
-                    style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 16),
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 16),
                   ),
                 ],
               ),
@@ -67,7 +67,8 @@ class NotificationCenterScreen extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 10),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
+                    backgroundColor:
+                        AppColors.primaryNavy.withValues(alpha: 0.1),
                     child: const Icon(Icons.notifications,
                         color: AppColors.primaryNavy),
                   ),
