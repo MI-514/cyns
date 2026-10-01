@@ -146,10 +146,10 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
+                          const Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
+                              Text(
                                 'Assigned Worker',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
@@ -157,7 +157,7 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                                   color: AppColors.primaryNavy,
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 'View Profile →',
                                 style: TextStyle(
                                   fontSize: 12,
