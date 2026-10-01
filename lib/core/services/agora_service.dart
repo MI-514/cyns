@@ -1,15 +1,27 @@
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'agora_token_service.dart';
 
 class AgoraService {
-  /// Default Agora App ID.
-  /// Replace this with your actual App ID from https://console.agora.io
-  static const String appId = "7e464d979334457192d2bb3972935912";
+  /// Agora App ID from Agora Console
+  static const String appId = "2a01ce4bcf0549fda6d4965d7c633632";
 
-  /// Optional Agora Temporary Token (If Primary Certificate is enabled in Agora Console).
-  /// Leave empty string "" if using a Testing Mode project without tokens.
-  static const String token =
-      "007eJxTYDh7/Pnf5Lr6rxPsnroIxtccu2+82Wlf5utzdj/F1Xjv7jBSYDBPNTEzSbE0tzQ2NjExNTe0NEoxSkoytjQ3sjQ2tTQ0suVbm9UQyMjgziLPwMTACIYgPg9DSmpuvm5yRmJeXmoOA1QOJMPCYGhgYAgA1IwjNw==";
+  /// Agora Primary App Certificate from Agora Console
+  static const String appCertificate = "4ef3a56e794f4dffb2105551a4752103";
+
+  /// Generates a valid dynamic RTC token for the given channel on the fly.
+  /// If an App Certificate is configured, it dynamically signs an AccessToken2 (007).
+  /// If no certificate is present, it returns an empty string for Testing Mode.
+  static String getTokenForChannel(String channelName, {int uid = 0}) {
+    if (appCertificate.isNotEmpty) {
+      final token = AgoraTokenService.generateRtcToken(
+        channelName: channelName,
+        uid: uid,
+      );
+      if (token.isNotEmpty) return token;
+    }
+    return '';
+  }
 
   /// Check if a valid custom Agora App ID has been provided
   static bool get isAppIdConfigured {

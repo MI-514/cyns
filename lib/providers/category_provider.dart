@@ -14,14 +14,25 @@ class CategoryProvider extends ChangeNotifier {
   String get selectedCategoryId => _selectedCategoryId;
 
   CategoryProvider() {
-    fetchCategories();
+    _initCategories();
+  }
+
+  Future<void> _initCategories() async {
+    _isLoading = true;
+    try {
+      _categories = await _repository.getCategories();
+    } catch (_) {}
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<void> fetchCategories() async {
     _isLoading = true;
     notifyListeners();
 
-    _categories = await _repository.getCategories();
+    try {
+      _categories = await _repository.getCategories();
+    } catch (_) {}
 
     _isLoading = false;
     notifyListeners();

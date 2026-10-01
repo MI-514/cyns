@@ -25,8 +25,9 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       if (auth.userModel != null) {
-        Provider.of<WorkerProvider>(context, listen: false)
-            .fetchWorkerProfile(auth.userModel!.uid);
+        final wp = Provider.of<WorkerProvider>(context, listen: false);
+        wp.fetchWorkerProfile(auth.userModel!.uid);
+        wp.listenToWorkerProfile(auth.userModel!.uid);
       }
     });
   }

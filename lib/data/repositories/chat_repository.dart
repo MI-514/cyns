@@ -39,6 +39,8 @@ class ChatRepository {
     required String senderRole,
     required String message,
     String? attachmentUrl,
+    String? audioUrl,
+    int? audioDurationSec,
   }) async {
     MessageModel msg = MessageModel(
       id: '',
@@ -48,6 +50,8 @@ class ChatRepository {
       senderRole: senderRole,
       message: message,
       attachmentUrl: attachmentUrl,
+      audioUrl: audioUrl,
+      audioDurationSec: audioDurationSec,
     );
 
     // Add message
@@ -58,8 +62,14 @@ class ChatRepository {
         .add(msg.toMap());
 
     // Update last message in chat summary
+    String summary = message.isNotEmpty
+        ? message
+        : (audioUrl != null
+            ? '🎤 Voice Note (${audioDurationSec ?? 0}s)'
+            : 'Sent an attachment');
+
     await _firestore.collection(FirestoreCollections.chats).doc(chatId).update({
-      'lastMessage': message.isNotEmpty ? message : 'Sent an attachment',
+      'lastMessage': summary,
       'lastMessageTime': FieldValue.serverTimestamp(),
     });
   }

@@ -8,6 +8,9 @@ import '../../data/models/service_request_model.dart';
 import '../../data/repositories/review_repository.dart';
 import '../../providers/auth_provider.dart';
 
+import 'package:flutter/services.dart';
+import '../../data/repositories/service_request_repository.dart';
+
 class RatingReviewScreen extends StatefulWidget {
   final ServiceRequestModel request;
 
@@ -24,6 +27,7 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
   final List<String> _selectedTags = [];
   int _selectedTip = 0;
   final List<int> _tipAmounts = [0, 50, 100, 200, 500];
+  String? _completionOtp;
 
   final List<String> _positiveTags = [
     'On Time',
@@ -40,6 +44,25 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
     'Overcharged',
     'Slow'
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _completionOtp = widget.request.completionOtp;
+    _loadCompletionOtp();
+  }
+
+  void _loadCompletionOtp() async {
+    final otp = await ServiceRequestRepository().ensureCompletionOtp(
+      widget.request.id,
+      currentOtp: widget.request.completionOtp,
+    );
+    if (mounted) {
+      setState(() {
+        _completionOtp = otp;
+      });
+    }
+  }
 
   void _submitReview() async {
     if (_reviewController.text.trim().isEmpty) {
@@ -67,13 +90,74 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
     try {
       await ReviewRepository().addReview(review);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Thank you! Your rating and review have been saved.'),
-          backgroundColor: AppColors.statusCompleted,
+
+      // Show completion verification code popup to ensure customer gives code to worker
+      await showDialog(
+        context: context,
+        builder: (dCtx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          icon: const Icon(Icons.check_circle_rounded,
+              color: AppColors.statusCompleted, size: 52),
+          title: const Text(
+            'Review Submitted! 🎉',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Your rating and feedback have been saved! Please share this 4-digit code with the technician to mark the job as Completed:',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.starGold,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.starGold.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  _completionOtp ?? widget.request.completionOtp ?? '••••',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 6,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryNavy,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.pop(dCtx),
+              child: const Text('Done & Return to Chat'),
+            ),
+          ],
         ),
       );
-      Navigator.pop(context);
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -89,18 +173,113 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final displayCode =
+        _completionOtp ?? widget.request.completionOtp ?? '••••';
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Rate Worker'),
+        title: const Text('Rate Worker & Verify Job'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // 4-Digit Cross-Verification Code Banner (Highlighted at Top)
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.starGold.withValues(alpha: 0.22),
+                    AppColors.starGold.withValues(alpha: 0.08),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.starGold, width: 2),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock_person_rounded,
+                          color: Colors.orange.shade800, size: 22),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Job Cross-Verification Code',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primaryNavy,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: displayCode));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Code copied to clipboard!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 26, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.starGold,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.starGold.withValues(alpha: 0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            displayCode,
+                            style: const TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 6,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.copy_rounded,
+                              size: 18, color: Colors.black54),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Give this 4-digit code to ${widget.request.workerName} so they can verify and finalize this job.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
             const Icon(Icons.star_rate_rounded,
-                size: 72, color: AppColors.starGold),
-            const SizedBox(height: 16),
+                size: 64, color: AppColors.starGold),
+            const SizedBox(height: 12),
             Text(
               'Rate ${widget.request.workerName}',
               textAlign: TextAlign.center,
@@ -116,7 +295,7 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
             // Rating Bar
             Center(

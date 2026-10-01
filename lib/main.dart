@@ -12,10 +12,25 @@ import 'providers/location_provider.dart';
 import 'providers/service_request_provider.dart';
 import 'providers/worker_provider.dart';
 import 'screens/splash/splash_screen.dart';
+import 'dart:ui';
 import 'core/widgets/call_listener_wrapper.dart';
+import 'core/services/worker_background_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Prevent uncaught Flutter framework errors from crashing the app
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('CYN Flutter Error: ${details.exception}');
+  };
+
+  // Prevent uncaught async platform errors from terminating the app
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('CYN Platform Async Error: $error');
+    return true; // Marked as handled so app stays running safely
+  };
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -25,6 +40,10 @@ void main() async {
       await Firebase.initializeApp();
     } catch (_) {}
   }
+
+  try {
+    await WorkerBackgroundService.instance.initialize();
+  } catch (_) {}
 
   runApp(const CynApp());
 }
@@ -44,6 +63,8 @@ class CynApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LocationProvider()),
       ],
       child: MaterialApp(
+        navigatorKey: AppConstants.navigatorKey,
+        scaffoldMessengerKey: AppConstants.scaffoldMessengerKey,
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.navyWhiteTheme,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -8,13 +9,38 @@ import '../../data/models/service_request_model.dart';
 import '../../providers/service_request_provider.dart';
 import '../shared/chat_screen.dart';
 import '../shared/map_tracking_screen.dart';
+import 'worker_list_screen.dart';
 import 'worker_profile_view_screen.dart';
 import 'rating_review_screen.dart';
 
-class CustomerRequestStatusScreen extends StatelessWidget {
+class CustomerRequestStatusScreen extends StatefulWidget {
   final String requestId;
 
   const CustomerRequestStatusScreen({super.key, required this.requestId});
+
+  @override
+  State<CustomerRequestStatusScreen> createState() =>
+      _CustomerRequestStatusScreenState();
+}
+
+class _CustomerRequestStatusScreenState
+    extends State<CustomerRequestStatusScreen> {
+  Timer? _tickerTimer;
+  bool _hasTriggeredTimeout = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tickerTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tickerTimer?.cancel();
+    super.dispose();
+  }
 
   Color _getStatusColor(String status) {
     switch (status) {
@@ -34,6 +60,9 @@ class CustomerRequestStatusScreen extends StatelessWidget {
         return AppColors.statusRejected;
       case AppConstants.statusCancelled:
         return AppColors.statusCancelled;
+      case AppConstants.statusMissed:
+      case 'missed':
+        return Colors.orange;
       default:
         return AppColors.primaryNavy;
     }
@@ -53,6 +82,18 @@ class CustomerRequestStatusScreen extends StatelessWidget {
     }
   }
 
+  void _findAnotherWorker(BuildContext context, ServiceRequestModel req) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => WorkerListScreen(
+          selectedCategoryId: req.categoryId,
+          categoryName: req.categoryName,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final requestProvider = Provider.of<ServiceRequestProvider>(context);
@@ -62,7 +103,7 @@ class CustomerRequestStatusScreen extends StatelessWidget {
         title: const Text('Service Request Status'),
       ),
       body: StreamBuilder<ServiceRequestModel?>(
-        stream: requestProvider.getRequestStream(requestId),
+        stream: requestProvider.getRequestStream(widget.requestId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -73,6 +114,32 @@ class CustomerRequestStatusScreen extends StatelessWidget {
           }
 
           final statusColor = _getStatusColor(req.status);
+          final bool isPending = req.status == AppConstants.statusPending;
+          final bool isInactive = req.status == AppConstants.statusRejected ||
+              req.status == AppConstants.statusCancelled ||
+              req.status == AppConstants.statusMissed ||
+              req.status == 'missed';
+
+          // Response timeout countdown calculation
+          int remainingSeconds = 0;
+          if (isPending) {
+            final elapsed = DateTime.now().difference(req.createdAt).inSeconds;
+            remainingSeconds = (AppConstants.requestTimeoutSeconds - elapsed)
+                .clamp(0, AppConstants.requestTimeoutSeconds);
+
+            // Auto-trigger expiration when timer reaches 0
+            if (remainingSeconds <= 0 && !_hasTriggeredTimeout) {
+              _hasTriggeredTimeout = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                requestProvider.updateStatus(
+                  requestId: req.id,
+                  status: AppConstants.statusMissed,
+                  customerId: req.customerId,
+                  workerId: req.workerId,
+                );
+              });
+            }
+          }
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
@@ -94,8 +161,7 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                       Icon(
                         req.status == AppConstants.statusCompleted
                             ? Icons.check_circle
-                            : req.status == AppConstants.statusRejected ||
-                                    req.status == AppConstants.statusCancelled
+                            : isInactive
                                 ? Icons.cancel
                                 : Icons.hourglass_top,
                         size: 48,
@@ -103,7 +169,10 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        req.status,
+                        req.status == AppConstants.statusMissed ||
+                                req.status == 'missed'
+                            ? 'Request Expired'
+                            : req.status,
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -121,6 +190,218 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+
+                // Live Pending Timeout Banner
+                if (isPending) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryNavy.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: AppColors.accentBlue.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                value: remainingSeconds /
+                                    AppConstants.requestTimeoutSeconds,
+                                color: AppColors.accentBlue,
+                                backgroundColor: AppColors.dividerColor,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Waiting for ${req.workerName} to confirm...',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: AppColors.primaryNavy,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '${remainingSeconds}s',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'If the worker does not accept within ${AppConstants.requestTimeoutSeconds}s, the request will automatically expire so you can choose another worker.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade700,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(Icons.cancel_outlined, size: 20),
+                            label: const Text(
+                              'Cancel Request',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                            onPressed: () async {
+                              bool? confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Cancel Request?'),
+                                  content: const Text(
+                                    'Are you sure you want to cancel this service request?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      child: const Text('No, Keep It'),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.statusRejected,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('Yes, Cancel'),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm == true) {
+                                await requestProvider.updateStatus(
+                                  requestId: req.id,
+                                  status: AppConstants.statusCancelled,
+                                  customerId: req.customerId,
+                                  workerId: req.workerId,
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content:
+                                          Text('Service request cancelled.'),
+                                      backgroundColor: AppColors.statusRejected,
+                                    ),
+                                  );
+                                  Navigator.pop(context);
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Action Card: Worker Unavailable / Expired / Cancelled -> Find Next Worker
+                if (isInactive) ...[
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.orange.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.person_search_rounded,
+                              size: 36, color: Colors.orange),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          req.status == AppConstants.statusRejected
+                              ? 'Technician Was Unavailable'
+                              : (req.status == AppConstants.statusMissed ||
+                                      req.status == 'missed')
+                                  ? 'Request Timed Out (No Response)'
+                                  : 'Request Cancelled',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primaryNavy,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${req.workerName} did not take this job. Other skilled ${req.categoryName} technicians are available near you right now!',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryNavy,
+                              foregroundColor: AppColors.pureWhite,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(Icons.search, size: 20),
+                            label: const Text(
+                              'Find Another Service Provider',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 15),
+                            ),
+                            onPressed: () => _findAnotherWorker(context, req),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 24),
 
                 // Stepper Visualizer
@@ -247,17 +528,17 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                
+
                 if (req.completionOtp != null &&
                     req.status != AppConstants.statusCompleted &&
-                    req.status != AppConstants.statusCancelled &&
-                    req.status != AppConstants.statusRejected) ...[
+                    !isInactive) ...[
                   const SizedBox(height: 16),
                   Card(
                     color: AppColors.starGold.withValues(alpha: 0.1),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(color: AppColors.starGold, width: 2),
+                      side: const BorderSide(
+                          color: AppColors.starGold, width: 2),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -289,7 +570,8 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 16),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
                               color: AppColors.starGold,
                               borderRadius: BorderRadius.circular(8),
@@ -311,10 +593,9 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                 ],
                 const SizedBox(height: 24),
 
-                // Action Buttons based on status
-                if (req.status != AppConstants.statusPending &&
-                    req.status != AppConstants.statusRejected &&
-                    req.status != AppConstants.statusCancelled) ...[
+                // Active Call & Chat Buttons
+                if (!isPending && !isInactive &&
+                    req.status != AppConstants.statusCompleted) ...[
                   Row(
                     children: [
                       Expanded(
@@ -390,9 +671,8 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                   ),
                 ],
 
-                if (req.status != AppConstants.statusCompleted &&
-                    req.status != AppConstants.statusCancelled &&
-                    req.status != AppConstants.statusRejected) ...[
+                // Cancel button for ongoing / pending requests
+                if (req.status != AppConstants.statusCompleted && !isInactive) ...[
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
@@ -402,15 +682,17 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                         side: const BorderSide(color: AppColors.statusRejected),
                       ),
                       icon: const Icon(Icons.cancel_outlined),
-                      label: const Text('Cancel Request'),
+                      label: Text(isPending
+                          ? 'Cancel & Pick Another Worker'
+                          : 'Cancel Request'),
                       onPressed: () async {
                         bool? confirm = await showDialog(
                           context: context,
                           builder: (ctx) => AlertDialog(
                             title: const Text('Cancel Job?'),
-                            content: const Text(
-                              'Are you sure you want to cancel this request? If the worker is already on the way, this may affect your profile rating.',
-                            ),
+                            content: Text(isPending
+                                ? 'Cancel this request and search for another worker?'
+                                : 'Are you sure you want to cancel this request? If the worker is already on the way, this may affect your profile rating.'),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(ctx, false),
@@ -434,6 +716,9 @@ class CustomerRequestStatusScreen extends StatelessWidget {
                             customerId: req.customerId,
                             workerId: req.workerId,
                           );
+                          if (context.mounted && isPending) {
+                            _findAnotherWorker(context, req);
+                          }
                         }
                       },
                     ),
@@ -469,6 +754,56 @@ class _StatusStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isStopped = currentStatus == AppConstants.statusRejected ||
+        currentStatus == AppConstants.statusCancelled ||
+        currentStatus == AppConstants.statusMissed ||
+        currentStatus == 'missed';
+
+    if (isStopped) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.block_rounded,
+                    color: Colors.orange, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Request Status Closed',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.primaryNavy,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'This request is marked as: $currentStatus',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     int currentStep = _getStepIndex();
 
     return Card(

@@ -8,6 +8,7 @@ import '../../providers/worker_provider.dart';
 import '../auth/role_selection_screen.dart';
 import '../shared/settings_screen.dart';
 import 'edit_worker_profile_screen.dart';
+import '../../core/widgets/worker_badge_widget.dart';
 
 class WorkerProfileTab extends StatelessWidget {
   const WorkerProfileTab({super.key});
@@ -182,6 +183,10 @@ class WorkerProfileTab extends StatelessWidget {
                       ),
                     ),
                   ),
+                ],
+                if (worker != null) ...[
+                  const SizedBox(height: 12),
+                  WorkerBadgeRow(worker: worker),
                 ],
               ],
             ),

@@ -2,12 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/map_constants.dart';
 import '../../core/services/location_service.dart';
+import '../../core/services/nominatim_service.dart';
 
 /// Result returned when the user confirms a location.
 class LocationPickerResult {
@@ -27,9 +27,11 @@ class LocationPickerResult {
 /// The user can:
 /// - Pan/zoom the map to select a location (center pin stays fixed)
 /// - Tap "My Location" to jump to their GPS position
-/// - Search for an address
-/// - See the selected address update in real-time
+/// - Search for an address with live autocomplete suggestions
+/// - See the selected address update in real-time via Nominatim (OSM)
 /// - Confirm the selected location
+///
+/// 100% free — uses OpenStreetMap tiles + Nominatim geocoding. No API keys.
 class LocationPickerScreen extends StatefulWidget {
   final double? initialLat;
   final double? initialLng;
@@ -56,6 +58,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   bool _isLocating = false;
   bool _isSearching = false;
   Timer? _debounceTimer;
+  Timer? _searchDebounceTimer;
+
+  /// Live autocomplete search suggestions from Nominatim
+  List<NominatimPlace> _searchSuggestions = [];
 
   @override
   void initState() {
@@ -75,11 +81,16 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         _reverseGeocode(_selectedPosition);
       });
     }
+
+    // Listen to search text changes for live autocomplete
+    _searchController.addListener(_onSearchTextChanged);
   }
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _searchDebounceTimer?.cancel();
+    _searchController.removeListener(_onSearchTextChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -93,17 +104,39 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     setState(() => _isLocating = true);
 
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      // 1. Immediately pan to last known position if available (Zero wait!)
+      try {
+        final lastPos = await Geolocator.getLastKnownPosition();
+        if (lastPos != null && mounted) {
+          final newPos = LatLng(lastPos.latitude, lastPos.longitude);
+          setState(() {
+            _selectedPosition = newPos;
+          });
+          _mapController.move(newPos, MapConstants.pickerZoom);
+          _reverseGeocode(newPos);
+        }
+      } catch (_) {}
+
+      // 2. Check service & permission
+      bool serviceEnabled = false;
+      try {
+        serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      } catch (_) {}
+
       if (!serviceEnabled) {
         setState(() => _isLocating = false);
         if (mounted) LocationService.promptEnableGps(context);
         return;
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
+      LocationPermission permission = LocationPermission.denied;
+      try {
+        permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+      } catch (_) {}
+
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         setState(() => _isLocating = false);
@@ -113,12 +146,23 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         return;
       }
 
-      Position pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 12),
-        ),
-      );
+      // 3. Fresh position with fast fallback (High -> Medium)
+      Position pos;
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 6),
+          ),
+        );
+      } catch (_) {
+        pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 4),
+          ),
+        );
+      }
 
       if (mounted) {
         final newPos = LatLng(pos.latitude, pos.longitude);
@@ -132,20 +176,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     } catch (_) {
       if (mounted) {
         setState(() => _isLocating = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not detect GPS location.'),
-            backgroundColor: AppColors.statusRejected,
-          ),
-        );
       }
     }
   }
 
+  /// Reverse geocode using Nominatim (OpenStreetMap — free)
   Future<void> _reverseGeocode(LatLng pos) async {
     setState(() => _isLoadingAddress = true);
     try {
-      String address = await LocationService.getAddressFromCoordinates(
+      String address = await NominatimService.getAddressFromCoordinates(
         pos.latitude,
         pos.longitude,
       );
@@ -166,6 +205,71 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     }
   }
 
+  // ──────────────────────────────────────────
+  // Live Autocomplete Search (Nominatim)
+  // ──────────────────────────────────────────
+
+  /// Called on every keystroke — debounces, then triggers Nominatim search
+  void _onSearchTextChanged() {
+    final query = _searchController.text.trim();
+
+    // Clear suggestions if query too short
+    if (query.length < 2) {
+      if (_searchSuggestions.isNotEmpty) {
+        setState(() => _searchSuggestions = []);
+      }
+      return;
+    }
+
+    // Debounce: wait 500ms after user stops typing before searching
+    _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _fetchSearchSuggestions(query);
+    });
+  }
+
+  /// Fetch autocomplete suggestions from Nominatim
+  Future<void> _fetchSearchSuggestions(String query) async {
+    if (!mounted) return;
+    setState(() => _isSearching = true);
+
+    try {
+      final results = await NominatimService.searchPlaces(
+        query: query,
+        limit: 5,
+      );
+
+      if (mounted) {
+        setState(() {
+          _searchSuggestions = results;
+          _isSearching = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isSearching = false);
+      }
+    }
+  }
+
+  /// User tapped a search suggestion — move map to that location
+  void _selectSuggestion(NominatimPlace place) {
+    final newPos = LatLng(place.lat, place.lng);
+
+    setState(() {
+      _selectedPosition = newPos;
+      _selectedAddress = place.shortAddress;
+      _isLoadingAddress = false;
+      _isSearchVisible = false;
+      _searchSuggestions = [];
+    });
+
+    _searchController.clear();
+    FocusScope.of(context).unfocus();
+    _mapController.move(newPos, MapConstants.pickerZoom);
+  }
+
+  /// User submitted search (pressed enter) — search and go to first result
   Future<void> _searchAddress() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
@@ -174,18 +278,13 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     FocusScope.of(context).unfocus();
 
     try {
-      List<Location> locations = await locationFromAddress(query);
-      if (locations.isNotEmpty && mounted) {
-        final loc = locations.first;
-        final newPos = LatLng(loc.latitude, loc.longitude);
-        setState(() {
-          _selectedPosition = newPos;
-          _isSearchVisible = false;
-          _isSearching = false;
-        });
-        _searchController.clear();
-        _mapController.move(newPos, MapConstants.pickerZoom);
-        _reverseGeocode(newPos);
+      final results = await NominatimService.searchPlaces(
+        query: query,
+        limit: 1,
+      );
+
+      if (results.isNotEmpty && mounted) {
+        _selectSuggestion(results.first);
       } else {
         setState(() => _isSearching = false);
         if (mounted) {
@@ -235,6 +334,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     );
   }
 
+  void _closeSearch() {
+    _searchController.clear();
+    setState(() {
+      _isSearchVisible = false;
+      _searchSuggestions = [];
+    });
+    FocusScope.of(context).unfocus();
+  }
+
   // ──────────────────────────────────────────
   // Build
   // ──────────────────────────────────────────
@@ -256,8 +364,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: MapConstants.osmTileUrl,
+                urlTemplate: MapConstants.primaryTileUrl,
+                subdomains: MapConstants.primaryTileSubdomains,
                 userAgentPackageName: MapConstants.packageName,
+                maxZoom: MapConstants.maxZoom,
+                fallbackUrl: MapConstants.osmTileUrl,
               ),
             ],
           ),
@@ -307,62 +418,70 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                child: Row(
+                child: Column(
                   children: [
-                    // Back Button
-                    Material(
-                      color: AppColors.pureWhite,
-                      elevation: 4,
-                      shadowColor: Colors.black26,
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        onTap: () => Navigator.pop(context),
-                        customBorder: const CircleBorder(),
-                        child: const Padding(
-                          padding: EdgeInsets.all(10),
-                          child: Icon(Icons.arrow_back,
-                              color: AppColors.primaryNavy, size: 22),
+                    Row(
+                      children: [
+                        // Back Button
+                        Material(
+                          color: AppColors.pureWhite,
+                          elevation: 4,
+                          shadowColor: Colors.black26,
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            onTap: () => Navigator.pop(context),
+                            customBorder: const CircleBorder(),
+                            child: const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: Icon(Icons.arrow_back,
+                                  color: AppColors.primaryNavy, size: 22),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    // Title or Search Bar
-                    Expanded(
-                      child: _isSearchVisible
-                          ? _buildSearchBar()
-                          : Material(
-                              color: AppColors.pureWhite,
-                              elevation: 4,
-                              shadowColor: Colors.black26,
-                              borderRadius: BorderRadius.circular(30),
-                              child: InkWell(
-                                onTap: () {
-                                  setState(() => _isSearchVisible = true);
-                                  _searchFocusNode.requestFocus();
-                                },
-                                borderRadius: BorderRadius.circular(30),
-                                child: const Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 12),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.search,
-                                          color: AppColors.textSecondary,
-                                          size: 20),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Search address...',
-                                        style: TextStyle(
-                                          color: AppColors.textLight,
-                                          fontSize: 14,
-                                        ),
+                        const SizedBox(width: 10),
+                        // Title or Search Bar
+                        Expanded(
+                          child: _isSearchVisible
+                              ? _buildSearchBar()
+                              : Material(
+                                  color: AppColors.pureWhite,
+                                  elevation: 4,
+                                  shadowColor: Colors.black26,
+                                  borderRadius: BorderRadius.circular(30),
+                                  child: InkWell(
+                                    onTap: () {
+                                      setState(() => _isSearchVisible = true);
+                                      _searchFocusNode.requestFocus();
+                                    },
+                                    borderRadius: BorderRadius.circular(30),
+                                    child: const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 12),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.search,
+                                              color: AppColors.textSecondary,
+                                              size: 20),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Search address or place...',
+                                            style: TextStyle(
+                                              color: AppColors.textLight,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
+                        ),
+                      ],
                     ),
+
+                    // ── Autocomplete Suggestions Dropdown ──
+                    if (_searchSuggestions.isNotEmpty && _isSearchVisible)
+                      _buildSuggestionsDropdown(),
                   ],
                 ),
               ),
@@ -551,6 +670,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     );
   }
 
+  // ──────────────────────────────────────────
+  // Search Bar with Live Autocomplete
+  // ──────────────────────────────────────────
+
   Widget _buildSearchBar() {
     return Material(
       color: AppColors.pureWhite,
@@ -593,11 +716,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                     : IconButton(
                         icon: const Icon(Icons.close,
                             color: AppColors.textSecondary, size: 20),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _isSearchVisible = false);
-                          FocusScope.of(context).unfocus();
-                        },
+                        onPressed: _closeSearch,
                       ),
               ),
             ),
@@ -605,6 +724,152 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         ],
       ),
     );
+  }
+
+  // ──────────────────────────────────────────
+  // Autocomplete Suggestions Dropdown
+  // ──────────────────────────────────────────
+
+  Widget _buildSuggestionsDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Material(
+        color: AppColors.pureWhite,
+        elevation: 6,
+        shadowColor: Colors.black26,
+        borderRadius: BorderRadius.circular(16),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _searchSuggestions.asMap().entries.map((entry) {
+              final index = entry.key;
+              final place = entry.value;
+              final isLast = index == _searchSuggestions.length - 1;
+
+              return Column(
+                children: [
+                  InkWell(
+                    onTap: () => _selectSuggestion(place),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentBlue
+                                  .withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _getPlaceIcon(place.type),
+                              color: AppColors.accentBlue,
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Short name (first part of display name)
+                                Text(
+                                  place.shortAddress,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                    height: 1.3,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                // Full display name
+                                Text(
+                                  place.displayName,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textLight,
+                                    height: 1.3,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(
+                            Icons.north_west,
+                            size: 14,
+                            color: AppColors.textLight,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (!isLast)
+                    const Divider(height: 1, indent: 48, endIndent: 14),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Get appropriate icon based on Nominatim place type
+  IconData _getPlaceIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'city':
+      case 'town':
+      case 'village':
+      case 'municipality':
+        return Icons.location_city;
+      case 'residential':
+      case 'suburb':
+      case 'neighbourhood':
+        return Icons.holiday_village;
+      case 'hospital':
+      case 'clinic':
+        return Icons.local_hospital;
+      case 'school':
+      case 'university':
+      case 'college':
+        return Icons.school;
+      case 'restaurant':
+      case 'cafe':
+      case 'fast_food':
+        return Icons.restaurant;
+      case 'mosque':
+      case 'church':
+      case 'place_of_worship':
+        return Icons.account_balance;
+      case 'park':
+      case 'garden':
+        return Icons.park;
+      case 'bus_station':
+      case 'railway':
+      case 'station':
+        return Icons.directions_bus;
+      case 'aerodrome':
+      case 'airport':
+        return Icons.flight;
+      case 'hotel':
+      case 'guest_house':
+        return Icons.hotel;
+      case 'marketplace':
+      case 'mall':
+      case 'shop':
+        return Icons.shopping_cart;
+      default:
+        return Icons.location_on;
+    }
   }
 }
 

@@ -3,8 +3,8 @@ import 'package:geolocator/geolocator.dart';
 import '../core/services/location_service.dart';
 
 class LocationProvider extends ChangeNotifier {
-  Position? _currentPosition;
-  String _currentAddress = 'Detecting location...';
+  Position? _currentPosition = LocationService.defaultPosition;
+  String _currentAddress = 'Lahore, Pakistan';
   bool _isLoading = false;
   bool _isGpsDisabled = false;
   bool _isPermissionDenied = false;
@@ -15,16 +15,53 @@ class LocationProvider extends ChangeNotifier {
   bool get isGpsDisabled => _isGpsDisabled;
   bool get isPermissionDenied => _isPermissionDenied;
 
+  LocationProvider() {
+    _initLocation();
+  }
+
+  void _initLocation() async {
+    // 1. Immediately read last known position in background on app start
+    try {
+      Position? lastPos = await Geolocator.getLastKnownPosition();
+      if (lastPos != null) {
+        _currentPosition = lastPos;
+        notifyListeners();
+        final addr = await LocationService.getAddressFromCoordinates(
+            lastPos.latitude, lastPos.longitude);
+        _currentAddress = addr;
+        notifyListeners();
+      }
+    } catch (_) {}
+
+    // 2. Fetch fresh live location
+    await fetchCurrentLocation();
+  }
+
   Future<void> fetchCurrentLocation({BuildContext? context}) async {
     _isLoading = true;
     notifyListeners();
 
-    // Check if GPS Service is Enabled
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    // 1. Quick check for instant cached position
+    try {
+      Position? cached = await Geolocator.getLastKnownPosition();
+      if (cached != null) {
+        _currentPosition = cached;
+        _isGpsDisabled = false;
+        _isPermissionDenied = false;
+        notifyListeners();
+      }
+    } catch (_) {}
+
+    // 2. Check if GPS Service is Enabled
+    bool serviceEnabled = false;
+    try {
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    } catch (_) {}
+
     if (!serviceEnabled) {
-      _currentPosition = null; // Clear any stale position!
-      _currentAddress = 'GPS Location is turned OFF';
       _isGpsDisabled = true;
+      _currentPosition ??= LocationService.defaultPosition;
+      _currentAddress = 'GPS is turned OFF (Showing Default)';
       _isLoading = false;
       notifyListeners();
 
@@ -36,17 +73,20 @@ class LocationProvider extends ChangeNotifier {
 
     _isGpsDisabled = false;
 
-    // Check Permissions
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
+    // 3. Check Permissions
+    LocationPermission permission = LocationPermission.denied;
+    try {
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+    } catch (_) {}
 
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      _currentPosition = null; // Clear any stale position!
-      _currentAddress = 'Location Permission Denied';
       _isPermissionDenied = true;
+      _currentPosition ??= LocationService.defaultPosition;
+      _currentAddress = 'Location Permission Denied';
       _isLoading = false;
       notifyListeners();
 
@@ -60,19 +100,32 @@ class LocationProvider extends ChangeNotifier {
 
     _isPermissionDenied = false;
 
+    // 4. Fetch fresh position: High accuracy GPS with fast Medium (Wi-Fi/Cell) fallback
     try {
-      Position pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
-      _currentPosition = pos;
-      _currentAddress = await LocationService.getAddressFromCoordinates(
-          pos.latitude, pos.longitude);
+      Position? freshPos;
+      try {
+        freshPos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 6),
+          ),
+        );
+      } catch (_) {
+        // Fallback to cell tower / Wi-Fi network location (fast & works indoors)
+        freshPos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 4),
+          ),
+        );
+      }
+
+      _currentPosition = freshPos;
+      final addr = await LocationService.getAddressFromCoordinates(
+          freshPos.latitude, freshPos.longitude);
+      _currentAddress = addr;
     } catch (_) {
-      _currentPosition = null;
-      _currentAddress = 'Unable to fetch current GPS coordinates';
+      _currentPosition ??= LocationService.defaultPosition;
     }
 
     _isLoading = false;

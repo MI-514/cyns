@@ -3,12 +3,17 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/services/location_service.dart';
+import '../../data/models/service_request_model.dart';
 import '../../data/models/worker_profile_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
+import '../../providers/service_request_provider.dart';
 import '../../providers/worker_provider.dart';
-import 'create_service_request_screen.dart';
+import 'request_waiting_countdown_screen.dart';
 import 'worker_profile_view_screen.dart';
+import '../../core/widgets/worker_badge_widget.dart';
 
 class WorkerListScreen extends StatefulWidget {
   final String selectedCategoryId;
@@ -28,6 +33,115 @@ class WorkerListScreen extends StatefulWidget {
 
 class _WorkerListScreenState extends State<WorkerListScreen> {
   late TextEditingController _searchController;
+  bool _isAutoDispatching = false;
+
+  Future<void> _dispatchWorker(WorkerProfileModel targetWorker) async {
+    if (_isAutoDispatching) return;
+    final location = Provider.of<LocationProvider>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final requestProvider =
+        Provider.of<ServiceRequestProvider>(context, listen: false);
+
+    setState(() => _isAutoDispatching = true);
+
+    try {
+      final double cLat = location.currentPosition?.latitude ?? 31.5204;
+      final double cLng = location.currentPosition?.longitude ?? 74.3587;
+      final String cAddress = location.currentAddress.isNotEmpty
+          ? location.currentAddress
+          : 'Customer Current Location';
+
+      ServiceRequestModel req = ServiceRequestModel(
+        id: '',
+        customerId: auth.userModel?.uid ?? 'c1',
+        customerName: auth.userModel?.fullName ?? 'Customer',
+        customerPhone: auth.userModel?.phoneNumber ?? '',
+        workerId: targetWorker.workerId,
+        workerName: targetWorker.name,
+        workerPhone: targetWorker.phoneNumber,
+        categoryId: widget.selectedCategoryId,
+        categoryName: widget.categoryName,
+        problemDescription:
+            'Direct Location Dispatch for ${widget.categoryName}',
+        customerLat: cLat,
+        customerLng: cLng,
+        customerAddress: cAddress,
+        workerLat: targetWorker.latitude ?? cLat,
+        workerLng: targetWorker.longitude ?? cLng,
+        status: AppConstants.statusPending,
+      );
+
+      String? reqId = await requestProvider.createRequest(req);
+
+      if (!mounted) return;
+      setState(() => _isAutoDispatching = false);
+
+      if (reqId != null) {
+        ServiceRequestModel createdReq = ServiceRequestModel(
+          id: reqId,
+          customerId: req.customerId,
+          customerName: req.customerName,
+          customerPhone: req.customerPhone,
+          workerId: req.workerId,
+          workerName: req.workerName,
+          workerPhone: req.workerPhone,
+          categoryId: req.categoryId,
+          categoryName: req.categoryName,
+          problemDescription: req.problemDescription,
+          customerLat: req.customerLat,
+          customerLng: req.customerLng,
+          customerAddress: req.customerAddress,
+          workerLat: req.workerLat,
+          workerLng: req.workerLng,
+          status: req.status,
+        );
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RequestWaitingCountdownScreen(
+              request: createdReq,
+              attemptedWorkerIds: [targetWorker.workerId],
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(requestProvider.errorMessage.isNotEmpty
+                ? requestProvider.errorMessage
+                : 'Failed to dispatch request.'),
+            backgroundColor: AppColors.statusRejected,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isAutoDispatching = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error dispatching worker: $e'),
+            backgroundColor: AppColors.statusRejected,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _autoDispatchNearestWorker() async {
+    final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
+    if (workerProvider.searchResults.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'No active ${widget.categoryName} technicians found nearby.'),
+          backgroundColor: AppColors.statusRejected,
+        ),
+      );
+      return;
+    }
+    await _dispatchWorker(workerProvider.searchResults.first);
+  }
 
   @override
   void initState() {
@@ -279,35 +393,42 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
             ),
             const SizedBox(height: 12),
 
-                        // Instant Auto-Dispatch Button
+                        // Instant Auto-Dispatch Button (Direct 1-Tap Search & Dispatch)
                         if (workerProvider.searchResults.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.starGold,
-                                foregroundColor: Colors.black,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              icon: const Icon(Icons.bolt, size: 24),
-                              label: const Text(
-                                'Instant Auto-Dispatch (Find Nearest)',
-                                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => CreateServiceRequestScreen(
-                                      categoryId: widget.selectedCategoryId,
-                                      categoryName: widget.categoryName,
-                                    ),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.starGold,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
-                                );
-                              },
+                                ),
+                                icon: _isAutoDispatching
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.black,
+                                        ),
+                                      )
+                                    : const Icon(Icons.bolt, size: 24),
+                                label: Text(
+                                  _isAutoDispatching
+                                      ? 'Dispatching Nearest Worker...'
+                                      : 'Instant Auto-Dispatch (Find Nearest)',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w800, fontSize: 15),
+                                ),
+                                onPressed: _isAutoDispatching
+                                    ? null
+                                    : _autoDispatchNearestWorker,
+                              ),
                             ),
                           ),
                           
@@ -456,6 +577,11 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                                   fontSize: 13,
                                                 ),
                                               ),
+                                              const SizedBox(height: 6),
+                                              WorkerBadgeRow(
+                                                worker: worker,
+                                                compact: true,
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -504,13 +630,69 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                               fontWeight: FontWeight.w600),
                                         ),
                                         const Spacer(),
-                                        const Text(
-                                          'View Profile →',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w800,
-                                            color: AppColors.primaryNavy,
+                                        OutlinedButton(
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor:
+                                                AppColors.primaryNavy,
+                                            side: const BorderSide(
+                                                color: AppColors.primaryNavy),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 6),
+                                            minimumSize: Size.zero,
+                                            tapTargetSize:
+                                                MaterialTapTargetSize
+                                                    .shrinkWrap,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
                                           ),
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    WorkerProfileViewScreen(
+                                                  workerId: worker.workerId,
+                                                  worker: worker,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: const Text(
+                                            'Profile',
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                AppColors.primaryNavy,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 6),
+                                            minimumSize: Size.zero,
+                                            tapTargetSize:
+                                                MaterialTapTargetSize
+                                                    .shrinkWrap,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          icon: const Icon(Icons.near_me_rounded,
+                                              size: 13),
+                                          label: const Text(
+                                            'Hire',
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          onPressed: () =>
+                                              _dispatchWorker(worker),
                                         ),
                                       ],
                                     ),

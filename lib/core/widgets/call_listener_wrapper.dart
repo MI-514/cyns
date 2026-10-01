@@ -5,7 +5,11 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../screens/shared/agora_call_screen.dart';
+import '../constants/app_colors.dart';
+import '../constants/app_constants.dart';
+import '../services/audio_alert_service.dart';
 import '../services/call_signaling_service.dart';
+import '../services/worker_background_service.dart';
 import 'incoming_call_dialog.dart';
 
 class CallListenerWrapper extends StatefulWidget {
@@ -19,7 +23,11 @@ class CallListenerWrapper extends StatefulWidget {
 
 class _CallListenerWrapperState extends State<CallListenerWrapper> {
   StreamSubscription<QuerySnapshot>? _callSubscription;
+  StreamSubscription<DocumentSnapshot>? _activeSignalSubscription;
+  BuildContext? _activeDialogContext;
   String? _currentSignalId;
+  AuthProvider? _authProvider;
+  VoidCallback? _authListener;
 
   @override
   void initState() {
@@ -30,29 +38,50 @@ class _CallListenerWrapperState extends State<CallListenerWrapper> {
   }
 
   void _initCallListener() {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (!mounted) return;
+    _authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    // Listen to auth state changes to start/stop listening
-    auth.addListener(() {
+    _authListener = () {
+      final auth = _authProvider;
+      if (auth == null) return;
       if (auth.userModel != null && _callSubscription == null) {
         _startListening(auth.userModel!.uid);
       } else if (auth.userModel == null && _callSubscription != null) {
         _stopListening();
       }
-    });
+    };
 
-    if (auth.userModel != null) {
-      _startListening(auth.userModel!.uid);
+    _authProvider?.addListener(_authListener!);
+
+    if (_authProvider?.userModel != null) {
+      _startListening(_authProvider!.userModel!.uid);
     }
   }
 
   void _startListening(String userId) {
+    if (userId.isEmpty) return;
     CallSignalingService.cleanupStaleSignals(userId);
 
+    final auth =
+        _authProvider ?? Provider.of<AuthProvider>(context, listen: false);
+    if (auth.userModel?.role == 'worker') {
+      WorkerBackgroundService.instance.startMonitoring(userId);
+      WorkerBackgroundService.instance.onNewJobInForeground = () {
+        AppConstants.scaffoldMessengerKey.currentState?.showSnackBar(
+          const SnackBar(
+            content: Text(
+                '🔔 New Service Request arrived! Check Incoming Requests.'),
+            backgroundColor: AppColors.primaryNavy,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      };
+    }
+
+    _callSubscription?.cancel();
     _callSubscription = CallSignalingService.listenForIncomingCalls(userId)
         .listen((QuerySnapshot snapshot) {
       if (snapshot.docs.isNotEmpty) {
-        // Find first ringing call
         var doc = snapshot.docs.first;
         final data = doc.data() as Map<String, dynamic>;
 
@@ -65,11 +94,36 @@ class _CallListenerWrapperState extends State<CallListenerWrapper> {
             channelId: data['channelId'] ?? '',
           );
         }
+      } else if (_currentSignalId != null) {
+        // Caller canceled or call signal ended before answer
+        _dismissIncomingDialog();
       }
-    });
+    }, onError: (_) {});
+  }
+
+  void _dismissIncomingDialog({bool showMissedToast = true}) {
+    AudioAlertService.stopAlarmAlert();
+    _activeSignalSubscription?.cancel();
+    _activeSignalSubscription = null;
+    if (_activeDialogContext != null && _activeDialogContext!.mounted) {
+      Navigator.of(_activeDialogContext!).pop();
+      _activeDialogContext = null;
+      if (showMissedToast) {
+        AppConstants.scaffoldMessengerKey.currentState?.showSnackBar(
+          const SnackBar(
+            content: Text('📞 Missed call'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+    _currentSignalId = null;
   }
 
   void _stopListening() {
+    _dismissIncomingDialog(showMissedToast: false);
+    WorkerBackgroundService.instance.stopMonitoring();
     _callSubscription?.cancel();
     _callSubscription = null;
     _currentSignalId = null;
@@ -81,27 +135,53 @@ class _CallListenerWrapperState extends State<CallListenerWrapper> {
     required bool isVideo,
     required String channelId,
   }) {
+    final navContext = AppConstants.navigatorKey.currentContext;
+    if (navContext == null) return;
+
+    // Ring alarm sound and vibration for incoming call
+    AudioAlertService.playAlarmAlert();
+
+    // Listen to signal status directly to dismiss if caller cancels
+    _activeSignalSubscription?.cancel();
+    _activeSignalSubscription =
+        CallSignalingService.listenToCallSignal(signalId).listen((doc) {
+      if (!doc.exists) {
+        _dismissIncomingDialog();
+        return;
+      }
+      final data = doc.data() as Map<String, dynamic>?;
+      final status = data?['status'];
+      if (status == 'ended' || status == 'rejected') {
+        _dismissIncomingDialog();
+      }
+    });
+
     showDialog(
-      context: context,
+      context: navContext,
       barrierDismissible: false,
       useSafeArea: false,
       builder: (BuildContext dialogContext) {
+        _activeDialogContext = dialogContext;
         return IncomingCallDialog(
           callerName: callerName,
           isVideo: isVideo,
           onAccept: () async {
+            AudioAlertService.stopAlarmAlert();
+            _activeSignalSubscription?.cancel();
+            _activeSignalSubscription = null;
+            _activeDialogContext = null;
             Navigator.pop(dialogContext); // Close dialog
             await CallSignalingService.acceptCall(signalId);
 
-            if (!mounted) return;
+            final navState = AppConstants.navigatorKey.currentState;
+            final navCtx = AppConstants.navigatorKey.currentContext;
+            if (navState == null || navCtx == null || !navCtx.mounted) return;
 
-            // Get user role to know what the peer role is
-            final auth = Provider.of<AuthProvider>(context, listen: false);
+            final auth = Provider.of<AuthProvider>(navCtx, listen: false);
             String peerRole =
                 auth.userModel?.role == 'worker' ? 'customer' : 'worker';
 
-            Navigator.push(
-              context,
+            navState.push(
               MaterialPageRoute(
                 builder: (_) => AgoraCallScreen(
                   channelId: channelId,
@@ -115,6 +195,10 @@ class _CallListenerWrapperState extends State<CallListenerWrapper> {
             _currentSignalId = null;
           },
           onReject: () async {
+            AudioAlertService.stopAlarmAlert();
+            _activeSignalSubscription?.cancel();
+            _activeSignalSubscription = null;
+            _activeDialogContext = null;
             Navigator.pop(dialogContext); // Close dialog
             await CallSignalingService.rejectCall(signalId);
             _currentSignalId = null;
@@ -126,6 +210,10 @@ class _CallListenerWrapperState extends State<CallListenerWrapper> {
 
   @override
   void dispose() {
+    _dismissIncomingDialog(showMissedToast: false);
+    if (_authListener != null && _authProvider != null) {
+      _authProvider!.removeListener(_authListener!);
+    }
     _stopListening();
     super.dispose();
   }

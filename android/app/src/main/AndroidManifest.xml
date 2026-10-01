@@ -14,6 +14,12 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
     <!-- Hardware Features -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -24,7 +30,8 @@
     <application
         android:label="cyns"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
 
         <!-- Default High Priority FCM Notification Channel -->
         <meta-data
@@ -35,10 +42,7 @@
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@mipmap/ic_launcher" />
 
-        <!-- Google Maps API Key (kept for potential future use / google_maps_flutter fallback) -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCcYnvPdBNkj36AAirGwhZ1rBrW4Z9B5Zg" />
+
 
         <activity
             android:name=".MainActivity"
@@ -69,18 +73,14 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- Allow launching Google Maps / navigation apps -->
+        <!-- Allow launching any installed map / navigation app via geo: URI -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="geo" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="google.navigation" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="https" android:host="www.google.com" />
+            <data android:scheme="https" />
         </intent>
         <!-- Allow launching phone dialer -->
         <intent>

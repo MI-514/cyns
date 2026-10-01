@@ -21,6 +21,8 @@ class ChatProvider extends ChangeNotifier {
     required String senderRole,
     required String message,
     String? attachmentUrl,
+    String? audioUrl,
+    int? audioDurationSec,
   }) async {
     await _repository.sendMessage(
       chatId: chatId,
@@ -29,6 +31,8 @@ class ChatProvider extends ChangeNotifier {
       senderRole: senderRole,
       message: message,
       attachmentUrl: attachmentUrl,
+      audioUrl: audioUrl,
+      audioDurationSec: audioDurationSec,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/constants/app_constants.dart';
 import '../core/services/notification_service.dart';
 import '../data/models/service_request_model.dart';
+import '../data/models/worker_profile_model.dart';
 import '../data/repositories/service_request_repository.dart';
 
 class ServiceRequestProvider extends ChangeNotifier {
@@ -71,6 +72,8 @@ class ServiceRequestProvider extends ChangeNotifier {
     required String status,
     required String customerId,
     required String workerId,
+    String? workerName,
+    String? workerPhone,
     double? workerLat,
     double? workerLng,
     String? eta,
@@ -79,6 +82,9 @@ class ServiceRequestProvider extends ChangeNotifier {
     await _repository.updateRequestStatus(
       requestId: requestId,
       status: status,
+      workerId: workerId,
+      workerName: workerName,
+      workerPhone: workerPhone,
       workerLat: workerLat,
       workerLng: workerLng,
       estimatedArrivalTime: eta,
@@ -97,6 +103,12 @@ class ServiceRequestProvider extends ChangeNotifier {
       body = 'Worker has arrived at your location.';
     } else if (status == AppConstants.statusCompleted) {
       body = 'Service completed! Please leave a review for the worker.';
+    } else if (status == AppConstants.statusRejected) {
+      title = 'Worker Unavailable';
+      body = 'The worker was unable to accept your request. Tap to choose another worker.';
+    } else if (status == AppConstants.statusMissed) {
+      title = 'Request Expired';
+      body = 'The worker did not respond in time. Tap to choose another worker.';
     }
 
     await NotificationService.sendNotification(
@@ -106,6 +118,20 @@ class ServiceRequestProvider extends ChangeNotifier {
       type: 'request',
       relatedId: requestId,
     );
+  }
+
+  /// Reassign request to next available worker in the cascade waterfall
+  Future<void> reassignRequestToWorker({
+    required String requestId,
+    required WorkerProfileModel nextWorker,
+    required String customerName,
+  }) async {
+    await _repository.reassignRequestToWorker(
+      requestId: requestId,
+      nextWorker: nextWorker,
+      customerName: customerName,
+    );
+    notifyListeners();
   }
 
   Stream<List<ServiceRequestModel>> getCustomerRequests(String customerId) {
@@ -126,5 +152,24 @@ class ServiceRequestProvider extends ChangeNotifier {
 
   Stream<ServiceRequestModel?> getRequestStream(String requestId) {
     return _repository.getRequestStream(requestId);
+  }
+
+  /// Delete a single service request
+  Future<void> deleteRequest(String requestId) async {
+    await _repository.deleteRequest(requestId);
+    notifyListeners();
+  }
+
+  /// Batch delete multiple service requests
+  Future<void> deleteMultipleRequests(List<String> requestIds) async {
+    await _repository.deleteMultipleRequests(requestIds);
+    notifyListeners();
+  }
+
+  /// Ensure a 4-digit cross-verification OTP exists for a request
+  Future<String> ensureCompletionOtp(String requestId,
+      {String? currentOtp}) async {
+    return await _repository.ensureCompletionOtp(requestId,
+        currentOtp: currentOtp);
   }
 }

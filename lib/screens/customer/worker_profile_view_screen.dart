@@ -16,6 +16,7 @@ import '../../providers/worker_provider.dart';
 import '../shared/map_tracking_screen.dart';
 import 'report_problem_screen.dart';
 import 'request_waiting_countdown_screen.dart';
+import '../../core/widgets/worker_badge_widget.dart';
 
 class WorkerProfileViewScreen extends StatefulWidget {
   final String workerId;
@@ -41,7 +42,11 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
     super.initState();
     _worker = widget.worker;
     _isLoading = widget.worker == null;
-    _loadProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadProfile();
+      }
+    });
   }
 
   void _loadProfile() async {
@@ -287,6 +292,8 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                         ),
                                       ),
                                     ),
+                                    const SizedBox(height: 8),
+                                    WorkerBadgeRow(worker: _worker!),
                                   ],
                                 ),
                               ),

@@ -21,6 +21,21 @@ class WorkerRepository {
     return null;
   }
 
+  /// Real-time stream for single worker profile
+  Stream<WorkerProfileModel?> streamWorkerProfile(String workerId) {
+    return _firestore
+        .collection(FirestoreCollections.workers)
+        .doc(workerId)
+        .snapshots()
+        .map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return WorkerProfileModel.fromMap(
+            doc.data() as Map<String, dynamic>, doc.id);
+      }
+      return null;
+    });
+  }
+
   /// Save or Update worker profile
   Future<void> updateWorkerProfile(WorkerProfileModel worker) async {
     try {
@@ -65,8 +80,38 @@ class WorkerRepository {
             .toList();
 
         if (categoryId.isNotEmpty && categoryId != 'all') {
-          workers =
-              workers.where((w) => w.categoryIds.contains(categoryId)).toList();
+          final target = categoryId.trim().toLowerCase();
+          final targetClean = target.replaceAll('_', '').replaceAll(' ', '');
+
+          workers = workers.where((w) {
+            final prof = w.profession.trim().toLowerCase();
+            final profClean = prof.replaceAll('_', '').replaceAll(' ', '');
+
+            // 1. Check profession field
+            final matchesProfession = profClean == targetClean ||
+                profClean.contains(targetClean) ||
+                targetClean.contains(profClean);
+
+            // 2. Check categoryIds list
+            final matchesCategories = w.categoryIds.any((cid) {
+              final cidClean =
+                  cid.trim().toLowerCase().replaceAll('_', '').replaceAll(' ', '');
+              return cidClean == targetClean ||
+                  cidClean.contains(targetClean) ||
+                  targetClean.contains(cidClean);
+            });
+
+            // 3. Check skills list
+            final matchesSkills = w.skills.any((s) {
+              final sClean =
+                  s.trim().toLowerCase().replaceAll('_', '').replaceAll(' ', '');
+              return sClean == targetClean ||
+                  sClean.contains(targetClean) ||
+                  targetClean.contains(sClean);
+            });
+
+            return matchesProfession || matchesCategories || matchesSkills;
+          }).toList();
         }
       }
     } catch (_) {}

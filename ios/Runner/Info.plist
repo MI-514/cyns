@@ -53,6 +53,10 @@
 	<string>This app needs access to location to find nearby skilled workers and display live navigation routes.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>This app needs access to location to track worker arrival in real time.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>CYN requires microphone access to place in-app voice and video calls and record voice notes.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>CYN requires camera access for in-app video calls and profile pictures.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

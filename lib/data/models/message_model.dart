@@ -8,6 +8,8 @@ class MessageModel {
   final String senderRole; // customer / worker
   final String message;
   final String? attachmentUrl;
+  final String? audioUrl;
+  final int? audioDurationSec;
   final DateTime timestamp;
 
   MessageModel({
@@ -18,6 +20,8 @@ class MessageModel {
     required this.senderRole,
     required this.message,
     this.attachmentUrl,
+    this.audioUrl,
+    this.audioDurationSec,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
@@ -38,6 +42,8 @@ class MessageModel {
       'senderRole': senderRole,
       'message': message,
       'attachmentUrl': attachmentUrl,
+      'audioUrl': audioUrl,
+      'audioDurationSec': audioDurationSec,
       'timestamp': Timestamp.fromDate(timestamp),
     };
   }
@@ -51,6 +57,8 @@ class MessageModel {
       senderRole: map['senderRole'] ?? '',
       message: map['message'] ?? '',
       attachmentUrl: map['attachmentUrl'],
+      audioUrl: map['audioUrl'],
+      audioDurationSec: (map['audioDurationSec'] as num?)?.toInt(),
       timestamp: _parseDate(map['timestamp']),
     );
   }

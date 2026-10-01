@@ -9,6 +9,7 @@ import '../../data/models/service_request_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../providers/service_request_provider.dart';
+import '../../providers/worker_provider.dart';
 import '../shared/chat_screen.dart';
 import '../shared/map_tracking_screen.dart';
 
@@ -310,21 +311,25 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                     icon: const Icon(Icons.check_circle),
                     label: const Text('Mark Service as Completed'),
                     onPressed: () async {
-                      if (activeJob.completionOtp == null) {
-                        // Fallback for old requests
-                        await requestProvider.updateStatus(
-                          requestId: activeJob.id,
-                          status: AppConstants.statusCompleted,
-                          customerId: activeJob.customerId,
-                          workerId: activeJob.workerId,
-                        );
-                        return;
-                      }
+                      final workerProvider = Provider.of<WorkerProvider>(
+                          context,
+                          listen: false);
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                      final expectedOtp =
+                          await requestProvider.ensureCompletionOtp(
+                        activeJob.id,
+                        currentOtp: activeJob.completionOtp,
+                      );
+
+                      if (!context.mounted) return;
 
                       String enteredOtp = '';
                       bool? success = await showDialog(
                         context: context,
                         builder: (ctx) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18)),
                           title: const Text('Enter Completion OTP'),
                           content: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -345,7 +350,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                                   border: OutlineInputBorder(),
                                   hintText: '0000',
                                 ),
-                                onChanged: (v) => enteredOtp = v,
+                                onChanged: (v) => enteredOtp = v.trim(),
                               ),
                             ],
                           ),
@@ -355,13 +360,18 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                               child: const Text('Cancel'),
                             ),
                             ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.statusCompleted,
+                                foregroundColor: Colors.white,
+                              ),
                               onPressed: () {
-                                if (enteredOtp == activeJob.completionOtp) {
+                                if (enteredOtp.trim() == expectedOtp.trim()) {
                                   Navigator.pop(ctx, true);
                                 } else {
                                   ScaffoldMessenger.of(ctx).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Invalid OTP! Ask the customer again.'),
+                                      content: Text(
+                                          'Invalid OTP! Ask the customer again.'),
                                       backgroundColor: AppColors.statusRejected,
                                     ),
                                   );
@@ -379,6 +389,19 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                           status: AppConstants.statusCompleted,
                           customerId: activeJob.customerId,
                           workerId: activeJob.workerId,
+                        );
+
+                        final profile = workerProvider.currentWorkerProfile;
+                        if (profile != null) {
+                          await workerProvider.toggleAvailability(
+                              profile.workerId, true);
+                        }
+                        scaffoldMessenger.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Job verified and completed successfully! 🎉'),
+                            backgroundColor: AppColors.statusCompleted,
+                          ),
                         );
                       }
                     },
@@ -509,6 +532,11 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                           customerId: activeJob.customerId,
                           workerId: activeJob.workerId,
                         );
+                        if (context.mounted) {
+                          Provider.of<WorkerProvider>(context, listen: false)
+                              .toggleAvailability(activeJob.workerId, true)
+                              .catchError((_) {});
+                        }
                       }
                     },
                   ),

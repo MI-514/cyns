@@ -1,12 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/services.dart';
 
 import '../constants/firestore_collections.dart';
+
+import 'audio_alert_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Handles high-priority FCM background notifications when screen is locked/off
+  try {
+    if (message.data['type'] == 'job_offer' || message.data['type'] == 'request') {
+      await AudioAlertService.initialize();
+      await AudioAlertService.playAlarmAlert();
+    }
+  } catch (_) {}
 }
 
 class NotificationService {
@@ -92,10 +99,18 @@ class NotificationService {
     } catch (_) {}
   }
 
-  /// Trigger audible alert beep sound for incoming job offer
+  /// Trigger gentle audible message beep for foreground
   static void playIncomingJobAlertBeep() {
-    try {
-      SystemSound.play(SystemSoundType.click);
-    } catch (_) {}
+    AudioAlertService.playMessageBeep();
+  }
+
+  /// Trigger loud alarm sound for background/screen-off
+  static void playAlarmAlert() {
+    AudioAlertService.playAlarmAlert();
+  }
+
+  /// Stop loud alarm sound
+  static void stopAlarmAlert() {
+    AudioAlertService.stopAlarmAlert();
   }
 }

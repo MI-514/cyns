@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -35,6 +36,9 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
   bool _isVideoMuted = false;
   int _callDurationSeconds = 0;
   Timer? _durationTimer;
+  Timer? _ringingTimeoutTimer;
+  StreamSubscription<DocumentSnapshot>? _signalSubscription;
+  bool _isCallEnded = false;
 
   bool _isEngineError = false;
   String _engineErrorMessage = '';
@@ -73,30 +77,80 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
       return;
     }
 
+    // Listen to call signaling doc for decline / cancel events
+    if (widget.signalId != null && widget.signalId!.isNotEmpty) {
+      _signalSubscription =
+          CallSignalingService.listenToCallSignal(widget.signalId!)
+              .listen((doc) {
+        if (!doc.exists) return;
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data == null) return;
+        final status = data['status'];
+
+        if (status == 'rejected') {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${widget.peerName} declined the call'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          _endCall();
+        } else if (status == 'ended' && _remoteUid == null) {
+          if (!mounted) return;
+          _endCall();
+        }
+      });
+
+      // 45 seconds ringing timeout
+      _ringingTimeoutTimer = Timer(const Duration(seconds: 45), () {
+        if (mounted && _remoteUid == null && !_isCallEnded) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('No answer from ${widget.peerName}'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          _endCall();
+        }
+      });
+    }
+
     try {
       _engine = await AgoraService.createEngine();
 
       _engine!.registerEventHandler(
         RtcEngineEventHandler(
           onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
+            debugPrint("Agora Local Joined Channel: ${connection.channelId}, UID: ${connection.localUid}");
             if (!mounted) return;
             setState(() {
               _localUserJoined = true;
             });
-            _startDurationTimer();
+            // Start timer if remote peer is already in the channel
+            if (_remoteUid != null) {
+              _ringingTimeoutTimer?.cancel();
+              _startDurationTimer();
+            }
           },
           onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
+            debugPrint("Agora Remote User Connected: $remoteUid");
             if (!mounted) return;
+            _ringingTimeoutTimer?.cancel();
             setState(() {
               _remoteUid = remoteUid;
             });
+            // Call is now officially active between both users! Start counting minutes!
+            _startDurationTimer();
           },
           onUserOffline: (RtcConnection connection, int remoteUid,
               UserOfflineReasonType reason) {
+            debugPrint("Agora Remote User Offline: $remoteUid, reason: $reason");
             if (!mounted) return;
             setState(() {
               _remoteUid = null;
             });
+            _durationTimer?.cancel();
             // Other user left — end call
             _endCall();
           },
@@ -108,7 +162,12 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
               if (err == ErrorCodeType.errInvalidToken ||
                   err == ErrorCodeType.errTokenExpired) {
                 _engineErrorMessage =
-                    'Agora Token Expired or Invalid.\n\nCreate a "Testing Mode" project in console.agora.io for token-free testing, or generate a fresh token.';
+                    'Agora Token Error ($err).\n\n'
+                    'Agora Console mein ja kar project ka "Primary Certificate" disable karein (Testing Mode: APP ID only) taake kisi token ki zaroorat na rahay aur calls free & lifetime chal sakein.\n\n'
+                    'console.agora.io -> Project -> Edit -> Set Security to "App ID only".';
+              } else if (err == ErrorCodeType.errInvalidAppId) {
+                _engineErrorMessage =
+                    'Invalid Agora App ID.\n\nPlease verify your App ID in lib/core/services/agora_service.dart';
               } else {
                 _engineErrorMessage = 'Call connection error ($err): $msg';
               }
@@ -117,21 +176,31 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
         ),
       );
 
+      // ── Always Enable Audio for BOTH Voice & Video Calls ──
+      await _engine!.enableAudio();
+      await _engine!.enableLocalAudio(true);
+      await _engine!.muteLocalAudioStream(false);
+      await _engine!.muteAllRemoteAudioStreams(false);
+      await _engine!.setDefaultAudioRouteToSpeakerphone(true);
+      await _engine!.setEnableSpeakerphone(_isSpeaker);
+
       if (widget.isVideoCall) {
         await _engine!.enableVideo();
         await _engine!.startPreview();
-      } else {
-        await _engine!.enableAudio();
-        await _engine!.setEnableSpeakerphone(_isSpeaker);
       }
 
+      final String token = AgoraService.getTokenForChannel(widget.channelId);
       await _engine!.joinChannel(
-        token: AgoraService.token,
+        token: token,
         channelId: widget.channelId,
         uid: 0,
-        options: const ChannelMediaOptions(
+        options: ChannelMediaOptions(
           clientRoleType: ClientRoleType.clientRoleBroadcaster,
           channelProfile: ChannelProfileType.channelProfileCommunication,
+          publishMicrophoneTrack: true,
+          publishCameraTrack: widget.isVideoCall,
+          autoSubscribeAudio: true,
+          autoSubscribeVideo: widget.isVideoCall,
         ),
       );
     } catch (e) {
@@ -189,7 +258,11 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
   }
 
   void _endCall() async {
+    if (_isCallEnded) return;
+    _isCallEnded = true;
     _durationTimer?.cancel();
+    _ringingTimeoutTimer?.cancel();
+    _signalSubscription?.cancel();
     try {
       await _engine?.leaveChannel();
       await _engine?.release();
@@ -209,6 +282,8 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
   @override
   void dispose() {
     _durationTimer?.cancel();
+    _ringingTimeoutTimer?.cancel();
+    _signalSubscription?.cancel();
     _engine?.leaveChannel();
     _engine?.release();
     super.dispose();
@@ -216,11 +291,18 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primaryNavy,
-      body: SafeArea(
-        child: Stack(
-          children: [
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _endCall();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.primaryNavy,
+        body: SafeArea(
+          child: Stack(
+            children: [
             // Video Call Views or Voice Call Center
             if (_isEngineError)
               _buildErrorView()
@@ -271,16 +353,33 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: AppColors.availableGreen.withValues(alpha: 0.85),
+                        color: _remoteUid != null
+                            ? AppColors.availableGreen.withValues(alpha: 0.85)
+                            : Colors.amber.shade800.withValues(alpha: 0.85),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(
-                        _formatDuration(_callDurationSeconds),
-                        style: const TextStyle(
-                          color: AppColors.pureWhite,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _remoteUid != null
+                                ? Icons.fiber_manual_record
+                                : Icons.ring_volume,
+                            size: 10,
+                            color: AppColors.pureWhite,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            _remoteUid != null
+                                ? _formatDuration(_callDurationSeconds)
+                                : 'Ringing...',
+                            style: const TextStyle(
+                              color: AppColors.pureWhite,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -375,6 +474,7 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

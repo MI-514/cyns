@@ -1,6 +1,14 @@
+import 'package:flutter/material.dart';
+
 class AppConstants {
   static const String appName = 'CYN – Chase Your Needs';
   static const String appTagline = 'Connect with Skilled Workers Near You';
+
+  // Global Keys for safe app-wide contextless navigation & snackbars
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+  static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
 
   // Role Constants (Customer / Employer & Worker / Service Provider)
   static const String roleCustomer = 'customer';
@@ -11,10 +19,14 @@ class AppConstants {
   static const String statusAccepted = 'Accepted';
   static const String statusRejected = 'Rejected';
   static const String statusCancelled = 'Cancelled';
+  static const String statusMissed = 'Missed';
   static const String statusOnTheWay = 'On the Way';
   static const String statusArrived = 'Arrived';
   static const String statusInProgress = 'In Progress';
   static const String statusCompleted = 'Completed';
+
+  // Timeout for worker to accept a job offer (in seconds)
+  static const int requestTimeoutSeconds = 60;
 
   // Default Categories
   static const List<Map<String, String>> defaultCategories = [

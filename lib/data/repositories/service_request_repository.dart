@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/firestore_collections.dart';
+import '../../core/services/notification_service.dart';
 import '../models/service_request_model.dart';
+import '../models/worker_profile_model.dart';
 
 class ServiceRequestRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -9,9 +11,17 @@ class ServiceRequestRepository {
   /// Create a new service request
   Future<String> createServiceRequest(ServiceRequestModel request) async {
     try {
+      final otp = (request.completionOtp != null &&
+              request.completionOtp!.trim().length == 4)
+          ? request.completionOtp!.trim()
+          : (1000 + (DateTime.now().millisecondsSinceEpoch % 9000)).toString();
+
+      final data = request.toMap();
+      data['completionOtp'] = otp;
+
       DocumentReference ref = await _firestore
           .collection(FirestoreCollections.serviceRequests)
-          .add(request.toMap());
+          .add(data);
 
       // Initialize corresponding chat doc
       await _firestore.collection(FirestoreCollections.chats).doc(ref.id).set({
@@ -32,10 +42,46 @@ class ServiceRequestRepository {
     }
   }
 
+  /// Ensure a guaranteed 4-digit cross-verification OTP exists in Firestore
+  Future<String> ensureCompletionOtp(String requestId,
+      {String? currentOtp}) async {
+    if (currentOtp != null &&
+        currentOtp.trim().length == 4 &&
+        int.tryParse(currentOtp.trim()) != null) {
+      return currentOtp.trim();
+    }
+    try {
+      final doc = await _firestore
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(requestId)
+          .get();
+      if (doc.exists && doc.data() != null) {
+        final existing = doc.data()?['completionOtp']?.toString();
+        if (existing != null &&
+            existing.trim().length == 4 &&
+            int.tryParse(existing.trim()) != null) {
+          return existing.trim();
+        }
+      }
+      final newOtp =
+          (1000 + (DateTime.now().millisecondsSinceEpoch % 9000)).toString();
+      await _firestore
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(requestId)
+          .set({'completionOtp': newOtp}, SetOptions(merge: true));
+      return newOtp;
+    } catch (_) {
+      return (1000 + (DateTime.now().millisecondsSinceEpoch % 9000)).toString();
+    }
+  }
+
   /// Update request status
   Future<void> updateRequestStatus({
     required String requestId,
     required String status,
+    String? workerId,
+    String? workerName,
+    String? workerPhone,
     double? workerLat,
     double? workerLng,
     String? estimatedArrivalTime,
@@ -47,6 +93,15 @@ class ServiceRequestRepository {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
+      if (workerId != null && workerId.isNotEmpty) {
+        updateData['workerId'] = workerId;
+      }
+      if (workerName != null && workerName.isNotEmpty) {
+        updateData['workerName'] = workerName;
+      }
+      if (workerPhone != null && workerPhone.isNotEmpty) {
+        updateData['workerPhone'] = workerPhone;
+      }
       if (workerLat != null) updateData['workerLat'] = workerLat;
       if (workerLng != null) updateData['workerLng'] = workerLng;
       if (estimatedArrivalTime != null) {
@@ -59,34 +114,103 @@ class ServiceRequestRepository {
           .doc(requestId)
           .set(updateData, SetOptions(merge: true));
 
-      DocumentSnapshot requestDoc = await _firestore
-          .collection(FirestoreCollections.serviceRequests)
-          .doc(requestId)
-          .get();
+      // Synchronize corresponding chat doc with assigned worker
+      if (status == AppConstants.statusAccepted) {
+        Map<String, dynamic> chatUpdate = {
+          'updatedAt': FieldValue.serverTimestamp(),
+          'lastMessage': 'Job accepted by worker. Chat is now open.',
+        };
+        if (workerId != null && workerId.isNotEmpty) {
+          chatUpdate['workerId'] = workerId;
+        }
+        if (workerName != null && workerName.isNotEmpty) {
+          chatUpdate['workerName'] = workerName;
+        }
+        await _firestore
+            .collection(FirestoreCollections.chats)
+            .doc(requestId)
+            .set(chatUpdate, SetOptions(merge: true));
+      }
 
-      if (requestDoc.exists && requestDoc.data() != null) {
-        String workerId = requestDoc.get('workerId') ?? '';
-        if (workerId.isNotEmpty) {
-          if (status == AppConstants.statusAccepted ||
-              status == AppConstants.statusOnTheWay ||
-              status == AppConstants.statusArrived ||
-              status == AppConstants.statusInProgress) {
-            // Worker is occupied/on working
-            await _firestore
-                .collection(FirestoreCollections.workers)
-                .doc(workerId)
-                .set({'isAvailable': false}, SetOptions(merge: true));
-          } else if (status == AppConstants.statusCompleted ||
-              status == AppConstants.statusCancelled ||
-              status == AppConstants.statusRejected) {
-            // Worker is available again
-            await _firestore
-                .collection(FirestoreCollections.workers)
-                .doc(workerId)
-                .set({'isAvailable': true}, SetOptions(merge: true));
-          }
+      String targetWorkerId = workerId ?? '';
+
+      if (targetWorkerId.isEmpty) {
+        DocumentSnapshot requestDoc = await _firestore
+            .collection(FirestoreCollections.serviceRequests)
+            .doc(requestId)
+            .get();
+
+        if (requestDoc.exists && requestDoc.data() != null) {
+          final data = requestDoc.data() as Map<String, dynamic>;
+          targetWorkerId = data['workerId']?.toString() ?? '';
         }
       }
+
+      if (targetWorkerId.isNotEmpty) {
+        if (status == AppConstants.statusAccepted ||
+            status == AppConstants.statusOnTheWay ||
+            status == AppConstants.statusArrived ||
+            status == AppConstants.statusInProgress ||
+            status == 'Work Done Pending Confirmation') {
+          // Worker is occupied on active job -> set offline/unavailable for other customers
+          await _firestore
+              .collection(FirestoreCollections.workers)
+              .doc(targetWorkerId)
+              .set({'isAvailable': false}, SetOptions(merge: true));
+        } else if (status == AppConstants.statusCompleted ||
+            status == AppConstants.statusCancelled ||
+            status == AppConstants.statusRejected) {
+          // Active job finished -> set online/available again
+          await _firestore
+              .collection(FirestoreCollections.workers)
+              .doc(targetWorkerId)
+              .set({'isAvailable': true}, SetOptions(merge: true));
+        }
+      }
+    } catch (_) {}
+  }
+
+  /// Reassign request to the next available worker (Auto-cascade waterfall)
+  Future<void> reassignRequestToWorker({
+    required String requestId,
+    required WorkerProfileModel nextWorker,
+    required String customerName,
+  }) async {
+    try {
+      // 1. Update the service request with new worker & reset creation timestamp for a clean new timer window
+      await _firestore
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(requestId)
+          .set({
+        'workerId': nextWorker.workerId,
+        'workerName': nextWorker.name,
+        'workerPhone': nextWorker.phoneNumber,
+        'workerLat': nextWorker.latitude,
+        'workerLng': nextWorker.longitude,
+        'status': AppConstants.statusPending,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      // 2. Synchronize chat document with new worker
+      await _firestore
+          .collection(FirestoreCollections.chats)
+          .doc(requestId)
+          .set({
+        'workerId': nextWorker.workerId,
+        'workerName': nextWorker.name,
+        'lastMessage':
+            'Reassigned to ${nextWorker.name}. Awaiting worker response...',
+        'lastMessageTime': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      // 3. Dispatch high-priority push notification / ringer to new worker
+      await NotificationService.sendJobOfferNotification(
+        workerId: nextWorker.workerId,
+        customerName: customerName,
+        categoryName: nextWorker.profession,
+        requestId: requestId,
+      );
     } catch (_) {}
   }
 
@@ -152,16 +276,42 @@ class ServiceRequestRepository {
                 // Return open pending requests in the worker's category
                 if (req.status == AppConstants.statusPending) {
                   if (req.workerId.isEmpty) {
+                    final reqCat = req.categoryId
+                        .trim()
+                        .toLowerCase()
+                        .replaceAll('_', '')
+                        .replaceAll(' ', '');
+                    final reqCatName = req.categoryName
+                        .trim()
+                        .toLowerCase()
+                        .replaceAll('_', '')
+                        .replaceAll(' ', '');
+
                     if (categoryId != null && categoryId.isNotEmpty) {
-                      if (req.categoryId.trim().toLowerCase() ==
-                          categoryId.trim().toLowerCase()) {
+                      final cNorm = categoryId
+                          .trim()
+                          .toLowerCase()
+                          .replaceAll('_', '')
+                          .replaceAll(' ', '');
+                      if (cNorm == reqCat ||
+                          cNorm == reqCatName ||
+                          reqCat.contains(cNorm) ||
+                          cNorm.contains(reqCat)) {
                         return true;
                       }
                     }
                     if (categoryIds != null && categoryIds.isNotEmpty) {
-                      if (categoryIds.any((c) =>
-                          c.trim().toLowerCase() ==
-                          req.categoryId.trim().toLowerCase())) {
+                      if (categoryIds.any((c) {
+                        final cNorm = c
+                            .trim()
+                            .toLowerCase()
+                            .replaceAll('_', '')
+                            .replaceAll(' ', '');
+                        return cNorm == reqCat ||
+                            cNorm == reqCatName ||
+                            reqCat.contains(cNorm) ||
+                            cNorm.contains(reqCat);
+                      })) {
                         return true;
                       }
                     }
@@ -202,5 +352,34 @@ class ServiceRequestRepository {
     } catch (_) {
       return [];
     }
+  }
+
+  /// Delete a single service request
+  Future<void> deleteRequest(String requestId) async {
+    try {
+      await _firestore
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(requestId)
+          .delete();
+      await _firestore
+          .collection(FirestoreCollections.chats)
+          .doc(requestId)
+          .delete();
+    } catch (_) {}
+  }
+
+  /// Batch delete multiple service requests
+  Future<void> deleteMultipleRequests(List<String> requestIds) async {
+    try {
+      WriteBatch batch = _firestore.batch();
+      for (String id in requestIds) {
+        batch.delete(_firestore
+            .collection(FirestoreCollections.serviceRequests)
+            .doc(id));
+        batch.delete(
+            _firestore.collection(FirestoreCollections.chats).doc(id));
+      }
+      await batch.commit();
+    } catch (_) {}
   }
 }

@@ -447,6 +447,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                         );
                       },
                     ),
+          const SizedBox(height: 24),
         ],
       ),
     );

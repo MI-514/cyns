@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/location_provider.dart';
 import '../shared/notification_center_screen.dart';
 import 'customer_home_tab.dart';
+import 'customer_job_history_tab.dart';
 import 'customer_profile_tab.dart';
 
 class CustomerDashboardScreen extends StatefulWidget {
@@ -29,6 +30,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
 
   final List<Widget> _tabs = const [
     CustomerHomeTab(),
+    CustomerJobHistoryTab(),
     CustomerProfileTab(),
   ];
 
@@ -87,6 +89,11 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
             label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment_outlined),
+            activeIcon: Icon(Icons.assignment),
+            label: 'My Bookings',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

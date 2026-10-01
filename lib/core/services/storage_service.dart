@@ -32,4 +32,29 @@ class StorageService {
       }
     }
   }
+
+  /// Upload an audio file to Firebase Storage with automatic Base64 / local path fallback
+  static Future<String?> uploadAudio({
+    required File file,
+    required String folder,
+    required String filename,
+  }) async {
+    try {
+      final ext = p.extension(file.path).isEmpty ? '.m4a' : p.extension(file.path);
+      final ref = _storage.ref().child('$folder/$filename$ext');
+      final metadata = SettableMetadata(contentType: 'audio/m4a');
+      final uploadTask =
+          await ref.putFile(file, metadata).timeout(const Duration(seconds: 5));
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      return downloadUrl;
+    } catch (_) {
+      try {
+        final bytes = await file.readAsBytes();
+        final base64String = base64Encode(bytes);
+        return 'data:audio/m4a;base64,$base64String';
+      } catch (_) {
+        return file.path;
+      }
+    }
+  }
 }

@@ -22,16 +22,19 @@ class WorkerJobHistoryTab extends StatelessWidget {
     }
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
           toolbarHeight: 48,
           bottom: const TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
+              Tab(text: 'Completed Jobs'),
               Tab(text: 'Active Jobs'),
               Tab(text: 'Rejected Jobs'),
-              Tab(text: 'Missed Requests'),
+              Tab(text: 'Missed / Cancelled'),
             ],
           ),
         ),
@@ -44,12 +47,17 @@ class WorkerJobHistoryTab extends StatelessWidget {
 
             final requests = snapshot.data ?? [];
 
+            final completedReqs = requests
+                .where((r) => r.status == AppConstants.statusCompleted)
+                .toList();
+
             final activeReqs = requests
                 .where((r) =>
                     r.status == AppConstants.statusAccepted ||
                     r.status == AppConstants.statusOnTheWay ||
                     r.status == AppConstants.statusArrived ||
-                    r.status == AppConstants.statusInProgress)
+                    r.status == AppConstants.statusInProgress ||
+                    r.status == 'Work Done Pending Confirmation')
                 .toList();
 
             final rejectedReqs = requests
@@ -59,11 +67,13 @@ class WorkerJobHistoryTab extends StatelessWidget {
             final missedReqs = requests
                 .where((r) =>
                     r.status == AppConstants.statusCancelled ||
+                    r.status == AppConstants.statusMissed ||
                     r.status == 'missed')
                 .toList();
 
             return TabBarView(
               children: [
+                _CompletedJobsList(requests: completedReqs),
                 _ActiveJobsList(requests: activeReqs),
                 _RejectedJobsList(requests: rejectedReqs),
                 _MissedRequestsList(requests: missedReqs),
@@ -72,6 +82,171 @@ class WorkerJobHistoryTab extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _CompletedJobsList extends StatelessWidget {
+  final List<ServiceRequestModel> requests;
+
+  const _CompletedJobsList({required this.requests});
+
+  @override
+  Widget build(BuildContext context) {
+    if (requests.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.task_alt_rounded, size: 54, color: AppColors.textLight),
+            SizedBox(height: 12),
+            Text(
+              'No completed jobs yet.',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Completed customer jobs will appear here.',
+              style: TextStyle(color: AppColors.textLight, fontSize: 13),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: requests.length,
+      itemBuilder: (context, index) {
+        final req = requests[index];
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.dividerColor),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      req.categoryName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: AppColors.primaryNavy,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color:
+                            AppColors.statusCompleted.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_circle_rounded,
+                              size: 14, color: AppColors.statusCompleted),
+                          SizedBox(width: 4),
+                          Text(
+                            'COMPLETED',
+                            style: TextStyle(
+                              color: AppColors.statusCompleted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.person_rounded,
+                        size: 16, color: AppColors.primaryNavy),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Customer: ${req.customerName}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_outlined,
+                        size: 16, color: AppColors.textSecondary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        req.customerAddress,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: AppColors.textSecondary, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.statusCompleted.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Done on ${req.updatedAt.day}/${req.updatedAt.month}/${req.updatedAt.year}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.statusCompleted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                      label: const Text('View Chat History'),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatScreen(
+                              requestId: req.id,
+                              peerName: req.customerName,
+                              peerRole: 'customer',
+                              peerId: req.customerId,
+                              peerPhone: req.customerPhone,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -98,7 +273,12 @@ class _ActiveJobsList extends StatelessWidget {
       itemBuilder: (context, index) {
         final req = requests[index];
         return Card(
+          elevation: 2,
           margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.dividerColor),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -145,7 +325,10 @@ class _ActiveJobsList extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryNavy,
+                        ),
                         icon: const Icon(Icons.chat),
                         label: const Text('Chat'),
                         onPressed: () {
@@ -164,11 +347,12 @@ class _ActiveJobsList extends StatelessWidget {
                         },
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryNavy,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.accentBlue,
+                          side: const BorderSide(color: AppColors.accentBlue),
                         ),
                         icon: const Icon(Icons.map),
                         label: const Text('Live Map'),
@@ -216,6 +400,9 @@ class _RejectedJobsList extends StatelessWidget {
         final req = requests[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
             leading: CircleAvatar(
@@ -286,6 +473,9 @@ class _MissedRequestsList extends StatelessWidget {
         final req = requests[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
             leading: CircleAvatar(

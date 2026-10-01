@@ -20,6 +20,8 @@ import '../../providers/service_request_provider.dart';
 import '../customer/rating_review_screen.dart';
 import 'agora_call_screen.dart';
 import 'chat_screen.dart';
+import '../../core/services/call_signaling_service.dart';
+import '../../core/services/notification_service.dart';
 
 /// Full-featured live map tracking screen for Chase Your Need.
 ///
@@ -73,8 +75,17 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
 
     _cLat = widget.request.customerLat;
     _cLng = widget.request.customerLng;
+    if (_cLat == 0.0 || _cLng == 0.0) {
+      _cLat = MapConstants.defaultLat;
+      _cLng = MapConstants.defaultLng;
+    }
+
     _wLat = widget.request.workerLat ?? _cLat;
     _wLng = widget.request.workerLng ?? _cLng;
+    if (_wLat == 0.0 || _wLng == 0.0) {
+      _wLat = _cLat;
+      _wLng = _cLng;
+    }
 
     _fetchRoute();
     _startGpsStream();
@@ -162,18 +173,54 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   // ════════════════════════════════════════════════
 
   void _startGpsStream() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    // 1. Immediately use last known position so marker appears with zero delay
+    try {
+      final lastPos = await Geolocator.getLastKnownPosition();
+      if (lastPos != null && mounted && _isWorker) {
+        setState(() {
+          _wLat = lastPos.latitude;
+          _wLng = lastPos.longitude;
+        });
+      }
+    } catch (_) {}
+
+    bool serviceEnabled = false;
+    try {
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    } catch (_) {}
     if (!serviceEnabled) return;
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
+    LocationPermission permission = LocationPermission.denied;
+    try {
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+    } catch (_) {}
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       return;
     }
 
+    // 2. Fetch fresh initial location immediately (doesn't wait for 8m movement!)
+    if (_isWorker) {
+      Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 6),
+        ),
+      ).then((pos) {
+        if (mounted) {
+          setState(() {
+            _wLat = pos.latitude;
+            _wLng = pos.longitude;
+          });
+          _fitBothMarkers();
+        }
+      }).catchError((_) {});
+    }
+
+    _positionSub?.cancel();
     _positionSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
@@ -299,10 +346,20 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
 
   void _fitBothMarkers() {
     try {
-      double minLat = min(_wLat, _cLat) - 0.005;
-      double maxLat = max(_wLat, _cLat) + 0.005;
-      double minLng = min(_wLng, _cLng) - 0.005;
-      double maxLng = max(_wLng, _cLng) + 0.005;
+      if (_wLat == 0.0 || _cLat == 0.0) return;
+      double minLat = min(_wLat, _cLat) - 0.004;
+      double maxLat = max(_wLat, _cLat) + 0.004;
+      double minLng = min(_wLng, _cLng) - 0.004;
+      double maxLng = max(_wLng, _cLng) + 0.004;
+
+      if ((maxLat - minLat).abs() < 0.006) {
+        minLat -= 0.003;
+        maxLat += 0.003;
+      }
+      if ((maxLng - minLng).abs() < 0.006) {
+        minLng -= 0.003;
+        maxLng += 0.003;
+      }
 
       _mapController.fitCamera(
         CameraFit.bounds(
@@ -310,7 +367,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             LatLng(minLat, minLng),
             LatLng(maxLat, maxLng),
           ),
-          padding: const EdgeInsets.fromLTRB(60, 220, 60, 320),
+          padding: const EdgeInsets.fromLTRB(40, 160, 40, 240),
         ),
       );
     } catch (_) {}
@@ -378,16 +435,21 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
   }
 
   void _markCompleted() async {
-    if (widget.request.completionOtp == null) {
-      await _updateStatus(AppConstants.statusCompleted);
-      return;
-    }
+    final reqProvider =
+        Provider.of<ServiceRequestProvider>(context, listen: false);
+    final expectedOtp = await reqProvider.ensureCompletionOtp(
+      widget.request.id,
+      currentOtp: widget.request.completionOtp,
+    );
+
+    if (!mounted) return;
 
     // OTP verification dialog
     String enteredOtp = '';
     bool? success = await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         icon: const Icon(Icons.lock_outline,
             size: 48, color: AppColors.starGold),
         title: const Text('Enter Completion OTP'),
@@ -411,7 +473,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                 border: OutlineInputBorder(),
                 hintText: '0000',
               ),
-              onChanged: (v) => enteredOtp = v,
+              onChanged: (v) => enteredOtp = v.trim(),
             ),
           ],
         ),
@@ -421,8 +483,12 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.statusCompleted,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
-              if (enteredOtp == widget.request.completionOtp) {
+              if (enteredOtp.trim() == expectedOtp.trim()) {
                 Navigator.pop(ctx, true);
               } else {
                 ScaffoldMessenger.of(ctx).showSnackBar(
@@ -491,6 +557,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     String peerName = _isWorker ? req.customerName : req.workerName;
     String peerPhone = _isWorker ? req.customerPhone : req.workerPhone;
     String peerRole = _isWorker ? 'customer' : 'worker';
+    String peerId = _isWorker ? req.customerId : req.workerId;
+    String myId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    String myName = _isWorker ? req.workerName : req.customerName;
 
     showModalBottomSheet(
       context: context,
@@ -534,8 +603,28 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold)),
               subtitle: const Text('Free internet call'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(ctx);
+                String signalId = '';
+                try {
+                  signalId = await CallSignalingService.initiateCall(
+                    callerId: myId,
+                    callerName: myName,
+                    receiverId: peerId,
+                    receiverName: peerName,
+                    channelId: req.id,
+                    isVideo: false,
+                  );
+                  NotificationService.sendNotification(
+                    userId: peerId,
+                    title: '📞 Incoming Voice Call from $myName',
+                    body: 'Tap to answer call in CYN',
+                    type: 'call',
+                    relatedId: req.id,
+                  );
+                } catch (_) {}
+
+                if (!context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -544,6 +633,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                       peerName: peerName,
                       peerRole: peerRole,
                       isVideoCall: false,
+                      signalId: signalId,
                     ),
                   ),
                 );
@@ -561,8 +651,28 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold)),
               subtitle: const Text('Live video call'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(ctx);
+                String signalId = '';
+                try {
+                  signalId = await CallSignalingService.initiateCall(
+                    callerId: myId,
+                    callerName: myName,
+                    receiverId: peerId,
+                    receiverName: peerName,
+                    channelId: req.id,
+                    isVideo: true,
+                  );
+                  NotificationService.sendNotification(
+                    userId: peerId,
+                    title: '📹 Incoming Video Call from $myName',
+                    body: 'Tap to answer call in CYN',
+                    type: 'call',
+                    relatedId: req.id,
+                  );
+                } catch (_) {}
+
+                if (!context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -571,6 +681,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                       peerName: peerName,
                       peerRole: peerRole,
                       isVideoCall: true,
+                      signalId: signalId,
                     ),
                   ),
                 );
@@ -636,10 +747,13 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
               maxZoom: MapConstants.maxZoom,
             ),
             children: [
-              // OpenStreetMap tiles (free, no API key)
+              // High-speed CartoDB Voyager road tiles with OpenStreetMap fallback
               TileLayer(
-                urlTemplate: MapConstants.osmTileUrl,
+                urlTemplate: MapConstants.primaryTileUrl,
+                subdomains: MapConstants.primaryTileSubdomains,
                 userAgentPackageName: MapConstants.packageName,
+                maxZoom: MapConstants.maxZoom,
+                fallbackUrl: MapConstants.osmTileUrl,
               ),
               // Road-following route polyline
               if (_routePoints.isNotEmpty)

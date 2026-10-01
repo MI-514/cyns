@@ -1,35 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/app_colors.dart';
+import '../constants/map_constants.dart';
+import 'nominatim_service.dart';
 
 class LocationService {
-  /// Request permission and get current Position
-  static Future<Position?> getCurrentLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return null;
-    }
+  /// Default fallback position when GPS is off/unavailable (Lahore, Pakistan)
+  static Position get defaultPosition => Position(
+        latitude: MapConstants.defaultLat,
+        longitude: MapConstants.defaultLng,
+        timestamp: DateTime.now(),
+        accuracy: 10.0,
+        altitude: 0.0,
+        altitudeAccuracy: 0.0,
+        heading: 0.0,
+        headingAccuracy: 0.0,
+        speed: 0.0,
+        speedAccuracy: 0.0,
+      );
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return null;
+  /// Request permission and get current Position with multi-tiered fallback
+  static Future<Position> getCurrentLocation() async {
+    // 1. Immediately return last known cached position if available
+    Position? lastPos;
+    try {
+      lastPos = await Geolocator.getLastKnownPosition();
+    } catch (_) {}
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return lastPos ?? defaultPosition;
       }
-    }
 
-    if (permission == LocationPermission.deniedForever) {
-      return null;
-    }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
 
-    return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-      ),
-    );
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return lastPos ?? defaultPosition;
+      }
+
+      // 2. Try High Accuracy (GPS hardware chip) with 6s timeout
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 6),
+          ),
+        );
+        return pos;
+      } catch (_) {
+        // 3. Fallback to Medium Accuracy (Cell towers & Wi-Fi — works indoors & fast)
+        try {
+          final pos = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 4),
+            ),
+          );
+          return pos;
+        } catch (_) {}
+      }
+    } catch (_) {}
+
+    return lastPos ?? defaultPosition;
   }
 
   /// Prompt user to enable GPS Service in System Settings
@@ -92,17 +131,10 @@ class LocationService {
     );
   }
 
-  /// Get readable address from coordinates
+  /// Get readable address from coordinates using Nominatim (OpenStreetMap — free)
   static Future<String> getAddressFromCoordinates(
       double lat, double lng) async {
-    try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks.first;
-        return "${place.street}, ${place.subLocality}, ${place.locality}, ${place.country}";
-      }
-    } catch (_) {}
-    return "Lat: ${lat.toStringAsFixed(4)}, Lng: ${lng.toStringAsFixed(4)}";
+    return NominatimService.getAddressFromCoordinates(lat, lng);
   }
 
   /// Calculate exact real-world distance in Kilometers using Geolocator's geodesic WGS84 formula
@@ -142,17 +174,21 @@ class LocationService {
     return "${h}h ${m}m";
   }
 
-  /// Launch Native Turn-by-Turn GPS Navigation directly in Google Maps App
+  /// Launch Turn-by-Turn GPS Navigation using any installed map app
+  /// (Google Maps, OsmAnd, Waze, HERE, etc.) via standard geo: URI — no API key needed.
   static Future<void> openTurnByTurnNavigation(
       double destinationLat, double destinationLng) async {
-    final Uri googleMapsUri =
-        Uri.parse('google.navigation:q=$destinationLat,$destinationLng&mode=d');
+    // Standard geo: URI — opens in whatever map app the user has installed
+    final Uri geoUri = Uri.parse(
+        'geo:$destinationLat,$destinationLng?q=$destinationLat,$destinationLng');
+
+    // Fallback: open in OpenStreetMap web (completely free, no API key)
     final Uri fallbackUri = Uri.parse(
-        'https://www.google.com/maps/dir/?api=1&destination=$destinationLat,$destinationLng&travelmode=driving');
+        'https://www.openstreetmap.org/directions?engine=osrm_car&route=;$destinationLat,$destinationLng');
 
     try {
-      if (await canLaunchUrl(googleMapsUri)) {
-        await launchUrl(googleMapsUri);
+      if (await canLaunchUrl(geoUri)) {
+        await launchUrl(geoUri);
         return;
       }
     } catch (_) {}
