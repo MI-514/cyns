@@ -186,8 +186,7 @@ class WorkerBadgeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasCnic =
-        worker.cnicNumber.trim().isNotEmpty || worker.isApproved;
+    final hasCnic = worker.cnicNumber.trim().isNotEmpty || worker.isApproved;
 
     return Wrap(
       spacing: 6,
@@ -199,8 +198,7 @@ class WorkerBadgeRow extends StatelessWidget {
           completedJobs: worker.completedJobsCount,
           compact: compact,
         ),
-        if (hasCnic)
-          CnicVerifiedBadge(compact: compact),
+        if (hasCnic) CnicVerifiedBadge(compact: compact),
       ],
     );
   }

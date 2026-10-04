@@ -129,8 +129,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         _lastRouteCalcPos = LatLng(_wLat, _wLng);
       } else {
         // Fallback: straight-line with geodesic distance
-        double dist = LocationService.calculateDistanceKm(
-            _wLat, _wLng, _cLat, _cLng);
+        double dist =
+            LocationService.calculateDistanceKm(_wLat, _wLng, _cLat, _cLng);
         if (mounted) {
           setState(() {
             _routePoints = [LatLng(_wLat, _wLng), LatLng(_cLat, _cLng)];
@@ -138,9 +138,10 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             _routeDurationMin = LocationService.calculateETA(dist) == 'Arrived'
                 ? 0
                 : int.tryParse(RegExp(r'(\d+)')
-                        .firstMatch(LocationService.calculateETA(dist))
-                        ?.group(1) ??
-                    '0') ?? 0;
+                            .firstMatch(LocationService.calculateETA(dist))
+                            ?.group(1) ??
+                        '0') ??
+                    0;
             _isLoadingRoute = false;
           });
         }
@@ -244,8 +245,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
         } catch (_) {}
 
         // Upload to Firestore
-        double dist = LocationService.calculateDistanceKm(
-            _wLat, _wLng, _cLat, _cLng);
+        double dist =
+            LocationService.calculateDistanceKm(_wLat, _wLng, _cLat, _cLng);
         String eta = LocationService.calculateETA(dist);
 
         FirebaseFirestore.instance
@@ -332,8 +333,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       final nums =
           RegExp(r'(\d+)').allMatches(eta).map((m) => m.group(1)!).toList();
       if (nums.length >= 2) {
-        return (int.tryParse(nums[0]) ?? 0) * 60 +
-            (int.tryParse(nums[1]) ?? 0);
+        return (int.tryParse(nums[0]) ?? 0) * 60 + (int.tryParse(nums[1]) ?? 0);
       }
     }
     final match = RegExp(r'(\d+)').firstMatch(eta);
@@ -375,15 +375,13 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
 
   void _centerOnWorker() {
     try {
-      _mapController.move(
-          LatLng(_wLat, _wLng), MapConstants.trackingZoom);
+      _mapController.move(LatLng(_wLat, _wLng), MapConstants.trackingZoom);
     } catch (_) {}
   }
 
   void _centerOnCustomer() {
     try {
-      _mapController.move(
-          LatLng(_cLat, _cLng), MapConstants.trackingZoom);
+      _mapController.move(LatLng(_cLat, _cLng), MapConstants.trackingZoom);
     } catch (_) {}
   }
 
@@ -399,8 +397,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       final provider =
           Provider.of<ServiceRequestProvider>(context, listen: false);
 
-      double dist = LocationService.calculateDistanceKm(
-          _wLat, _wLng, _cLat, _cLng);
+      double dist =
+          LocationService.calculateDistanceKm(_wLat, _wLng, _cLat, _cLng);
       String eta = LocationService.calculateETA(dist);
 
       await provider.updateStatus(
@@ -450,8 +448,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        icon: const Icon(Icons.lock_outline,
-            size: 48, color: AppColors.starGold),
+        icon:
+            const Icon(Icons.lock_outline, size: 48, color: AppColors.starGold),
         title: const Text('Enter Completion OTP'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -466,9 +464,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
               maxLength: 4,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 8),
+                  fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 8),
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 hintText: '0000',
@@ -532,8 +528,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.starGold,
               foregroundColor: Colors.black,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
             icon: const Icon(Icons.star),
             label: const Text('Rate & Review Worker',
@@ -644,8 +639,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.1),
-                child:
-                    const Icon(Icons.videocam, color: AppColors.primaryNavy),
+                child: const Icon(Icons.videocam, color: AppColors.primaryNavy),
               ),
               title: const Text('In-App Video Call',
                   style: TextStyle(fontWeight: FontWeight.bold)),
@@ -694,8 +688,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                 leading: CircleAvatar(
                   backgroundColor:
                       AppColors.availableGreen.withValues(alpha: 0.15),
-                  child: const Icon(Icons.phone,
-                      color: AppColors.availableGreen),
+                  child:
+                      const Icon(Icons.phone, color: AppColors.availableGreen),
                 ),
                 title: const Text('Direct Phone Call',
                     style: TextStyle(fontWeight: FontWeight.bold)),
@@ -782,12 +776,10 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                           decoration: BoxDecoration(
                             color: Colors.redAccent,
                             shape: BoxShape.circle,
-                            border:
-                                Border.all(color: Colors.white, width: 2.5),
+                            border: Border.all(color: Colors.white, width: 2.5),
                             boxShadow: [
                               BoxShadow(
-                                color:
-                                    Colors.redAccent.withValues(alpha: 0.4),
+                                color: Colors.redAccent.withValues(alpha: 0.4),
                                 blurRadius: 8,
                                 offset: const Offset(0, 3),
                               ),
@@ -816,12 +808,11 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.accentBlue,
                             shape: BoxShape.circle,
-                            border:
-                                Border.all(color: Colors.white, width: 2.5),
+                            border: Border.all(color: Colors.white, width: 2.5),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.accentBlue
-                                    .withValues(alpha: 0.4),
+                                color:
+                                    AppColors.accentBlue.withValues(alpha: 0.4),
                                 blurRadius: 8,
                                 offset: const Offset(0, 3),
                               ),
@@ -832,8 +823,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                         ),
                         CustomPaint(
                           size: const Size(12, 8),
-                          painter:
-                              _MarkerTipPainter(AppColors.accentBlue),
+                          painter: _MarkerTipPainter(AppColors.accentBlue),
                         ),
                       ],
                     ),
@@ -901,8 +891,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.pureWhite
-                                    .withValues(alpha: 0.2),
+                                color:
+                                    AppColors.pureWhite.withValues(alpha: 0.2),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -916,8 +906,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     _isWorker
@@ -959,13 +948,11 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color:
-                                AppColors.pureWhite.withValues(alpha: 0.12),
+                            color: AppColors.pureWhite.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceEvenly,
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -990,8 +977,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                               Container(
                                 height: 16,
                                 width: 1,
-                                color: AppColors.pureWhite
-                                    .withValues(alpha: 0.3),
+                                color:
+                                    AppColors.pureWhite.withValues(alpha: 0.3),
                               ),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -1245,15 +1232,16 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.statusOnTheWay,
-                          side: const BorderSide(
-                              color: AppColors.statusOnTheWay),
+                          side:
+                              const BorderSide(color: AppColors.statusOnTheWay),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         icon: const Icon(Icons.near_me, size: 18),
                         label: const Text('Open GPS Navigation',
                             style: TextStyle(fontWeight: FontWeight.bold)),
-                        onPressed: () => LocationService
-                            .openTurnByTurnNavigation(_cLat, _cLng),
+                        onPressed: () =>
+                            LocationService.openTurnByTurnNavigation(
+                                _cLat, _cLng),
                       ),
                     ),
                   ),
@@ -1281,11 +1269,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                             builder: (_) => ChatScreen(
                               requestId: req.id,
                               peerName: peerName,
-                              peerRole:
-                                  _isWorker ? 'customer' : 'worker',
-                              peerId: _isWorker
-                                  ? req.customerId
-                                  : req.workerId,
+                              peerRole: _isWorker ? 'customer' : 'worker',
+                              peerId: _isWorker ? req.customerId : req.workerId,
                               peerPhone: _isWorker
                                   ? req.customerPhone
                                   : req.workerPhone,
@@ -1305,8 +1290,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                       icon: const Icon(Icons.phone, size: 18),
                       label: const Text('Call',
                           style: TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: () =>
-                          _showCallChoiceModal(context, req),
+                      onPressed: () => _showCallChoiceModal(context, req),
                     ),
                   ),
                 ],

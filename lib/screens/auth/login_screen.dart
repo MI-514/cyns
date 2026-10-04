@@ -38,13 +38,20 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController = TextEditingController(text: widget.initialEmail ?? '');
   }
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   void _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     bool success = await authProvider.loginUser(
-      email: _emailController.text,
+      email: _emailController.text.trim().toLowerCase(),
       password: _passwordController.text,
       expectedRole: _role,
     );
@@ -248,8 +255,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                         fontWeight: FontWeight.bold)),
                           ),
                         ),
-
-
                       ],
                     ),
                   ),

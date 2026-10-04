@@ -572,8 +572,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryNavy
-                                  .withValues(alpha: 0.1),
+                              color:
+                                  AppColors.primaryNavy.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -648,8 +648,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                           ),
                           onPressed:
                               _isLoadingAddress ? null : _confirmLocation,
-                          icon: const Icon(Icons.check_circle_outline,
-                              size: 20),
+                          icon:
+                              const Icon(Icons.check_circle_outline, size: 20),
                           label: const Text(
                             'Confirm This Location',
                             style: TextStyle(
@@ -760,8 +760,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: AppColors.accentBlue
-                                  .withValues(alpha: 0.1),
+                              color:
+                                  AppColors.accentBlue.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(

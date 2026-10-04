@@ -40,7 +40,8 @@ class StorageService {
     required String filename,
   }) async {
     try {
-      final ext = p.extension(file.path).isEmpty ? '.m4a' : p.extension(file.path);
+      final ext =
+          p.extension(file.path).isEmpty ? '.m4a' : p.extension(file.path);
       final ref = _storage.ref().child('$folder/$filename$ext');
       final metadata = SettableMetadata(contentType: 'audio/m4a');
       final uploadTask =

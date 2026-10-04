@@ -66,7 +66,8 @@ class WorkerBackgroundService with WidgetsBindingObserver {
 
     if (androidPlugin != null) {
       // 1. High-Priority Alarm Channel (for screen-off / background lock screen)
-      final AndroidNotificationChannel alarmChannel = AndroidNotificationChannel(
+      final AndroidNotificationChannel alarmChannel =
+          AndroidNotificationChannel(
         'cyn_job_alarm_channel_v2',
         'Urgent Job Request Alarm',
         description:
@@ -120,8 +121,8 @@ class WorkerBackgroundService with WidgetsBindingObserver {
         .listen((doc) {
       if (!doc.exists || doc.data() == null) return;
       final data = doc.data() as Map<String, dynamic>;
-      final bool isAvailable = data['isAvailable'] == true ||
-          data['isAvailable'] == 'true';
+      final bool isAvailable =
+          data['isAvailable'] == true || data['isAvailable'] == 'true';
 
       if (isAvailable && !_isOnline) {
         _enableOnlineBackgroundMode(workerId);

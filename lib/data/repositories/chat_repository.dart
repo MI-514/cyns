@@ -68,9 +68,9 @@ class ChatRepository {
             ? '🎤 Voice Note (${audioDurationSec ?? 0}s)'
             : 'Sent an attachment');
 
-    await _firestore.collection(FirestoreCollections.chats).doc(chatId).update({
+    await _firestore.collection(FirestoreCollections.chats).doc(chatId).set({
       'lastMessage': summary,
       'lastMessageTime': FieldValue.serverTimestamp(),
-    });
+    }, SetOptions(merge: true));
   }
 }

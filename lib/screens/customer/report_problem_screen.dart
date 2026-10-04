@@ -29,6 +29,13 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   final _detailsController = TextEditingController();
   bool _isSubmitting = false;
 
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    _detailsController.dispose();
+    super.dispose();
+  }
+
   void _submitReport() async {
     if (!_formKey.currentState!.validate()) return;
 

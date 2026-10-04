@@ -285,12 +285,14 @@ class _CustomerRequestStatusScreenState
                                   ),
                                   actions: [
                                     TextButton(
-                                      onPressed: () => Navigator.pop(ctx, false),
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, false),
                                       child: const Text('No, Keep It'),
                                     ),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.statusRejected,
+                                        backgroundColor:
+                                            AppColors.statusRejected,
                                         foregroundColor: Colors.white,
                                       ),
                                       onPressed: () => Navigator.pop(ctx, true),
@@ -453,8 +455,8 @@ class _CustomerRequestStatusScreenState
                             children: [
                               CircleAvatar(
                                 radius: 24,
-                                backgroundColor:
-                                    AppColors.primaryNavy.withValues(alpha: 0.1),
+                                backgroundColor: AppColors.primaryNavy
+                                    .withValues(alpha: 0.1),
                                 child: const Icon(Icons.person,
                                     color: AppColors.primaryNavy),
                               ),
@@ -537,8 +539,8 @@ class _CustomerRequestStatusScreenState
                     color: AppColors.starGold.withValues(alpha: 0.1),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(
-                          color: AppColors.starGold, width: 2),
+                      side:
+                          const BorderSide(color: AppColors.starGold, width: 2),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -594,7 +596,8 @@ class _CustomerRequestStatusScreenState
                 const SizedBox(height: 24),
 
                 // Active Call & Chat Buttons
-                if (!isPending && !isInactive &&
+                if (!isPending &&
+                    !isInactive &&
                     req.status != AppConstants.statusCompleted) ...[
                   Row(
                     children: [
@@ -672,7 +675,8 @@ class _CustomerRequestStatusScreenState
                 ],
 
                 // Cancel button for ongoing / pending requests
-                if (req.status != AppConstants.statusCompleted && !isInactive) ...[
+                if (req.status != AppConstants.statusCompleted &&
+                    !isInactive) ...[
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,

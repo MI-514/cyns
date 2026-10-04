@@ -202,8 +202,8 @@ class _RequestWaitingCountdownScreenState
 
     // Filter out workers that were already requested
     List<WorkerProfileModel> nextWorkers = workerProvider.searchResults
-        .where((w) =>
-            !_attemptedWorkerIds.contains(w.workerId) && w.isAvailable)
+        .where(
+            (w) => !_attemptedWorkerIds.contains(w.workerId) && w.isAvailable)
         .toList();
 
     if (nextWorkers.isNotEmpty) {
@@ -278,8 +278,8 @@ class _RequestWaitingCountdownScreenState
     );
 
     List<WorkerProfileModel> nextWorkers = workerProvider.searchResults
-        .where((w) =>
-            !_attemptedWorkerIds.contains(w.workerId) && w.isAvailable)
+        .where(
+            (w) => !_attemptedWorkerIds.contains(w.workerId) && w.isAvailable)
         .toList();
 
     if (nextWorkers.isNotEmpty) {
@@ -557,8 +557,8 @@ class _RequestWaitingCountdownScreenState
                                 decoration: BoxDecoration(
                                   color: Colors.redAccent,
                                   shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: Colors.white, width: 2),
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
                                   boxShadow: const [
                                     BoxShadow(
                                       color: Colors.black38,
@@ -643,8 +643,8 @@ class _RequestWaitingCountdownScreenState
                                 decoration: BoxDecoration(
                                   color: AppColors.primaryNavy,
                                   shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: Colors.white, width: 2),
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
                                   boxShadow: const [
                                     BoxShadow(
                                       color: Colors.black38,

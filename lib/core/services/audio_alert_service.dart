@@ -170,8 +170,8 @@ class AudioAlertService {
     byteData.setUint8(2, 0x46); // 'F'
     byteData.setUint8(3, 0x46); // 'F'
     byteData.setUint32(4, 36 + byteLength, Endian.little);
-    byteData.setUint8(8, 0x57);  // 'W'
-    byteData.setUint8(9, 0x41);  // 'A'
+    byteData.setUint8(8, 0x57); // 'W'
+    byteData.setUint8(9, 0x41); // 'A'
     byteData.setUint8(10, 0x56); // 'V'
     byteData.setUint8(11, 0x45); // 'E'
 
@@ -181,11 +181,11 @@ class AudioAlertService {
     byteData.setUint8(14, 0x74); // 't'
     byteData.setUint8(15, 0x20); // ' '
     byteData.setUint32(16, 16, Endian.little); // Subchunk1Size
-    byteData.setUint16(20, 1, Endian.little);  // AudioFormat: PCM (1)
-    byteData.setUint16(22, 1, Endian.little);  // NumChannels: Mono (1)
+    byteData.setUint16(20, 1, Endian.little); // AudioFormat: PCM (1)
+    byteData.setUint16(22, 1, Endian.little); // NumChannels: Mono (1)
     byteData.setUint32(24, sampleRate, Endian.little);
     byteData.setUint32(28, sampleRate * 2, Endian.little); // ByteRate
-    byteData.setUint16(32, 2, Endian.little);  // BlockAlign: 2
+    byteData.setUint16(32, 2, Endian.little); // BlockAlign: 2
     byteData.setUint16(34, 16, Endian.little); // BitsPerSample: 16
 
     // data subchunk

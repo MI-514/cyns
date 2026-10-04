@@ -179,7 +179,9 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
         _worker!.longitude != null) {
       dist =
           location.calculateDistance(_worker!.latitude!, _worker!.longitude!);
-      hasValidGps = dist > 0 || (dist == 0 && location.currentPosition!.latitude == _worker!.latitude);
+      hasValidGps = dist > 0 ||
+          (dist == 0 &&
+              location.currentPosition!.latitude == _worker!.latitude);
     }
 
     return Scaffold(
@@ -622,53 +624,78 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                         fontWeight: FontWeight.bold),
                                   ),
                                   subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(rev.reviewText),
-                                      if (rev.tags.isNotEmpty || rev.tipAmount > 0) ...[
+                                      if (rev.tags.isNotEmpty ||
+                                          rev.tipAmount > 0) ...[
                                         const SizedBox(height: 8),
                                         Wrap(
                                           spacing: 4,
                                           runSpacing: 4,
-                                          children: rev.tags.map((tag) => Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primaryNavy.withValues(alpha: 0.05),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              tag,
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                color: AppColors.primaryNavy,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          )).toList()..addAll([
-                                            if (rev.tipAmount > 0)
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.starGold.withValues(alpha: 0.2),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    const Icon(Icons.favorite, size: 10, color: Colors.red),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      'Tipped Rs ${rev.tipAmount}',
+                                          children: rev.tags
+                                              .map((tag) => Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors
+                                                          .primaryNavy
+                                                          .withValues(
+                                                              alpha: 0.05),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
+                                                    ),
+                                                    child: Text(
+                                                      tag,
                                                       style: const TextStyle(
                                                         fontSize: 10,
-                                                        color: Colors.brown,
-                                                        fontWeight: FontWeight.bold,
+                                                        color: AppColors
+                                                            .primaryNavy,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
-                                                  ],
+                                                  ))
+                                              .toList()
+                                            ..addAll([
+                                              if (rev.tipAmount > 0)
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.starGold
+                                                        .withValues(alpha: 0.2),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(Icons.favorite,
+                                                          size: 10,
+                                                          color: Colors.red),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        'Tipped Rs ${rev.tipAmount}',
+                                                        style: const TextStyle(
+                                                          fontSize: 10,
+                                                          color: Colors.brown,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
-                                          ]),
+                                            ]),
                                         ),
                                       ],
                                     ],

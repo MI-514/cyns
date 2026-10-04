@@ -122,7 +122,8 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
       _engine!.registerEventHandler(
         RtcEngineEventHandler(
           onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
-            debugPrint("Agora Local Joined Channel: ${connection.channelId}, UID: ${connection.localUid}");
+            debugPrint(
+                "Agora Local Joined Channel: ${connection.channelId}, UID: ${connection.localUid}");
             if (!mounted) return;
             setState(() {
               _localUserJoined = true;
@@ -145,7 +146,8 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
           },
           onUserOffline: (RtcConnection connection, int remoteUid,
               UserOfflineReasonType reason) {
-            debugPrint("Agora Remote User Offline: $remoteUid, reason: $reason");
+            debugPrint(
+                "Agora Remote User Offline: $remoteUid, reason: $reason");
             if (!mounted) return;
             setState(() {
               _remoteUid = null;
@@ -161,8 +163,7 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
               _isEngineError = true;
               if (err == ErrorCodeType.errInvalidToken ||
                   err == ErrorCodeType.errTokenExpired) {
-                _engineErrorMessage =
-                    'Agora Token Error ($err).\n\n'
+                _engineErrorMessage = 'Agora Token Error ($err).\n\n'
                     'Agora Console mein ja kar project ka "Primary Certificate" disable karein (Testing Mode: APP ID only) taake kisi token ki zaroorat na rahay aur calls free & lifetime chal sakein.\n\n'
                     'console.agora.io -> Project -> Edit -> Set Security to "App ID only".';
               } else if (err == ErrorCodeType.errInvalidAppId) {
@@ -303,76 +304,42 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
         body: SafeArea(
           child: Stack(
             children: [
-            // Video Call Views or Voice Call Center
-            if (_isEngineError)
-              _buildErrorView()
-            else if (widget.isVideoCall)
-              _buildVideoViews()
-            else
-              _buildVoiceCallCenter(),
+              // Video Call Views or Voice Call Center
+              if (_isEngineError)
+                _buildErrorView()
+              else if (widget.isVideoCall)
+                _buildVideoViews()
+              else
+                _buildVoiceCallCenter(),
 
-            // Top Status Bar
-            Positioned(
-              top: 20,
-              left: 20,
-              right: 20,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black45,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          widget.isVideoCall
-                              ? Icons.videocam
-                              : Icons.phone_in_talk,
-                          color: AppColors.pureWhite,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          widget.isVideoCall ? 'Video Call' : 'Voice Call',
-                          style: const TextStyle(
-                            color: AppColors.pureWhite,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!_isEngineError)
+              // Top Status Bar
+              Positioned(
+                top: 20,
+                left: 20,
+                right: 20,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _remoteUid != null
-                            ? AppColors.availableGreen.withValues(alpha: 0.85)
-                            : Colors.amber.shade800.withValues(alpha: 0.85),
+                        color: Colors.black45,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            _remoteUid != null
-                                ? Icons.fiber_manual_record
-                                : Icons.ring_volume,
-                            size: 10,
+                            widget.isVideoCall
+                                ? Icons.videocam
+                                : Icons.phone_in_talk,
                             color: AppColors.pureWhite,
+                            size: 16,
                           ),
-                          const SizedBox(width: 5),
+                          const SizedBox(width: 6),
                           Text(
-                            _remoteUid != null
-                                ? _formatDuration(_callDurationSeconds)
-                                : 'Ringing...',
+                            widget.isVideoCall ? 'Video Call' : 'Voice Call',
                             style: const TextStyle(
                               color: AppColors.pureWhite,
                               fontSize: 12,
@@ -382,99 +349,134 @@ class _AgoraCallScreenState extends State<AgoraCallScreen> {
                         ],
                       ),
                     ),
-                ],
+                    if (!_isEngineError)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _remoteUid != null
+                              ? AppColors.availableGreen.withValues(alpha: 0.85)
+                              : Colors.amber.shade800.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _remoteUid != null
+                                  ? Icons.fiber_manual_record
+                                  : Icons.ring_volume,
+                              size: 10,
+                              color: AppColors.pureWhite,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              _remoteUid != null
+                                  ? _formatDuration(_callDurationSeconds)
+                                  : 'Ringing...',
+                              style: const TextStyle(
+                                color: AppColors.pureWhite,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
 
-            // Bottom Control Bar (only when call is active)
-            if (!_isEngineError)
-              Positioned(
-                bottom: 30,
-                left: 12,
-                right: 12,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 26,
-                        backgroundColor: _isMuted ? Colors.red : Colors.white24,
-                        child: IconButton(
-                          icon: Icon(
-                            _isMuted ? Icons.mic_off : Icons.mic,
-                            color: AppColors.pureWhite,
-                            size: 24,
-                          ),
-                          onPressed: _toggleMute,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      CircleAvatar(
-                        radius: 32,
-                        backgroundColor: Colors.red,
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.call_end,
-                            color: AppColors.pureWhite,
-                            size: 30,
-                          ),
-                          onPressed: _endCall,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      if (widget.isVideoCall) ...[
+              // Bottom Control Bar (only when call is active)
+              if (!_isEngineError)
+                Positioned(
+                  bottom: 30,
+                  left: 12,
+                  right: 12,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
                         CircleAvatar(
                           radius: 26,
                           backgroundColor:
-                              _isVideoMuted ? Colors.red : Colors.white24,
+                              _isMuted ? Colors.red : Colors.white24,
                           child: IconButton(
                             icon: Icon(
-                              _isVideoMuted
-                                  ? Icons.videocam_off
-                                  : Icons.videocam,
+                              _isMuted ? Icons.mic_off : Icons.mic,
                               color: AppColors.pureWhite,
                               size: 24,
                             ),
-                            onPressed: _toggleVideo,
+                            onPressed: _toggleMute,
                           ),
                         ),
                         const SizedBox(width: 14),
                         CircleAvatar(
-                          radius: 26,
-                          backgroundColor: Colors.white24,
+                          radius: 32,
+                          backgroundColor: Colors.red,
                           child: IconButton(
                             icon: const Icon(
-                              Icons.cameraswitch,
+                              Icons.call_end,
                               color: AppColors.pureWhite,
-                              size: 24,
+                              size: 30,
                             ),
-                            onPressed: _switchCamera,
+                            onPressed: _endCall,
                           ),
                         ),
-                      ] else
-                        CircleAvatar(
-                          radius: 26,
-                          backgroundColor: _isSpeaker
-                              ? AppColors.accentBlue
-                              : Colors.white24,
-                          child: IconButton(
-                            icon: Icon(
-                              _isSpeaker ? Icons.volume_up : Icons.volume_off,
-                              color: AppColors.pureWhite,
-                              size: 24,
+                        const SizedBox(width: 14),
+                        if (widget.isVideoCall) ...[
+                          CircleAvatar(
+                            radius: 26,
+                            backgroundColor:
+                                _isVideoMuted ? Colors.red : Colors.white24,
+                            child: IconButton(
+                              icon: Icon(
+                                _isVideoMuted
+                                    ? Icons.videocam_off
+                                    : Icons.videocam,
+                                color: AppColors.pureWhite,
+                                size: 24,
+                              ),
+                              onPressed: _toggleVideo,
                             ),
-                            onPressed: _toggleSpeaker,
                           ),
-                        ),
-                    ],
+                          const SizedBox(width: 14),
+                          CircleAvatar(
+                            radius: 26,
+                            backgroundColor: Colors.white24,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.cameraswitch,
+                                color: AppColors.pureWhite,
+                                size: 24,
+                              ),
+                              onPressed: _switchCamera,
+                            ),
+                          ),
+                        ] else
+                          CircleAvatar(
+                            radius: 26,
+                            backgroundColor: _isSpeaker
+                                ? AppColors.accentBlue
+                                : Colors.white24,
+                            child: IconButton(
+                              icon: Icon(
+                                _isSpeaker ? Icons.volume_up : Icons.volume_off,
+                                color: AppColors.pureWhite,
+                                size: 24,
+                              ),
+                              onPressed: _toggleSpeaker,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 

@@ -32,6 +32,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _role = widget.selectedRole;
   }
 
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   void _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 

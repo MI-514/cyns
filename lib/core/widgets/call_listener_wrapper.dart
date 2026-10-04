@@ -26,6 +26,7 @@ class _CallListenerWrapperState extends State<CallListenerWrapper> {
   StreamSubscription<DocumentSnapshot>? _activeSignalSubscription;
   BuildContext? _activeDialogContext;
   String? _currentSignalId;
+  String? _listeningUserId;
   AuthProvider? _authProvider;
   VoidCallback? _authListener;
 
@@ -44,22 +45,27 @@ class _CallListenerWrapperState extends State<CallListenerWrapper> {
     _authListener = () {
       final auth = _authProvider;
       if (auth == null) return;
-      if (auth.userModel != null && _callSubscription == null) {
-        _startListening(auth.userModel!.uid);
-      } else if (auth.userModel == null && _callSubscription != null) {
+      final currentUid = auth.userModel?.uid;
+      if (currentUid != null && currentUid.isNotEmpty) {
+        if (_listeningUserId != currentUid) {
+          _startListening(currentUid);
+        }
+      } else if (currentUid == null && _callSubscription != null) {
         _stopListening();
       }
     };
 
     _authProvider?.addListener(_authListener!);
 
-    if (_authProvider?.userModel != null) {
-      _startListening(_authProvider!.userModel!.uid);
+    final initialUid = _authProvider?.userModel?.uid;
+    if (initialUid != null && initialUid.isNotEmpty) {
+      _startListening(initialUid);
     }
   }
 
   void _startListening(String userId) {
     if (userId.isEmpty) return;
+    _listeningUserId = userId;
     CallSignalingService.cleanupStaleSignals(userId);
 
     final auth =
@@ -127,6 +133,7 @@ class _CallListenerWrapperState extends State<CallListenerWrapper> {
     _callSubscription?.cancel();
     _callSubscription = null;
     _currentSignalId = null;
+    _listeningUserId = null;
   }
 
   void _showIncomingCallDialog({

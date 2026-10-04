@@ -103,12 +103,10 @@ class _VoiceNoteBubbleState extends State<VoiceNoteBubble> {
   Widget build(BuildContext context) {
     final Color textColor =
         widget.isMe ? AppColors.pureWhite : AppColors.textPrimary;
-    final Color iconBgColor = widget.isMe
-        ? AppColors.pureWhite
-        : AppColors.primaryNavy;
-    final Color iconColor = widget.isMe
-        ? AppColors.primaryNavy
-        : AppColors.pureWhite;
+    final Color iconBgColor =
+        widget.isMe ? AppColors.pureWhite : AppColors.primaryNavy;
+    final Color iconColor =
+        widget.isMe ? AppColors.primaryNavy : AppColors.pureWhite;
 
     double progress = 0.0;
     if (_totalDuration.inMilliseconds > 0) {
@@ -142,9 +140,7 @@ class _VoiceNoteBubbleState extends State<VoiceNoteBubble> {
                     ],
                   ),
                   child: Icon(
-                    _isPlaying
-                        ? Icons.pause_rounded
-                        : Icons.play_arrow_rounded,
+                    _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                     color: iconColor,
                     size: 24,
                   ),
@@ -163,8 +159,24 @@ class _VoiceNoteBubbleState extends State<VoiceNoteBubble> {
                       children: List.generate(18, (index) {
                         // Alternate heights for realistic voice frequencies
                         final heights = [
-                          6.0, 14.0, 22.0, 10.0, 18.0, 26.0, 14.0, 8.0, 20.0,
-                          28.0, 16.0, 22.0, 10.0, 18.0, 14.0, 24.0, 12.0, 8.0
+                          6.0,
+                          14.0,
+                          22.0,
+                          10.0,
+                          18.0,
+                          26.0,
+                          14.0,
+                          8.0,
+                          20.0,
+                          28.0,
+                          16.0,
+                          22.0,
+                          10.0,
+                          18.0,
+                          14.0,
+                          24.0,
+                          12.0,
+                          8.0
                         ];
                         final h = heights[index % heights.length];
                         final bool isPassed = (index / 18) <= progress;

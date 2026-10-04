@@ -20,6 +20,12 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   String _getFirstName(AuthProvider auth) {
     String full = auth.userModel?.fullName.trim() ?? '';
     if (full.isNotEmpty) {
@@ -387,8 +393,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                          WorkerListScreen(
+                                      builder: (_) => WorkerListScreen(
                                         selectedCategoryId: cat.id,
                                         categoryName: cat.name,
                                       ),

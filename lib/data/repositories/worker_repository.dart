@@ -12,7 +12,8 @@ class WorkerRepository {
       DocumentSnapshot doc = await _firestore
           .collection(FirestoreCollections.workers)
           .doc(workerId)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 6));
       if (doc.exists && doc.data() != null) {
         return WorkerProfileModel.fromMap(
             doc.data() as Map<String, dynamic>, doc.id);
@@ -70,7 +71,8 @@ class WorkerRepository {
       QuerySnapshot snapshot = await _firestore
           .collection(FirestoreCollections.workers)
           .where('isAvailable', isEqualTo: true)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 8));
 
       if (snapshot.docs.isNotEmpty) {
         workers = snapshot.docs
@@ -94,8 +96,11 @@ class WorkerRepository {
 
             // 2. Check categoryIds list
             final matchesCategories = w.categoryIds.any((cid) {
-              final cidClean =
-                  cid.trim().toLowerCase().replaceAll('_', '').replaceAll(' ', '');
+              final cidClean = cid
+                  .trim()
+                  .toLowerCase()
+                  .replaceAll('_', '')
+                  .replaceAll(' ', '');
               return cidClean == targetClean ||
                   cidClean.contains(targetClean) ||
                   targetClean.contains(cidClean);
@@ -103,8 +108,11 @@ class WorkerRepository {
 
             // 3. Check skills list
             final matchesSkills = w.skills.any((s) {
-              final sClean =
-                  s.trim().toLowerCase().replaceAll('_', '').replaceAll(' ', '');
+              final sClean = s
+                  .trim()
+                  .toLowerCase()
+                  .replaceAll('_', '')
+                  .replaceAll(' ', '');
               return sClean == targetClean ||
                   sClean.contains(targetClean) ||
                   targetClean.contains(sClean);

@@ -21,8 +21,9 @@ class ServiceRequestProvider extends ChangeNotifier {
       _errorMessage = '';
       notifyListeners();
 
-      String otp = (1000 + DateTime.now().millisecondsSinceEpoch % 9000).toString();
-      
+      String otp =
+          (1000 + DateTime.now().millisecondsSinceEpoch % 9000).toString();
+
       ServiceRequestModel requestWithOtp = ServiceRequestModel(
         id: request.id,
         customerId: request.customerId,
@@ -105,10 +106,12 @@ class ServiceRequestProvider extends ChangeNotifier {
       body = 'Service completed! Please leave a review for the worker.';
     } else if (status == AppConstants.statusRejected) {
       title = 'Worker Unavailable';
-      body = 'The worker was unable to accept your request. Tap to choose another worker.';
+      body =
+          'The worker was unable to accept your request. Tap to choose another worker.';
     } else if (status == AppConstants.statusMissed) {
       title = 'Request Expired';
-      body = 'The worker did not respond in time. Tap to choose another worker.';
+      body =
+          'The worker did not respond in time. Tap to choose another worker.';
     }
 
     await NotificationService.sendNotification(

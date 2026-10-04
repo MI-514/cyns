@@ -71,6 +71,20 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
   bool _obscurePassword = true;
   final ImagePicker _picker = ImagePicker();
 
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _fullNameController.dispose();
+    _fatherNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _cnicController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickImage(String type) async {
     showModalBottomSheet(
       context: context,
@@ -104,7 +118,9 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                       Navigator.pop(ctx);
                       final XFile? file = await _picker.pickImage(
                         source: ImageSource.camera,
-                        imageQuality: 70,
+                        maxWidth: 600,
+                        maxHeight: 600,
+                        imageQuality: 65,
                       );
                       if (file != null) _setPickedImage(file, type);
                     },
@@ -120,7 +136,9 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                       Navigator.pop(ctx);
                       final XFile? file = await _picker.pickImage(
                         source: ImageSource.gallery,
-                        imageQuality: 70,
+                        maxWidth: 600,
+                        maxHeight: 600,
+                        imageQuality: 65,
                       );
                       if (file != null) _setPickedImage(file, type);
                     },

@@ -41,15 +41,15 @@ class ServiceCategoriesScreen extends StatelessWidget {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
                           onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => WorkerListScreen(
-                                    selectedCategoryId: cat.id,
-                                    categoryName: cat.name,
-                                  ),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => WorkerListScreen(
+                                  selectedCategoryId: cat.id,
+                                  categoryName: cat.name,
                                 ),
-                              );
+                              ),
+                            );
                           },
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),

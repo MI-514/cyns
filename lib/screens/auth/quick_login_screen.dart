@@ -82,7 +82,8 @@ class _QuickLoginScreenState extends State<QuickLoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final isCustomer = widget.savedRole.toLowerCase() != AppConstants.roleWorker;
+    final isCustomer =
+        widget.savedRole.toLowerCase() != AppConstants.roleWorker;
     final roleTitle = isCustomer ? 'Customer / Employer' : 'Service Provider';
     final roleColor = isCustomer ? AppColors.accentBlue : AppColors.starGold;
 
@@ -91,7 +92,8 @@ class _QuickLoginScreenState extends State<QuickLoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -130,7 +132,8 @@ class _QuickLoginScreenState extends State<QuickLoginScreen> {
 
                   // Welcome Card
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 26),
                     decoration: BoxDecoration(
                       color: AppColors.pureWhite,
                       borderRadius: BorderRadius.circular(24),
@@ -154,7 +157,8 @@ class _QuickLoginScreenState extends State<QuickLoginScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: AppColors.accentBlue.withValues(alpha: 0.3),
+                                  color: AppColors.accentBlue
+                                      .withValues(alpha: 0.3),
                                   width: 2,
                                 ),
                               ),
@@ -171,8 +175,8 @@ class _QuickLoginScreenState extends State<QuickLoginScreen> {
                                     )
                                   : CircleAvatar(
                                       radius: 46,
-                                      backgroundColor:
-                                          AppColors.primaryNavy.withValues(alpha: 0.1),
+                                      backgroundColor: AppColors.primaryNavy
+                                          .withValues(alpha: 0.1),
                                       child: Text(
                                         widget.savedName.isNotEmpty
                                             ? widget.savedName[0].toUpperCase()

@@ -52,6 +52,12 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
     _loadCompletionOtp();
   }
 
+  @override
+  void dispose() {
+    _reviewController.dispose();
+    super.dispose();
+  }
+
   void _loadCompletionOtp() async {
     final otp = await ServiceRequestRepository().ensureCompletionOtp(
       widget.request.id,
@@ -340,7 +346,8 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
                     (tag) => FilterChip(
                       label: Text(tag),
                       selected: _selectedTags.contains(tag),
-                      selectedColor: AppColors.primaryNavy.withValues(alpha: 0.1),
+                      selectedColor:
+                          AppColors.primaryNavy.withValues(alpha: 0.1),
                       checkmarkColor: AppColors.primaryNavy,
                       onSelected: (selected) {
                         setState(() {
@@ -375,12 +382,16 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
                 return GestureDetector(
                   onTap: () => setState(() => _selectedTip = amount),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.starGold : Colors.transparent,
+                      color:
+                          isSelected ? AppColors.starGold : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isSelected ? AppColors.starGold : AppColors.dividerColor,
+                        color: isSelected
+                            ? AppColors.starGold
+                            : AppColors.dividerColor,
                         width: 2,
                       ),
                     ),
@@ -388,7 +399,8 @@ class _RatingReviewScreenState extends State<RatingReviewScreen> {
                       amount == 0 ? 'None' : 'Rs $amount',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: isSelected ? Colors.black : AppColors.textSecondary,
+                        color:
+                            isSelected ? Colors.black : AppColors.textSecondary,
                       ),
                     ),
                   ),

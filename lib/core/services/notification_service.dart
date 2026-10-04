@@ -9,7 +9,8 @@ import 'audio_alert_service.dart';
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Handles high-priority FCM background notifications when screen is locked/off
   try {
-    if (message.data['type'] == 'job_offer' || message.data['type'] == 'request') {
+    if (message.data['type'] == 'job_offer' ||
+        message.data['type'] == 'request') {
       await AudioAlertService.initialize();
       await AudioAlertService.playAlarmAlert();
     }

@@ -78,7 +78,9 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
 
       // 2. Mark worker offline in DB so next customers cannot hire them while busy
       if (effectiveWorkerId.isNotEmpty) {
-        workerProvider.toggleAvailability(effectiveWorkerId, false).catchError((_) {});
+        workerProvider
+            .toggleAvailability(effectiveWorkerId, false)
+            .catchError((_) {});
       }
 
       if (!mounted) return;
@@ -124,8 +126,7 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
   void _showEnterCompletionOtpDialog(ServiceRequestModel req) async {
     final reqProvider =
         Provider.of<ServiceRequestProvider>(context, listen: false);
-    final workerProvider =
-        Provider.of<WorkerProvider>(context, listen: false);
+    final workerProvider = Provider.of<WorkerProvider>(context, listen: false);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     final expectedOtp = await reqProvider.ensureCompletionOtp(
@@ -374,8 +375,8 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                     icon: const Icon(Icons.cancel_outlined, size: 18),
                     label: const Text(
                       'Cancel Request',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 13),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                     onPressed: () async {
                       final reqProvider = Provider.of<ServiceRequestProvider>(
@@ -446,8 +447,8 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                     icon: const Icon(Icons.check_circle_outline, size: 18),
                     label: const Text(
                       'Accept & Chat',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 13),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                     onPressed: () {
                       Navigator.pop(ctx);
@@ -557,12 +558,14 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
         final now = DateTime.now();
 
         // Active ongoing jobs (Accepted, On the Way, Arrived, In Progress, or Work Done Pending Confirmation)
-        final activeJobs = allRequests.where((r) =>
-            r.status == AppConstants.statusAccepted ||
-            r.status == AppConstants.statusOnTheWay ||
-            r.status == AppConstants.statusArrived ||
-            r.status == AppConstants.statusInProgress ||
-            r.status == 'Work Done Pending Confirmation').toList();
+        final activeJobs = allRequests
+            .where((r) =>
+                r.status == AppConstants.statusAccepted ||
+                r.status == AppConstants.statusOnTheWay ||
+                r.status == AppConstants.statusArrived ||
+                r.status == AppConstants.statusInProgress ||
+                r.status == 'Work Done Pending Confirmation')
+            .toList();
 
         // Filter pending requests: ONLY show fresh requests within timeout window matching worker's trade.
         // Auto-expire older requests in Firestore so they disappear and don't pile up!
@@ -841,7 +844,6 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                   ],
                 ),
                 const SizedBox(height: 12),
-
                 Card(
                   elevation: 4,
                   shadowColor: AppColors.primaryNavy.withValues(alpha: 0.15),
@@ -925,8 +927,8 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                           children: [
                             CircleAvatar(
                               radius: 14,
-                              backgroundColor: AppColors.primaryNavy
-                                  .withValues(alpha: 0.1),
+                              backgroundColor:
+                                  AppColors.primaryNavy.withValues(alpha: 0.1),
                               child: const Icon(Icons.person,
                                   size: 16, color: AppColors.primaryNavy),
                             ),
@@ -1064,8 +1066,8 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                                   fontSize: 13,
                                 ),
                               ),
-                              onPressed: () =>
-                                  _showEnterCompletionOtpDialog(currentActiveJob),
+                              onPressed: () => _showEnterCompletionOtpDialog(
+                                  currentActiveJob),
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -1309,8 +1311,9 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                     final req = pendingRequests[index];
                     final bool isCurrentAccepting = _acceptingJobId == req.id;
                     final ageSec = now.difference(req.createdAt).inSeconds;
-                    final remainingSec = (AppConstants.requestTimeoutSeconds - ageSec)
-                        .clamp(0, AppConstants.requestTimeoutSeconds);
+                    final remainingSec =
+                        (AppConstants.requestTimeoutSeconds - ageSec)
+                            .clamp(0, AppConstants.requestTimeoutSeconds);
 
                     return Card(
                       elevation: 3,
@@ -1377,7 +1380,8 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                                     color: Colors.red.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                        color: Colors.red.withValues(alpha: 0.3)),
+                                        color:
+                                            Colors.red.withValues(alpha: 0.3)),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -1538,8 +1542,8 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                                               await requestProvider
                                                   .updateStatus(
                                                 requestId: req.id,
-                                                status: AppConstants
-                                                    .statusRejected,
+                                                status:
+                                                    AppConstants.statusRejected,
                                                 customerId: req.customerId,
                                                 workerId: req.workerId,
                                               );

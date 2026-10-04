@@ -104,8 +104,8 @@ class _ChatScreenState extends State<ChatScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content:
-                  Text('Microphone permission is required to send voice notes.'),
+              content: Text(
+                  'Microphone permission is required to send voice notes.'),
               backgroundColor: AppColors.statusRejected,
             ),
           );
@@ -180,7 +180,6 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (audioUrl != null) {
-
         await chatProvider.sendMessage(
           chatId: widget.requestId,
           senderId: auth.userModel?.uid ?? '',
@@ -328,8 +327,7 @@ class _ChatScreenState extends State<ChatScreen> {
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('Cancel Service Request?'),
         content: Text(
           userRole == 'worker'
@@ -410,7 +408,7 @@ class _ChatScreenState extends State<ChatScreen> {
       message: text,
       attachmentUrl: attachmentUrl,
     );
-    
+
     // Background Chat Notification Alert
     await NotificationService.sendNotification(
       userId: widget.peerId,
@@ -722,8 +720,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           horizontal: 8, vertical: 8),
                     ),
                     icon: const Icon(Icons.map_rounded, size: 14),
-                    label: const Text('Map',
-                        style: TextStyle(fontSize: 11)),
+                    label: const Text('Map', style: TextStyle(fontSize: 11)),
                     onPressed: _openLiveMapTracking,
                   ),
                   const SizedBox(width: 6),
@@ -735,8 +732,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           horizontal: 8, vertical: 8),
                     ),
                     icon: const Icon(Icons.cancel_outlined, size: 14),
-                    label: const Text('Cancel',
-                        style: TextStyle(fontSize: 11)),
+                    label: const Text('Cancel', style: TextStyle(fontSize: 11)),
                     onPressed: () => _cancelServiceRequest(req, userRole),
                   ),
                 ],
@@ -751,7 +747,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.primaryNavy,
-                            side: const BorderSide(color: AppColors.primaryNavy),
+                            side:
+                                const BorderSide(color: AppColors.primaryNavy),
                             padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
                           icon: const Icon(Icons.map_rounded, size: 16),
@@ -822,8 +819,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           horizontal: 8, vertical: 8),
                     ),
                     icon: const Icon(Icons.map_rounded, size: 14),
-                    label: const Text('Map',
-                        style: TextStyle(fontSize: 11)),
+                    label: const Text('Map', style: TextStyle(fontSize: 11)),
                     onPressed: _openLiveMapTracking,
                   ),
                   const SizedBox(width: 6),
@@ -835,8 +831,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           horizontal: 8, vertical: 8),
                     ),
                     icon: const Icon(Icons.cancel_outlined, size: 14),
-                    label: const Text('Cancel',
-                        style: TextStyle(fontSize: 11)),
+                    label: const Text('Cancel', style: TextStyle(fontSize: 11)),
                     onPressed: () => _cancelServiceRequest(req, userRole),
                   ),
                 ],
@@ -948,8 +943,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: AppColors.starGold.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(10),
@@ -971,8 +966,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             Text(
                               'Share with worker to finalize job',
                               style: TextStyle(
-                                  fontSize: 10,
-                                  color: AppColors.textSecondary),
+                                  fontSize: 10, color: AppColors.textSecondary),
                             ),
                           ],
                         ),
@@ -1129,8 +1123,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.statusCompleted,
-                        side: const BorderSide(
-                            color: AppColors.statusCompleted),
+                        side:
+                            const BorderSide(color: AppColors.statusCompleted),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         minimumSize: Size.zero,
@@ -1178,8 +1172,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Exit Chat',
-                        style: TextStyle(fontSize: 11)),
+                    child:
+                        const Text('Exit Chat', style: TextStyle(fontSize: 11)),
                   ),
                 ],
               ),
@@ -1944,8 +1938,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         // Camera Quick Button
                         IconButton(
                           padding: const EdgeInsets.all(8),
-                          constraints: const BoxConstraints(
-                              minWidth: 38, minHeight: 38),
+                          constraints:
+                              const BoxConstraints(minWidth: 38, minHeight: 38),
                           icon: const Icon(Icons.camera_alt_rounded,
                               color: AppColors.primaryNavy, size: 22),
                           tooltip: 'Take Photo',
@@ -1955,8 +1949,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         // Gallery Attachment Sheet Launcher
                         IconButton(
                           padding: const EdgeInsets.all(8),
-                          constraints: const BoxConstraints(
-                              minWidth: 38, minHeight: 38),
+                          constraints:
+                              const BoxConstraints(minWidth: 38, minHeight: 38),
                           icon: const Icon(Icons.photo_library_rounded,
                               color: AppColors.accentBlue, size: 22),
                           tooltip: 'Attach Media',

@@ -311,9 +311,8 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                     icon: const Icon(Icons.check_circle),
                     label: const Text('Mark Service as Completed'),
                     onPressed: () async {
-                      final workerProvider = Provider.of<WorkerProvider>(
-                          context,
-                          listen: false);
+                      final workerProvider =
+                          Provider.of<WorkerProvider>(context, listen: false);
                       final scaffoldMessenger = ScaffoldMessenger.of(context);
 
                       final expectedOtp =

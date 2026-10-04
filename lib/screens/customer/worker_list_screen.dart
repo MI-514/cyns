@@ -152,6 +152,12 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _fetchWorkersOnly() async {
     final loc = Provider.of<LocationProvider>(context, listen: false);
     await loc.fetchCurrentLocation(context: context);
@@ -165,8 +171,6 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
       query: _searchController.text,
     );
   }
-
-
 
   Widget _buildWorkerLocationBanner(BuildContext context,
       WorkerProfileModel worker, double? dist, bool hasValidGps) {
@@ -393,46 +397,45 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
             ),
             const SizedBox(height: 12),
 
-                        // Instant Auto-Dispatch Button (Direct 1-Tap Search & Dispatch)
-                        if (workerProvider.searchResults.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.starGold,
-                                  foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                icon: _isAutoDispatching
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.black,
-                                        ),
-                                      )
-                                    : const Icon(Icons.bolt, size: 24),
-                                label: Text(
-                                  _isAutoDispatching
-                                      ? 'Dispatching Nearest Worker...'
-                                      : 'Instant Auto-Dispatch (Find Nearest)',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w800, fontSize: 15),
-                                ),
-                                onPressed: _isAutoDispatching
-                                    ? null
-                                    : _autoDispatchNearestWorker,
-                              ),
+            // Instant Auto-Dispatch Button (Direct 1-Tap Search & Dispatch)
+            if (workerProvider.searchResults.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.starGold,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: _isAutoDispatching
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black,
                             ),
-                          ),
-                          
-                        const SizedBox(height: 16),
+                          )
+                        : const Icon(Icons.bolt, size: 24),
+                    label: Text(
+                      _isAutoDispatching
+                          ? 'Dispatching Nearest Worker...'
+                          : 'Instant Auto-Dispatch (Find Nearest)',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 15),
+                    ),
+                    onPressed:
+                        _isAutoDispatching ? null : _autoDispatchNearestWorker,
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 16),
             // Workers List
             workerProvider.isLoading
                 ? const Padding(
@@ -639,9 +642,8 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 10, vertical: 6),
                                             minimumSize: Size.zero,
-                                            tapTargetSize:
-                                                MaterialTapTargetSize
-                                                    .shrinkWrap,
+                                            tapTargetSize: MaterialTapTargetSize
+                                                .shrinkWrap,
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(8),
@@ -675,15 +677,15 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 12, vertical: 6),
                                             minimumSize: Size.zero,
-                                            tapTargetSize:
-                                                MaterialTapTargetSize
-                                                    .shrinkWrap,
+                                            tapTargetSize: MaterialTapTargetSize
+                                                .shrinkWrap,
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
                                           ),
-                                          icon: const Icon(Icons.near_me_rounded,
+                                          icon: const Icon(
+                                              Icons.near_me_rounded,
                                               size: 13),
                                           label: const Text(
                                             'Hire',

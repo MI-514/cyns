@@ -126,11 +126,11 @@ class NominatimService {
         params['countrycodes'] = countryCode;
       }
 
-      final uri = Uri.parse('$_baseUrl/search').replace(queryParameters: params);
-      final response =
-          await http.get(uri, headers: _headers).timeout(
-                const Duration(seconds: 8),
-              );
+      final uri =
+          Uri.parse('$_baseUrl/search').replace(queryParameters: params);
+      final response = await http.get(uri, headers: _headers).timeout(
+            const Duration(seconds: 8),
+          );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -159,8 +159,7 @@ class NominatimService {
     await _enforceRateLimit();
 
     try {
-      final uri =
-          Uri.parse('$_baseUrl/reverse').replace(queryParameters: {
+      final uri = Uri.parse('$_baseUrl/reverse').replace(queryParameters: {
         'lat': lat.toString(),
         'lon': lng.toString(),
         'format': 'json',
@@ -169,10 +168,9 @@ class NominatimService {
         'zoom': '18',
       });
 
-      final response =
-          await http.get(uri, headers: _headers).timeout(
-                const Duration(seconds: 8),
-              );
+      final response = await http.get(uri, headers: _headers).timeout(
+            const Duration(seconds: 8),
+          );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

@@ -41,6 +41,16 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _professionController.dispose();
+    _skillsController.dispose();
+    _expController.dispose();
+    _descController.dispose();
+    _areaController.dispose();
+    super.dispose();
+  }
+
   void _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 

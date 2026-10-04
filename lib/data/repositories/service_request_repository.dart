@@ -376,8 +376,7 @@ class ServiceRequestRepository {
         batch.delete(_firestore
             .collection(FirestoreCollections.serviceRequests)
             .doc(id));
-        batch.delete(
-            _firestore.collection(FirestoreCollections.chats).doc(id));
+        batch.delete(_firestore.collection(FirestoreCollections.chats).doc(id));
       }
       await batch.commit();
     } catch (_) {}
