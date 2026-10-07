@@ -6,7 +6,7 @@ import '../models/worker_profile_model.dart';
 class WorkerRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Fetch single worker profile from Firestore (real data only)
+  /// fetch worker profile from firestore
   Future<WorkerProfileModel?> getWorkerProfile(String workerId) async {
     try {
       DocumentSnapshot doc = await _firestore

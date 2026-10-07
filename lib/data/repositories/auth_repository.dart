@@ -72,22 +72,21 @@ class AuthRepository {
         role: role,
       );
 
-      // Save user doc in Firestore
-      _firestore
+      // Save user doc in Firestore (Wait for it to ensure it is created)
+      await _firestore
           .collection(FirestoreCollections.users)
           .doc(uid)
-          .set(userModel.toMap())
-          .catchError((_) {});
+          .set(userModel.toMap());
 
       if (role == 'customer') {
-        _firestore.collection(FirestoreCollections.customers).doc(uid).set({
+        await _firestore.collection(FirestoreCollections.customers).doc(uid).set({
           'customerId': uid,
           'username': cleanUsername,
           'name': fullName,
           'phoneNumber': phoneNumber,
           'profilePicUrl': '',
           'address': '',
-        }).catchError((_) {});
+        });
       }
 
       return userModel;
@@ -233,13 +232,51 @@ class AuthRepository {
         if (doc.exists && doc.data() != null) {
           userModel =
               UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+        } else {
+          // Profile exists in Auth but missing in Users collection (Recovery fallback)
+          DocumentSnapshot workerDoc = await _firestore.collection(FirestoreCollections.workers).doc(uid).get();
+          if (workerDoc.exists && workerDoc.data() != null) {
+            Map<String, dynamic> data = workerDoc.data() as Map<String, dynamic>;
+            userModel = UserModel(
+              uid: uid,
+              email: cred.user!.email ?? email,
+              username: data['username'] ?? '',
+              fullName: data['name'] ?? 'Worker',
+              phoneNumber: data['phoneNumber'] ?? '',
+              role: 'worker',
+              profilePicUrl: data['profilePicUrl'] ?? '',
+            );
+            await _firestore.collection(FirestoreCollections.users).doc(uid).set(userModel.toMap());
+          } else {
+            DocumentSnapshot custDoc = await _firestore.collection(FirestoreCollections.customers).doc(uid).get();
+            if (custDoc.exists && custDoc.data() != null) {
+              Map<String, dynamic> data = custDoc.data() as Map<String, dynamic>;
+              userModel = UserModel(
+                uid: uid,
+                email: data['email'] ?? cred.user!.email ?? email,
+                username: data['username'] ?? '',
+                fullName: data['name'] ?? 'Customer',
+                phoneNumber: data['phoneNumber'] ?? '',
+                role: 'customer',
+                profilePicUrl: data['profilePicUrl'] ?? '',
+              );
+              await _firestore.collection(FirestoreCollections.users).doc(uid).set(userModel.toMap());
+            }
+          }
         }
       } catch (_) {}
 
       if (userModel == null) {
-        await _auth.signOut();
-        throw Exception(
-            "Account data not found. Your profile may not be set up correctly. Please register again.");
+        // Ultimate Recovery Fallback: Create a default profile if Auth succeeded but everything else is missing
+        userModel = UserModel(
+          uid: uid,
+          email: cred.user!.email ?? email,
+          username: email.split('@')[0],
+          fullName: expectedRole == 'worker' ? 'Service Provider' : 'Customer',
+          phoneNumber: '',
+          role: expectedRole ?? 'customer',
+        );
+        await _firestore.collection(FirestoreCollections.users).doc(uid).set(userModel.toMap());
       }
 
       // Enforce Strict Cross-Role Login Block
