@@ -24,15 +24,28 @@ class AuthRepository {
   }
 
   /// Check if a username is available in Cloud Firestore
-  Future<bool> isUsernameAvailable(String username) async {
+  /// Automatically allows re-registration if the username belongs to the same email (orphaned account fix)
+  Future<bool> isUsernameAvailable(String username, String email) async {
     try {
       String clean = username.trim().toLowerCase();
+      String cleanEmail = email.trim().toLowerCase();
+      
       QuerySnapshot snap = await _firestore
           .collection(FirestoreCollections.users)
           .where('username', isEqualTo: clean)
           .get()
           .timeout(const Duration(seconds: 3));
-      return snap.docs.isEmpty;
+          
+      if (snap.docs.isEmpty) return true;
+
+      // Check if the existing username is from the same email (deleted auth account scenario)
+      for (var doc in snap.docs) {
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data != null && data['email'].toString().toLowerCase() == cleanEmail) {
+          return true; // Allow re-registration for orphaned accounts
+        }
+      }
+      return false;
     } catch (_) {
       return true;
     }
@@ -50,7 +63,7 @@ class AuthRepository {
     String cleanUsername = username.trim().toLowerCase();
 
     // Verify username uniqueness
-    bool isAvailable = await isUsernameAvailable(cleanUsername);
+    bool isAvailable = await isUsernameAvailable(cleanUsername, email);
     if (!isAvailable) {
       throw Exception(
           "Username '$cleanUsername' is already taken. Please choose another unique username.");
@@ -126,7 +139,7 @@ class AuthRepository {
     String cleanUsername = username.trim().toLowerCase();
 
     // Verify username uniqueness
-    bool isAvailable = await isUsernameAvailable(cleanUsername);
+    bool isAvailable = await isUsernameAvailable(cleanUsername, email);
     if (!isAvailable) {
       throw Exception(
           "Username '$cleanUsername' is already taken. Please choose another unique username.");
