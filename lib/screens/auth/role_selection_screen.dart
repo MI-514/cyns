@@ -15,22 +15,21 @@ class RoleSelectionScreen extends StatelessWidget {
         title: const Text('Welcome to CYN'),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 24.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Hero Logo Badge & Brand Banner
+              // Hero Logo Badge & Brand Banner (Top Positioned)
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [AppColors.primaryNavy, AppColors.lightNavy],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.primaryNavy.withValues(alpha: 0.25),
@@ -42,23 +41,23 @@ class RoleSelectionScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.all(16),
                       decoration: const BoxDecoration(
                         color: AppColors.pureWhite,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.handyman_rounded,
-                        size: 42,
+                        size: 38,
                         color: AppColors.primaryNavy,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                     const Text(
                       'Welcome to CYN',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 26,
+                        fontSize: 24,
                         fontWeight: FontWeight.w800,
                         color: AppColors.pureWhite,
                         letterSpacing: 0.5,
@@ -69,7 +68,7 @@ class RoleSelectionScreen extends StatelessWidget {
                       'Chase Your Needs • Select your role to Sign In',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: AppColors.textLight,
                       ),
@@ -77,11 +76,11 @@ class RoleSelectionScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 36),
+              const SizedBox(height: 24),
 
               // Button 1: Customer / Employer Sign In
               SizedBox(
-                height: 56,
+                height: 54,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryNavy,
@@ -90,11 +89,11 @@ class RoleSelectionScreen extends StatelessWidget {
                     ),
                     elevation: 3,
                   ),
-                  icon: const Icon(Icons.person, color: AppColors.pureWhite, size: 24),
+                  icon: const Icon(Icons.person, color: AppColors.pureWhite, size: 22),
                   label: const Text(
                     'Customer / Employer Sign In',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: AppColors.pureWhite,
                     ),
@@ -112,11 +111,11 @@ class RoleSelectionScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // Button 2: Skilled Worker Sign In
               SizedBox(
-                height: 56,
+                height: 54,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accentBlue,
@@ -125,11 +124,11 @@ class RoleSelectionScreen extends StatelessWidget {
                     ),
                     elevation: 3,
                   ),
-                  icon: const Icon(Icons.engineering, color: AppColors.pureWhite, size: 24),
+                  icon: const Icon(Icons.engineering, color: AppColors.pureWhite, size: 22),
                   label: const Text(
                     'Skilled Worker Sign In',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: AppColors.pureWhite,
                     ),
