@@ -24,111 +24,29 @@ class RoleSelectionScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Hero Logo Badge & Brand Banner
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primaryNavy, AppColors.lightNavy],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryNavy.withValues(alpha: 0.25),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: const BoxDecoration(
-                        color: AppColors.pureWhite,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.handyman_rounded,
-                        size: 36,
-                        color: AppColors.primaryNavy,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'CYN – Chase Your Needs',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.pureWhite,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Skilled Worker Hiring & Doorstep Service Platform',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textLight,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.pureWhite.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Text(
-                        '⚡ Instant Booking • 🔒 Verified Workers • 📞 Calls & Chat',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.starGold,
-                          letterSpacing: 0.2,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
               // Title Header
-              const Text(
-                'Choose Your Account Type',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primaryNavy,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Select your role below to Sign In or Register:',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
+              const Center(
+                child: Text(
+                  'Choose Your Account Type',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryNavy,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
 
               // Option 1: Customer / Employer Card
               _RoleActionCard(
-                title: 'Customer / Employer',
+                title: 'Customer',
                 subtitle: 'HIRE SKILLED PROFESSIONALS',
-                description:
-                    'Book verified plumbers, electricians, mechanics, and skilled workers for doorstep service.',
+                description: '',
                 icon: Icons.person_add_alt_1_rounded,
                 badgeColor: AppColors.primaryNavy,
-                buttonText: 'Sign In as Customer →',
+                buttonText: 'Sign In as Customer',
                 onTap: () {
                   Navigator.push(
                     context,
@@ -146,11 +64,10 @@ class RoleSelectionScreen extends StatelessWidget {
               _RoleActionCard(
                 title: 'Skilled Worker',
                 subtitle: 'OFFER SERVICES & EARN',
-                description:
-                    'Receive nearby doorstep job offers, manage your schedule, and grow your daily income.',
+                description: '',
                 icon: Icons.engineering_rounded,
                 badgeColor: AppColors.accentBlue,
-                buttonText: 'Sign In as Worker →',
+                buttonText: 'Sign In as Worker',
                 onTap: () {
                   Navigator.push(
                     context,
@@ -162,7 +79,7 @@ class RoleSelectionScreen extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 30),
 
               // Bottom Footer Badge
               Row(
@@ -266,15 +183,6 @@ class _RoleActionCard extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                description,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                  height: 1.35,
-                ),
               ),
               const SizedBox(height: 14),
 
