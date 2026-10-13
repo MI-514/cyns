@@ -24,7 +24,7 @@ class RoleSelectionScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 12),
+              const SizedBox(height: 100),
 
               // Title Header
               const Center(
@@ -80,24 +80,6 @@ class RoleSelectionScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 30),
-
-              // Bottom Footer Badge
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.verified_user_rounded,
-                      size: 16, color: AppColors.availableGreen),
-                  const SizedBox(width: 6),
-                  Text(
-                    '100% Verified & Secure Platform',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 12),
             ],
           ),

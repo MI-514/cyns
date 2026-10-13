@@ -148,7 +148,6 @@ class AuthProvider extends ChangeNotifier {
       _userModel = await _authRepository.loginUser(
         email: email,
         password: password,
-        expectedRole: expectedRole,
       );
 
       _state = AuthState.authenticated;
