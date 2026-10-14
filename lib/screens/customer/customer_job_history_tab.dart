@@ -116,7 +116,7 @@ class CustomerJobHistoryTab extends StatelessWidget {
     }
 
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -126,7 +126,6 @@ class CustomerJobHistoryTab extends StatelessWidget {
             tabAlignment: TabAlignment.start,
             tabs: [
               Tab(text: 'Active'),
-              Tab(text: 'Pending'),
               Tab(text: 'Completed'),
               Tab(text: 'Cancelled'),
             ],
@@ -141,21 +140,16 @@ class CustomerJobHistoryTab extends StatelessWidget {
 
             final requests = snapshot.data ?? [];
 
-            // Active requests: accepted, on the way, arrived, in progress
+            // Active requests: pending, accepted, on the way, arrived, in progress
             final activeReqs = requests
                 .where((r) =>
+                    r.status == AppConstants.statusPending ||
+                    r.status == 'pending' ||
                     r.status == AppConstants.statusAccepted ||
                     r.status == AppConstants.statusOnTheWay ||
                     r.status == AppConstants.statusArrived ||
                     r.status == AppConstants.statusInProgress ||
                     r.status == 'Work Done Pending Confirmation')
-                .toList();
-
-            // Pending requests: waiting for worker acceptance
-            final pendingReqs = requests
-                .where((r) =>
-                    r.status == AppConstants.statusPending ||
-                    r.status == 'pending')
                 .toList();
 
             // Completed requests
@@ -179,16 +173,6 @@ class CustomerJobHistoryTab extends StatelessWidget {
             return TabBarView(
               children: [
                 _ActiveRequestListView(requests: activeReqs),
-                _RequestListView(
-                  requests: pendingReqs,
-                  emptyText: 'No pending requests.',
-                  typeName: 'Pending',
-                  onClearAll: pendingReqs.isNotEmpty
-                      ? () => _clearRequests(context,
-                          requests: pendingReqs, typeName: 'Pending')
-                      : null,
-                  onDeleteSingle: (req) => _deleteSingleRequest(context, req),
-                ),
                 _RequestListView(
                   requests: completedReqs,
                   emptyText: 'No completed requests.',
@@ -226,6 +210,8 @@ class _ActiveRequestListView extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     switch (status) {
+      case AppConstants.statusPending:
+        return AppColors.statusPending;
       case AppConstants.statusAccepted:
         return AppColors.statusAccepted;
       case AppConstants.statusOnTheWay:
@@ -442,7 +428,7 @@ class _ActiveRequestListView extends StatelessWidget {
   }
 }
 
-/// Generic Request List View for Pending, Completed, Cancelled with Clear Options
+/// Generic Request List View for Completed, Cancelled with Clear Options
 class _RequestListView extends StatelessWidget {
   final List<ServiceRequestModel> requests;
   final String emptyText;
