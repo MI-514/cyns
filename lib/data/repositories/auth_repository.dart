@@ -467,15 +467,19 @@ class AuthRepository {
         username = (cData['username'] ?? username).toString();
       }
 
-      // Sync users collection
-      await _firestore.collection(FirestoreCollections.users).doc(uid).set({
-        'uid': uid,
-        'email': cleanEmail,
-        'username': username,
-        'fullName': fullName,
-        'phoneNumber': phone,
-        'role': determinedRole,
-      }, SetOptions(merge: true));
+      // Sync users collection safely with try-catch
+      try {
+        await _firestore.collection(FirestoreCollections.users).doc(uid).set({
+          'uid': uid,
+          'email': cleanEmail,
+          'username': username,
+          'fullName': fullName,
+          'phoneNumber': phone,
+          'role': determinedRole,
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint("[AuthRepository Sync User Warning] $e");
+      }
 
       return UserModel(
         uid: uid,
