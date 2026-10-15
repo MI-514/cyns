@@ -122,8 +122,7 @@ class CustomerJobHistoryTab extends StatelessWidget {
           automaticallyImplyLeading: false,
           toolbarHeight: 0, // Header handled by Dashboard
           bottom: const TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
+            isScrollable: false,
             tabs: [
               Tab(text: 'Active'),
               Tab(text: 'Completed'),
