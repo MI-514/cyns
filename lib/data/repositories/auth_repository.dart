@@ -356,9 +356,13 @@ class AuthRepository {
         password: password.trim(),
       );
 
-      // Non-blocking email verification check for smooth testing/debugging
       if (cred.user != null) {
         await cred.user!.reload();
+
+        if (!cred.user!.emailVerified) {
+          await _auth.signOut();
+          throw Exception("Please verify your email address first. Check your Gmail inbox ($cleanEmail) and click the verification link to activate your account.");
+        }
       }
 
       String uid = cred.user!.uid;
