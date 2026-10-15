@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cyns/core/services/agora_service.dart';
+import 'package:cyns/core/services/location_service.dart';
 import 'package:cyns/data/models/category_model.dart';
 import 'package:cyns/data/models/service_request_model.dart';
+import 'package:cyns/data/models/user_model.dart';
 
 void main() {
-  group('CYN Unit & Logic Tests', () {
+  group('CYN Comprehensive Unit & Logic Tests', () {
     test('Agora App ID is configured securely without exposing certificate', () {
       expect(AgoraService.appId.isNotEmpty, isTrue);
       expect(AgoraService.appCertificate.isEmpty, isTrue);
@@ -27,6 +29,41 @@ void main() {
       expect(fromMap.id, 'cat_plumbing');
       expect(fromMap.name, 'Plumbing');
       expect(fromMap.description, 'Pipes, leaks and repair');
+    });
+
+    test('UserModel serialization and role assignment', () {
+      final user = UserModel(
+        uid: 'user_123',
+        email: 'test@cyns.app',
+        username: 'testuser',
+        fullName: 'Test User',
+        phoneNumber: '+923001122334',
+        role: 'customer',
+        isVerified: true,
+      );
+
+      final map = user.toMap();
+      expect(map['role'], 'customer');
+      expect(map['isVerified'], true);
+
+      final restored = UserModel.fromMap(map, 'user_123');
+      expect(restored.uid, 'user_123');
+      expect(restored.role, 'customer');
+      expect(restored.isVerified, true);
+    });
+
+    test('LocationService distance, formatting and ETA calculations', () {
+      double distKm = LocationService.calculateDistanceKm(31.5204, 74.3587, 31.5304, 74.3687);
+      expect(distKm, greaterThan(0.0));
+
+      String fmtMeters = LocationService.formatDistance(0.45);
+      expect(fmtMeters.contains('m away'), isTrue);
+
+      String fmtKm = LocationService.formatDistance(3.5);
+      expect(fmtKm, '3.5 km away');
+
+      String eta = LocationService.calculateETA(2.5);
+      expect(eta.isNotEmpty, isTrue);
     });
 
     test('ServiceRequestModel roundtrip serialization with OTP', () {
