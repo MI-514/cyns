@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/firestore_collections.dart';
 import '../../core/services/notification_service.dart';
@@ -8,7 +9,7 @@ import '../models/worker_profile_model.dart';
 class ServiceRequestRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Create a new service request
+  /// Create a new service request (Strictly throws if Firestore fails; never returns fake ID)
   Future<String> createServiceRequest(ServiceRequestModel request) async {
     try {
       final otp = (request.completionOtp != null &&
@@ -36,9 +37,9 @@ class ServiceRequestRepository {
       });
 
       return ref.id;
-    } catch (_) {
-      // Fallback request ID for offline/demo mode
-      return 'req_${DateTime.now().millisecondsSinceEpoch}';
+    } catch (e) {
+      debugPrint("[ServiceRequestRepository Error] createServiceRequest failed: $e");
+      rethrow;
     }
   }
 
@@ -72,6 +73,54 @@ class ServiceRequestRepository {
       return newOtp;
     } catch (_) {
       return (1000 + (DateTime.now().millisecondsSinceEpoch % 9000)).toString();
+    }
+  }
+
+  /// Worker Accepts Job Offer with Transaction Safety (Prevents double acceptance race conditions)
+  Future<void> acceptJobOffer({
+    required String requestId,
+    required String customerId,
+    required String workerId,
+  }) async {
+    try {
+      DocumentReference ref = _firestore
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(requestId);
+
+      await _firestore.runTransaction((tx) async {
+        DocumentSnapshot doc = await tx.get(ref);
+        if (!doc.exists || doc.data() == null) {
+          throw Exception("Service request no longer exists.");
+        }
+
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        String status = (data['status'] ?? '').toString().trim().toLowerCase();
+
+        if (status != 'pending') {
+          throw Exception("This job request has already been accepted or is no longer available.");
+        }
+
+        tx.update(ref, {
+          'status': AppConstants.statusAccepted,
+          'workerId': workerId,
+          'workerAgreed': false,
+          'customerAgreed': false,
+          'acceptedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+
+      // Notify customer of acceptance
+      await NotificationService.sendNotification(
+        userId: customerId,
+        title: 'Request Accepted!',
+        body: 'A nearby skilled worker has accepted your job offer. Open chat to discuss details.',
+        type: 'request',
+        relatedId: requestId,
+      );
+    } catch (e) {
+      debugPrint("[ServiceRequestRepository Error] acceptJobOffer transaction failed: $e");
+      rethrow;
     }
   }
 
@@ -219,7 +268,6 @@ class ServiceRequestRepository {
     required String requestId,
     required double workerLat,
     required double workerLng,
-    double? heading,
     String? estimatedArrivalTime,
     double? distanceKm,
   }) async {
@@ -229,7 +277,6 @@ class ServiceRequestRepository {
         'workerLng': workerLng,
         'updatedAt': FieldValue.serverTimestamp(),
       };
-      if (heading != null) updateData['heading'] = heading;
       if (estimatedArrivalTime != null) {
         updateData['estimatedArrivalTime'] = estimatedArrivalTime;
       }
@@ -242,6 +289,132 @@ class ServiceRequestRepository {
     } catch (_) {}
   }
 
+  /// Worker sets agreement (Agree & Start Travel)
+  Future<void> setAgreement({
+    required String requestId,
+    required bool isWorker,
+    required String customerId,
+    required String workerId,
+  }) async {
+    try {
+      DocumentReference ref = _firestore
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(requestId);
+
+      DocumentSnapshot doc = await ref.get();
+      if (!doc.exists) return;
+
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      bool workerAgreed = isWorker ? true : (data['workerAgreed'] ?? false);
+      bool customerAgreed = !isWorker ? true : (data['customerAgreed'] ?? false);
+
+      String newStatus = data['status'];
+      if (workerAgreed && customerAgreed) {
+        newStatus = AppConstants.statusOnTheWay;
+      }
+
+      await ref.set({
+        'workerAgreed': workerAgreed,
+        'customerAgreed': customerAgreed,
+        'status': newStatus,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (newStatus == AppConstants.statusOnTheWay) {
+        await NotificationService.sendNotification(
+          userId: customerId,
+          title: 'Job Confirmed!',
+          body: 'Both sides agreed. Worker is now on the way.',
+          type: 'request',
+          relatedId: requestId,
+        );
+      }
+    } catch (_) {}
+  }
+
+  /// Worker arrives at customer location (Triggered when distance <= 100m)
+  Future<void> arriveAtLocation({
+    required String requestId,
+    required String customerId,
+  }) async {
+    try {
+      await _firestore
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(requestId)
+          .set({
+        'status': AppConstants.statusArrived,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      await NotificationService.sendNotification(
+        userId: customerId,
+        title: 'Worker Arrived!',
+        body: 'Your technician has arrived at your location.',
+        type: 'request',
+        relatedId: requestId,
+      );
+    } catch (_) {}
+  }
+
+  /// Worker starts work (In Progress)
+  Future<void> startWork({
+    required String requestId,
+    required String customerId,
+  }) async {
+    try {
+      await _firestore
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(requestId)
+          .set({
+        'status': AppConstants.statusInProgress,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      await NotificationService.sendNotification(
+        userId: customerId,
+        title: 'Work In Progress',
+        body: 'Technician has started the service work.',
+        type: 'request',
+        relatedId: requestId,
+      );
+    } catch (_) {}
+  }
+
+  /// Worker marks service as completed
+  Future<void> completeService(String requestId) async {
+    try {
+      DocumentReference ref = _firestore
+          .collection(FirestoreCollections.serviceRequests)
+          .doc(requestId);
+
+      DocumentSnapshot doc = await ref.get();
+      if (!doc.exists) return;
+
+      String currentStatus = doc.get('status') ?? '';
+      String normStatus = currentStatus.trim().toLowerCase();
+
+      if (normStatus != 'completed' && normStatus != 'cancelled' && normStatus != 'rejected') {
+        await ref.set({
+          'status': AppConstants.statusCompleted,
+          'completedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        String workerId = doc.get('workerId');
+        if (workerId.isNotEmpty) {
+          await _firestore
+              .collection(FirestoreCollections.workers)
+              .doc(workerId)
+              .update({
+            'completedJobsCount': FieldValue.increment(1),
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("[ServiceRequestRepository Error] completeService: $e");
+    }
+  }
+
   /// Get Customer Requests Stream
   Stream<List<ServiceRequestModel>> getCustomerRequests(String customerId) {
     try {
@@ -249,15 +422,20 @@ class ServiceRequestRepository {
           .collection(FirestoreCollections.serviceRequests)
           .where('customerId', isEqualTo: customerId)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => ServiceRequestModel.fromMap(doc.data(), doc.id))
-              .toList());
+          .map((snapshot) {
+        List<ServiceRequestModel> list = snapshot.docs
+            .map((doc) => ServiceRequestModel.fromMap(
+                doc.data(), doc.id))
+            .toList();
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return list;
+      });
     } catch (_) {
       return const Stream.empty();
     }
   }
 
-  /// Get Worker Requests Stream (filtered by worker ID and matching categories)
+  /// Get Worker Requests Stream
   Stream<List<ServiceRequestModel>> getWorkerRequests(
     String workerId, {
     String? categoryId,
@@ -266,59 +444,16 @@ class ServiceRequestRepository {
     try {
       return _firestore
           .collection(FirestoreCollections.serviceRequests)
+          .where('workerId', isEqualTo: workerId)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-                  .map((doc) => ServiceRequestModel.fromMap(doc.data(), doc.id))
-                  .where((req) {
-                // Return requests assigned to this specific worker
-                if (req.workerId == workerId) return true;
-
-                // Return open pending requests in the worker's category
-                if (req.status == AppConstants.statusPending) {
-                  if (req.workerId.isEmpty) {
-                    final reqCat = req.categoryId
-                        .trim()
-                        .toLowerCase()
-                        .replaceAll('_', '')
-                        .replaceAll(' ', '');
-                    final reqCatName = req.categoryName
-                        .trim()
-                        .toLowerCase()
-                        .replaceAll('_', '')
-                        .replaceAll(' ', '');
-
-                    if (categoryId != null && categoryId.isNotEmpty) {
-                      final cNorm = categoryId
-                          .trim()
-                          .toLowerCase()
-                          .replaceAll('_', '')
-                          .replaceAll(' ', '');
-                      if (cNorm == reqCat ||
-                          cNorm == reqCatName ||
-                          reqCat.contains(cNorm) ||
-                          cNorm.contains(reqCat)) {
-                        return true;
-                      }
-                    }
-                    if (categoryIds != null && categoryIds.isNotEmpty) {
-                      if (categoryIds.any((c) {
-                        final cNorm = c
-                            .trim()
-                            .toLowerCase()
-                            .replaceAll('_', '')
-                            .replaceAll(' ', '');
-                        return cNorm == reqCat ||
-                            cNorm == reqCatName ||
-                            reqCat.contains(cNorm) ||
-                            cNorm.contains(reqCat);
-                      })) {
-                        return true;
-                      }
-                    }
-                  }
-                }
-                return false;
-              }).toList());
+          .map((snapshot) {
+        List<ServiceRequestModel> list = snapshot.docs
+            .map((doc) => ServiceRequestModel.fromMap(
+                doc.data(), doc.id))
+            .toList();
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return list;
+      });
     } catch (_) {
       return const Stream.empty();
     }
@@ -339,44 +474,53 @@ class ServiceRequestRepository {
     }
   }
 
-  /// Admin: Get all service requests
-  Future<List<ServiceRequestModel>> getAllRequests() async {
+  /// Create a new service request document
+  Future<String?> createRequest(ServiceRequestModel request) async {
     try {
-      QuerySnapshot snapshot = await _firestore
-          .collection(FirestoreCollections.serviceRequests)
-          .get();
-      return snapshot.docs
-          .map((doc) => ServiceRequestModel.fromMap(
-              doc.data() as Map<String, dynamic>, doc.id))
-          .toList();
-    } catch (_) {
-      return [];
+      return await createServiceRequest(request);
+    } catch (e) {
+      debugPrint("[ServiceRequestRepository Error] createRequest: $e");
+      return null;
     }
   }
 
-  /// Delete a single service request
+  /// Update request status
+  Future<void> updateStatus({
+    required String requestId,
+    required String status,
+    required String customerId,
+    required String workerId,
+    String? workerName,
+    String? workerPhone,
+  }) async {
+    await updateRequestStatus(
+      requestId: requestId,
+      status: status,
+      workerId: workerId,
+      workerName: workerName,
+      workerPhone: workerPhone,
+    );
+  }
+
+  /// Delete a service request
   Future<void> deleteRequest(String requestId) async {
     try {
       await _firestore
           .collection(FirestoreCollections.serviceRequests)
           .doc(requestId)
           .delete();
-      await _firestore
-          .collection(FirestoreCollections.chats)
-          .doc(requestId)
-          .delete();
     } catch (_) {}
   }
 
-  /// Batch delete multiple service requests
+  /// Delete multiple service requests
   Future<void> deleteMultipleRequests(List<String> requestIds) async {
     try {
       WriteBatch batch = _firestore.batch();
       for (String id in requestIds) {
-        batch.delete(_firestore
+        DocumentReference ref = _firestore
             .collection(FirestoreCollections.serviceRequests)
-            .doc(id));
-        batch.delete(_firestore.collection(FirestoreCollections.chats).doc(id));
+            .doc(id);
+        batch.delete(ref);
       }
       await batch.commit();
     } catch (_) {}
