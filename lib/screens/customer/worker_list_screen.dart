@@ -950,7 +950,7 @@ class _LocationRadarWidgetState extends State<_LocationRadarWidget>
                   label: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      widget.isSearching ? 'Searching...' : 'Search & Dispatch',
+                      widget.isSearching ? 'Searching...' : 'Search',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
