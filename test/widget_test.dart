@@ -5,10 +5,9 @@ import 'package:cyns/data/models/service_request_model.dart';
 
 void main() {
   group('CYN Unit & Logic Tests', () {
-    test('Agora dynamic token generation generates valid 007 token', () {
-      final token = AgoraService.getTokenForChannel('cyn_channel_test_123');
-      expect(token.isNotEmpty, isTrue);
-      expect(token.startsWith('007'), isTrue);
+    test('Agora App ID is configured securely without exposing certificate', () {
+      expect(AgoraService.appId.isNotEmpty, isTrue);
+      expect(AgoraService.appCertificate.isEmpty, isTrue);
     });
 
     test('CategoryModel serializes and deserializes correctly', () {
