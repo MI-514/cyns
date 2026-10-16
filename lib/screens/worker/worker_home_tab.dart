@@ -419,7 +419,6 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                         if (ctx.mounted) {
                           Navigator.pop(ctx);
                         }
-                        AudioAlertService.stopAlarmAlert();
                         await reqProvider.updateStatus(
                           requestId: req.id,
                           status: AppConstants.statusRejected,
