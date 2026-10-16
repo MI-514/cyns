@@ -79,9 +79,25 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _tabs,
+      body: Consumer<WorkerProvider>(
+        builder: (context, wp, child) {
+          if (wp.isLoading && wp.currentWorkerProfile == null) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading profile data...'),
+                ],
+              ),
+            );
+          }
+          return IndexedStack(
+            index: _currentIndex,
+            children: _tabs,
+          );
+        }
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,

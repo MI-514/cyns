@@ -69,7 +69,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             size: 52,
             color: AppColors.statusCompleted,
           ),
-          title: const Text('Registration Successful! 🎉'),
+          title: const Text('Registration Successful! '),
           content: Text(
             'Your account as ${_role.toUpperCase()} has been created!\n\nA verification email has been sent to your email address.\n\nPlease open your Gmail, click the verification link, and then sign in to continue.',
             textAlign: TextAlign.center,
@@ -114,7 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Customer / Employer Registration'),
+        title: const Text('Customer Registration'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -134,7 +134,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Fill in your details to register as a Customer / Employer',
+                  'Fill in your details to register as a Customer',
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 24),
@@ -143,9 +143,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _usernameController,
                   decoration: const InputDecoration(
-                    labelText: 'Unique Username (e.g. john123) *',
+                    labelText: 'Username *',
                     prefixIcon: Icon(Icons.alternate_email),
-                    hintText: 'Must include letters & numbers (e.g. ahmed786)',
+                    hintText: 'ahmed786',
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {

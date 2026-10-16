@@ -13,6 +13,7 @@ import 'providers/service_request_provider.dart';
 import 'providers/worker_provider.dart';
 import 'screens/splash/splash_screen.dart';
 import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'core/widgets/call_listener_wrapper.dart';
 import 'core/services/worker_background_service.dart';
 import 'core/services/notification_service.dart';
@@ -42,6 +43,14 @@ void main() async {
       await Firebase.initializeApp();
     } catch (_) {}
   }
+
+  // Enable Firestore Offline Persistence to cache profile data instantly
+  try {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  } catch (_) {}
 
   // Register Background FCM Handler
   try {

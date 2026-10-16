@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/services/location_service.dart';
@@ -398,7 +397,7 @@ class _ActiveJobScreenState extends State<ActiveJobScreen> {
                         scaffoldMessenger.showSnackBar(
                           const SnackBar(
                             content: Text(
-                                'Job verified and completed successfully! 🎉'),
+                                'Job verified and completed successfully!'),
                             backgroundColor: AppColors.statusCompleted,
                           ),
                         );

@@ -217,7 +217,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           icon: const Icon(Icons.check_circle,
               size: 52, color: AppColors.availableGreen),
-          title: const Text('Registration Successful! 🎉'),
+          title: const Text('Registration Successful! '),
           content: const Text(
             'Your Service Provider account has been created successfully!\n\nA verification email has been sent to your email address.\n\nPlease open your Gmail, click the verification link, and then sign in.',
             textAlign: TextAlign.center,
@@ -272,7 +272,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'Join as Service Provider / Worker',
+                  'Join as a Worker',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -281,7 +281,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Enter your details, unique username, trade skills, and CNIC photos to register in Cloud Firestore',
+                  'Enter your details, unique username, Skills, and CNIC photos to register',
                   style:
                       TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
@@ -326,7 +326,7 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                   child: Padding(
                     padding: EdgeInsets.only(top: 6.0),
                     child: Text(
-                      'Profile Photo / Selfie (Optional)',
+                      'Profile Photo (Optional)',
                       style: TextStyle(
                           fontSize: 12, color: AppColors.textSecondary),
                     ),
@@ -338,9 +338,9 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
                 TextFormField(
                   controller: _usernameController,
                   decoration: const InputDecoration(
-                    labelText: 'Unique Username (e.g. worker786) *',
+                    labelText: 'Username *',
                     prefixIcon: Icon(Icons.alternate_email),
-                    hintText: 'Must include letters & numbers (e.g. usman001)',
+                    hintText: 'eg, usman001',
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {

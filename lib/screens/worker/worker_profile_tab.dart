@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../core/constants/app_colors.dart';
 import '../../core/widgets/app_network_image.dart';
 import '../../providers/auth_provider.dart';
@@ -327,14 +326,14 @@ class WorkerProfileTab extends StatelessWidget {
                   ),
                   _WorkerDetailRow(
                     icon: Icons.badge_outlined,
-                    label: "Walid ka Naam (Father's Name)",
+                    label: "Father Name",
                     value: worker?.fatherName.isNotEmpty == true
                         ? worker!.fatherName
                         : 'N/A',
                   ),
                   _WorkerDetailRow(
                     icon: Icons.alternate_email_rounded,
-                    label: 'Unique Username',
+                    label: 'Username',
                     value: worker?.username.isNotEmpty == true
                         ? '@${worker!.username}'
                         : user?.username.isNotEmpty == true
@@ -343,12 +342,12 @@ class WorkerProfileTab extends StatelessWidget {
                   ),
                   _WorkerDetailRow(
                     icon: Icons.work_outline_rounded,
-                    label: 'Peshwarana Hunar (Main Skill)',
+                    label: 'Main Skill',
                     value: worker?.profession ?? 'N/A',
                   ),
                   _WorkerDetailRow(
                     icon: Icons.history_edu_rounded,
-                    label: 'Tajurba (Experience)',
+                    label: 'Experience',
                     value: '${worker?.experienceYears ?? 1} Years',
                   ),
                   _WorkerDetailRow(
@@ -365,7 +364,7 @@ class WorkerProfileTab extends StatelessWidget {
                   ),
                   _WorkerDetailRow(
                     icon: Icons.location_on_outlined,
-                    label: 'Mojuda Pata (Current Address)',
+                    label: 'Current Address',
                     value: worker?.address.isNotEmpty == true
                         ? worker!.address
                         : worker?.workingArea ?? 'N/A',

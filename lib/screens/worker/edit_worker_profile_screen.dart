@@ -146,7 +146,7 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
                         controller: _professionController,
                         decoration: const InputDecoration(
                           labelText: 'Profession Title',
-                          hintText: 'e.g. Senior Master Plumber, Electrician',
+                          hintText: 'e.g. Electrician',
                           prefixIcon: Icon(Icons.work_outline_rounded),
                         ),
                         validator: (val) {
@@ -225,7 +225,7 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
                       TextFormField(
                         controller: _skillsController,
                         decoration: const InputDecoration(
-                          labelText: 'Skills & Tools (Comma separated)',
+                          labelText: 'Skills & Tools',
                           hintText:
                               'Pipe Fitting, Drain Clearing, Water Heater Repair',
                           prefixIcon: Icon(Icons.handyman_outlined),
@@ -238,7 +238,7 @@ class _EditWorkerProfileScreenState extends State<EditWorkerProfileScreen> {
                         controller: _areaController,
                         decoration: const InputDecoration(
                           labelText: 'Working Area / City Coverage',
-                          hintText: 'e.g. North Area, Gulberg, City Wide',
+                          hintText: 'e.g. gujranwala',
                           prefixIcon: Icon(Icons.location_on_outlined),
                         ),
                       ),

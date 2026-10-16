@@ -20,14 +20,21 @@ class WorkerProvider extends ChangeNotifier {
   /// Start real-time sync with worker's document in Firestore
   void listenToWorkerProfile(String workerId) {
     if (workerId.isEmpty) return;
+    _isLoading = true;
+    notifyListeners();
+    
     _profileSubscription?.cancel();
     _profileSubscription =
         _repository.streamWorkerProfile(workerId).listen((profile) {
       if (profile != null) {
         _currentWorkerProfile = profile;
+        _isLoading = false;
         notifyListeners();
       }
-    }, onError: (_) {});
+    }, onError: (_) {
+      _isLoading = false;
+      notifyListeners();
+    });
   }
 
   void stopListeningToProfile() {
