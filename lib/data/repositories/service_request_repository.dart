@@ -417,22 +417,20 @@ class ServiceRequestRepository {
 
   /// Get Customer Requests Stream
   Stream<List<ServiceRequestModel>> getCustomerRequests(String customerId) {
-    try {
-      return _firestore
-          .collection(FirestoreCollections.serviceRequests)
-          .where('customerId', isEqualTo: customerId)
-          .snapshots()
-          .map((snapshot) {
-        List<ServiceRequestModel> list = snapshot.docs
-            .map((doc) => ServiceRequestModel.fromMap(
-                doc.data(), doc.id))
-            .toList();
-        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        return list;
-      });
-    } catch (_) {
-      return const Stream.empty();
-    }
+    return _firestore
+        .collection(FirestoreCollections.serviceRequests)
+        .where('customerId', isEqualTo: customerId)
+        .snapshots()
+        .map((snapshot) {
+      List<ServiceRequestModel> list = snapshot.docs
+          .map((doc) => ServiceRequestModel.fromMap(
+              doc.data(), doc.id))
+          .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    }).handleError((e) {
+      debugPrint("[ServiceRequestRepository Error] getCustomerRequests stream error: $e");
+    });
   }
 
   /// Get Worker Requests Stream (Includes assigned and broadcast/unassigned requests)
@@ -441,37 +439,34 @@ class ServiceRequestRepository {
     String? categoryId,
     List<String>? categoryIds,
   }) {
-    try {
-      return _firestore
-          .collection(FirestoreCollections.serviceRequests)
-          .snapshots()
-          .map((snapshot) {
-        List<ServiceRequestModel> list = snapshot.docs
-            .map((doc) => ServiceRequestModel.fromMap(
-                doc.data(), doc.id))
-            .where((r) => r.workerId == workerId || r.workerId.isEmpty || r.workerId == 'all')
-            .toList();
-        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        return list;
-      });
-    } catch (_) {
-      return const Stream.empty();
-    }
+    return _firestore
+        .collection(FirestoreCollections.serviceRequests)
+        .snapshots()
+        .map((snapshot) {
+      List<ServiceRequestModel> list = snapshot.docs
+          .map((doc) => ServiceRequestModel.fromMap(
+              doc.data(), doc.id))
+          .where((r) => r.workerId == workerId || r.workerId.isEmpty || r.workerId == 'all')
+          .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    }).handleError((e) {
+      debugPrint("[ServiceRequestRepository Error] getWorkerRequests stream error: $e");
+    });
   }
 
   /// Get Single Service Request Stream
   Stream<ServiceRequestModel?> getRequestStream(String requestId) {
-    try {
-      return _firestore
-          .collection(FirestoreCollections.serviceRequests)
-          .doc(requestId)
-          .snapshots()
-          .map((doc) => doc.exists && doc.data() != null
-              ? ServiceRequestModel.fromMap(doc.data()!, doc.id)
-              : null);
-    } catch (_) {
-      return const Stream.empty();
-    }
+    return _firestore
+        .collection(FirestoreCollections.serviceRequests)
+        .doc(requestId)
+        .snapshots()
+        .map((doc) => doc.exists && doc.data() != null
+            ? ServiceRequestModel.fromMap(doc.data()!, doc.id)
+            : null)
+        .handleError((e) {
+      debugPrint("[ServiceRequestRepository Error] getRequestStream stream error: $e");
+    });
   }
 
   /// Create a new service request document

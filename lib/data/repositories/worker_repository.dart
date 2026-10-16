@@ -118,6 +118,8 @@ class WorkerRepository {
         return WorkerProfileModel.fromMap(data, workerId);
       }
       return null;
+    }).handleError((e) {
+      debugPrint("[WorkerRepository Error] streamWorkerProfile error: $e");
     });
   }
 
