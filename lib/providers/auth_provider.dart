@@ -188,6 +188,11 @@ class AuthProvider extends ChangeNotifier {
     _state = AuthState.unauthenticated;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_role');
+    await prefs.remove('saved_user_name');
+    await prefs.remove('saved_user_email');
+    await prefs.remove('saved_user_role');
+    await prefs.remove('saved_user_pic');
+    await prefs.remove('saved_user_id');
     notifyListeners();
   }
 }

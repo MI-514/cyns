@@ -24,6 +24,10 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
   final Set<String> _notifiedPendingJobIds = {};
   Timer? _countdownTimer;
 
+  Stream<List<ServiceRequestModel>>? _cachedRequestsStream;
+  String? _cachedWorkerId;
+  String? _cachedCategoryKey;
+
   @override
   void initState() {
     super.initState();
@@ -521,14 +525,26 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
       );
     }
 
-    return StreamBuilder<List<ServiceRequestModel>>(
-      stream: requestProvider.getWorkerRequests(
+    final categoryKey = worker.categoryIds.isNotEmpty
+        ? worker.categoryIds.join(',')
+        : worker.profession;
+
+    if (_cachedRequestsStream == null ||
+        _cachedWorkerId != worker.workerId ||
+        _cachedCategoryKey != categoryKey) {
+      _cachedWorkerId = worker.workerId;
+      _cachedCategoryKey = categoryKey;
+      _cachedRequestsStream = requestProvider.getWorkerRequests(
         worker.workerId,
         categoryId: worker.categoryIds.isNotEmpty
             ? worker.categoryIds.first
             : worker.profession,
         categoryIds: worker.categoryIds,
-      ),
+      );
+    }
+
+    return StreamBuilder<List<ServiceRequestModel>>(
+      stream: _cachedRequestsStream!,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData) {

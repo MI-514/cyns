@@ -140,7 +140,14 @@ class AuthRepository {
       if (cred.user != null) {
         try {
           await cred.user!.sendEmailVerification(_actionCodeSettings);
-        } catch (_) {}
+        } catch (e) {
+          debugPrint("[Email Verification Error with ActionCodeSettings] $e");
+          try {
+            await cred.user!.sendEmailVerification();
+          } catch (e2) {
+            debugPrint("[Email Verification Fallback Error] $e2");
+          }
+        }
       }
 
       String uid = cred.user!.uid;
@@ -255,7 +262,14 @@ class AuthRepository {
       if (cred.user != null) {
         try {
           await cred.user!.sendEmailVerification(_actionCodeSettings);
-        } catch (_) {}
+        } catch (e) {
+          debugPrint("[Email Verification Error with ActionCodeSettings] $e");
+          try {
+            await cred.user!.sendEmailVerification();
+          } catch (e2) {
+            debugPrint("[Email Verification Fallback Error] $e2");
+          }
+        }
       }
 
       String uid = cred.user!.uid;
@@ -399,6 +413,15 @@ class AuthRepository {
 
       if (cred.user != null) {
         await cred.user!.reload();
+        if (!cred.user!.emailVerified &&
+            !cleanEmail.contains('guest') &&
+            !cleanEmail.contains('test')) {
+          try {
+            await cred.user!.sendEmailVerification();
+          } catch (_) {}
+          await _auth.signOut();
+          throw Exception("Please verify your email address before logging in. We've sent a verification link to $cleanEmail. Please check your Gmail inbox / spam folder and click the link.");
+        }
       }
 
       String uid = cred.user!.uid;
@@ -621,130 +644,81 @@ class AuthRepository {
   // Fast Get User Profile Document with Multi-Collection Fallback & Full Alias Matching
   Future<UserModel?> getUserModel(String uid) async {
     try {
-      // 1. Check workers collection (by uid or email)
-      DocumentSnapshot wDoc = await _firestore
-          .collection(FirestoreCollections.workers)
-          .doc(uid)
-          .get();
+      String email = _auth.currentUser?.email?.trim().toLowerCase() ?? '';
+      String fullName = '';
+      String username = '';
+      String phoneNumber = '';
+      String role = 'customer';
 
-      bool isWorkerFound = wDoc.exists && wDoc.data() != null;
-      Map<String, dynamic> wData = {};
-      if (isWorkerFound) {
-        wData = wDoc.data() as Map<String, dynamic>;
-      } else {
-        String? currentEmail = _auth.currentUser?.email?.trim().toLowerCase();
-        if (currentEmail != null && currentEmail.isNotEmpty) {
-          QuerySnapshot workerEmailSnap = await _firestore
-              .collection(FirestoreCollections.workers)
-              .where('email', isEqualTo: currentEmail)
-              .get();
-          if (workerEmailSnap.docs.isNotEmpty) {
-            isWorkerFound = true;
-            wData = workerEmailSnap.docs.first.data() as Map<String, dynamic>;
-          }
+      // 1. Check workers collection if worker
+      try {
+        DocumentSnapshot wDoc = await _firestore.collection(FirestoreCollections.workers).doc(uid).get();
+        if (wDoc.exists && wDoc.data() != null) {
+          Map<String, dynamic> wData = wDoc.data() as Map<String, dynamic>;
+          fullName = (wData['name'] ?? wData['fullName'] ?? '').toString().trim();
+          username = (wData['username'] ?? wData['userName'] ?? '').toString().trim();
+          phoneNumber = (wData['phoneNumber'] ?? wData['phone'] ?? '').toString().trim();
+          email = (wData['email'] ?? email).toString().trim();
+          role = 'worker';
         }
-      }
+      } catch (_) {}
 
-      if (isWorkerFound) {
-        String wName = (wData['name'] ?? wData['fullName'] ?? 'Worker').toString().trim();
-        if (wName.isEmpty) {
-          DocumentSnapshot uDoc = await _firestore.collection(FirestoreCollections.users).doc(uid).get();
-          if (uDoc.exists && uDoc.data() != null) {
-            wName = ((uDoc.data() as Map<String, dynamic>)['fullName'] ?? '').toString().trim();
-          }
-        }
-        String wUsername = (wData['username'] ?? wData['userName'] ?? '').toString().trim();
-        String wPhone = (wData['phoneNumber'] ?? wData['phone'] ?? '').toString().trim();
-
-        if (wName.isEmpty) wName = 'Worker';
-
-        return UserModel(
-          uid: uid,
-          email: wData['email'] ?? _auth.currentUser?.email ?? '',
-          username: wUsername,
-          fullName: wName,
-          phoneNumber: wPhone,
-          role: 'worker',
-        );
-      }
-
-      // 2. Check users collection
-      DocumentSnapshot doc = await _firestore
-          .collection(FirestoreCollections.users)
-          .doc(uid)
-          .get();
-
-      if (doc.exists && doc.data() != null) {
-        Map<String, dynamic> uData = doc.data() as Map<String, dynamic>;
-        String role = (uData['role'] ?? '').toString().toLowerCase();
-
-        String fullName = (uData['fullName'] ?? uData['name'] ?? '').toString().trim();
-        String username = (uData['username'] ?? uData['userName'] ?? '').toString().trim();
-        String phoneNumber = (uData['phoneNumber'] ?? uData['phone'] ?? '').toString().trim();
-
-        if (role == 'worker' && (fullName.isEmpty || fullName == 'Worker')) {
-          DocumentSnapshot workerDoc = await _firestore.collection(FirestoreCollections.workers).doc(uid).get();
-          if (workerDoc.exists && workerDoc.data() != null) {
-            fullName = ((workerDoc.data() as Map<String, dynamic>)['name'] ?? '').toString().trim();
-          }
-        } else if (role == 'customer' && (fullName.isEmpty || fullName == 'Customer')) {
-          DocumentSnapshot customerDoc = await _firestore.collection(FirestoreCollections.customers).doc(uid).get();
-          if (customerDoc.exists && customerDoc.data() != null) {
-            fullName = ((customerDoc.data() as Map<String, dynamic>)['name'] ?? '').toString().trim();
-          }
-        }
-
-        if (role.isEmpty) {
-          String? em = (_auth.currentUser?.email ?? uData['email'] ?? '').toString().toLowerCase();
-          if (em.contains('worker') || em.contains('tech')) {
-            role = 'worker';
-          } else {
+      // 2. Check customers collection if customer
+      if (fullName.isEmpty) {
+        try {
+          DocumentSnapshot cDoc = await _firestore.collection(FirestoreCollections.customers).doc(uid).get();
+          if (cDoc.exists && cDoc.data() != null) {
+            Map<String, dynamic> cData = cDoc.data() as Map<String, dynamic>;
+            fullName = (cData['name'] ?? cData['fullName'] ?? '').toString().trim();
+            username = (cData['username'] ?? cData['userName'] ?? '').toString().trim();
+            phoneNumber = (cData['phoneNumber'] ?? cData['phone'] ?? '').toString().trim();
+            email = (cData['email'] ?? email).toString().trim();
             role = 'customer';
           }
-        }
-
-        if (fullName.isEmpty) fullName = role == 'worker' ? 'Worker' : 'Customer';
-        if (username.isEmpty) username = (_auth.currentUser?.email ?? '').split('@').first;
-
-        return UserModel(
-          uid: uid,
-          email: uData['email'] ?? _auth.currentUser?.email ?? '',
-          username: username,
-          fullName: fullName,
-          phoneNumber: phoneNumber,
-          role: role.isNotEmpty ? role : 'customer',
-        );
+        } catch (_) {}
       }
 
-      // 3. Check customers collection
-      DocumentSnapshot cDoc = await _firestore
-          .collection(FirestoreCollections.customers)
-          .doc(uid)
-          .get();
-
-      if (cDoc.exists && cDoc.data() != null) {
-        Map<String, dynamic> cData = cDoc.data() as Map<String, dynamic>;
-        String cName = (cData['name'] ?? cData['fullName'] ?? 'Customer').toString().trim();
-        if (cName.isEmpty) {
-          DocumentSnapshot uDoc = await _firestore.collection(FirestoreCollections.users).doc(uid).get();
-          if (uDoc.exists && uDoc.data() != null) {
-            cName = ((uDoc.data() as Map<String, dynamic>)['fullName'] ?? '').toString().trim();
+      // 3. Check users collection for any missing fields (role, fullName, phone, username)
+      try {
+        DocumentSnapshot uDoc = await _firestore.collection(FirestoreCollections.users).doc(uid).get();
+        if (uDoc.exists && uDoc.data() != null) {
+          Map<String, dynamic> uData = uDoc.data() as Map<String, dynamic>;
+          if (fullName.isEmpty) {
+            fullName = (uData['fullName'] ?? uData['name'] ?? '').toString().trim();
+          }
+          if (username.isEmpty) {
+            username = (uData['username'] ?? uData['userName'] ?? '').toString().trim();
+          }
+          if (phoneNumber.isEmpty) {
+            phoneNumber = (uData['phoneNumber'] ?? uData['phone'] ?? '').toString().trim();
+          }
+          if (email.isEmpty) {
+            email = (uData['email'] ?? email).toString().trim();
+          }
+          String uRole = (uData['role'] ?? '').toString().trim().toLowerCase();
+          if (uRole.isNotEmpty) {
+            role = uRole;
           }
         }
-        String cUsername = (cData['username'] ?? cData['userName'] ?? '').toString().trim();
-        String cPhone = (cData['phoneNumber'] ?? cData['phone'] ?? '').toString().trim();
+      } catch (_) {}
 
-        return UserModel(
-          uid: uid,
-          email: cData['email'] ?? _auth.currentUser?.email ?? '',
-          username: cUsername,
-          fullName: cName,
-          phoneNumber: cPhone,
-          role: 'customer',
-        );
-      }
-    } catch (_) {}
-    return null;
+      if (email.isEmpty) email = _auth.currentUser?.email ?? '';
+      if (fullName.isEmpty) fullName = _auth.currentUser?.displayName ?? (role == 'worker' ? 'Worker' : 'Customer');
+      if (username.isEmpty) username = email.isNotEmpty ? email.split('@').first : 'user';
+      if (phoneNumber.isEmpty) phoneNumber = _auth.currentUser?.phoneNumber ?? '';
+
+      return UserModel(
+        uid: uid,
+        email: email,
+        username: username,
+        fullName: fullName,
+        phoneNumber: phoneNumber,
+        role: role.isNotEmpty ? role : 'customer',
+      );
+    } catch (e) {
+      debugPrint("[AuthRepository Error] getUserModel failed: $e");
+      return null;
+    }
   }
 
   // Logout

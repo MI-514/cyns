@@ -181,9 +181,7 @@ class WorkerProfileModel {
       experienceYears: parseInt(map['experienceYears'], 1),
       serviceDescription: map['serviceDescription']?.toString() ?? '',
       workingArea: (map['workingArea'] ?? map['address'])?.toString() ?? '',
-      isAvailable: map['isAvailable'] == true ||
-          map['isAvailable'] == null ||
-          map['isAvailable'] == 'true',
+      isAvailable: map['isAvailable'] != false && map['isAvailable'] != 'false',
       latitude: parseNullableDouble(map['latitude']),
       longitude: parseNullableDouble(map['longitude']),
       rating: parseDouble(map['rating'], 0.0),

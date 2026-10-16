@@ -435,7 +435,7 @@ class ServiceRequestRepository {
     }
   }
 
-  /// Get Worker Requests Stream
+  /// Get Worker Requests Stream (Includes assigned and broadcast/unassigned requests)
   Stream<List<ServiceRequestModel>> getWorkerRequests(
     String workerId, {
     String? categoryId,
@@ -444,12 +444,12 @@ class ServiceRequestRepository {
     try {
       return _firestore
           .collection(FirestoreCollections.serviceRequests)
-          .where('workerId', isEqualTo: workerId)
           .snapshots()
           .map((snapshot) {
         List<ServiceRequestModel> list = snapshot.docs
             .map((doc) => ServiceRequestModel.fromMap(
                 doc.data(), doc.id))
+            .where((r) => r.workerId == workerId || r.workerId.isEmpty || r.workerId == 'all')
             .toList();
         list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         return list;

@@ -218,8 +218,8 @@ class _WorkerRegisterScreenState extends State<WorkerRegisterScreen> {
           icon: const Icon(Icons.check_circle,
               size: 52, color: AppColors.availableGreen),
           title: const Text('Registration Successful! 🎉'),
-          content: const Text(
-            'Your Service Provider account has been created and saved in Cloud Firestore.\nYou can now sign in with your registered email and password.',
+          content: Text(
+            'Your Service Provider account has been created successfully!\n\nA verification email has been sent to your email address.\n\nPlease open your Gmail, click the verification link, and then sign in.',
             textAlign: TextAlign.center,
           ),
           actions: [

@@ -71,7 +71,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           title: const Text('Registration Successful! 🎉'),
           content: Text(
-            'Your account as ${_role.toUpperCase()} has been created.\n\nPlease sign in with your email and password to continue.',
+            'Your account as ${_role.toUpperCase()} has been created!\n\nA verification email has been sent to your email address.\n\nPlease open your Gmail, click the verification link, and then sign in to continue.',
             textAlign: TextAlign.center,
           ),
           actionsAlignment: MainAxisAlignment.center,

@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
-import '../auth/quick_login_screen.dart';
 import '../auth/role_selection_screen.dart';
 import '../customer/customer_dashboard_screen.dart';
 import '../worker/worker_dashboard_screen.dart';
@@ -76,16 +75,19 @@ class _SplashScreenState extends State<SplashScreen>
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool isOnboardingCompleted =
         prefs.getBool('is_onboarding_completed') ?? false;
-    String? savedName = prefs.getString('saved_user_name');
     String? savedEmail = prefs.getString('saved_user_email');
-    String? savedRole = prefs.getString('saved_user_role');
-    String? savedPic = prefs.getString('saved_user_pic');
+    String? savedRole = prefs.getString('saved_user_role') ?? prefs.getString('user_role');
 
     if (!mounted) return;
 
-    // 1. Actively Authenticated with active Firebase session -> Direct to Dashboard!
-    if (auth.isAuthenticated && auth.userModel != null) {
-      String role = auth.userModel!.role;
+    // 1. Actively Authenticated or Previously Logged In -> Direct to Dashboard! (No password prompt)
+    if ((auth.isAuthenticated && auth.userModel != null) ||
+        (savedEmail != null && savedEmail.trim().isNotEmpty)) {
+      String role = savedRole ?? AppConstants.roleCustomer;
+      if (auth.userModel != null) {
+        role = auth.userModel!.role;
+      }
+
       if (role == AppConstants.roleWorker) {
         Navigator.pushReplacement(
           context,
@@ -100,26 +102,7 @@ class _SplashScreenState extends State<SplashScreen>
       return;
     }
 
-    // 2. Previously logged-in user on this phone -> Quick Welcome Back Screen!
-    if (savedName != null &&
-        savedName.trim().isNotEmpty &&
-        savedEmail != null &&
-        savedEmail.trim().isNotEmpty) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => QuickLoginScreen(
-            savedName: savedName,
-            savedEmail: savedEmail,
-            savedRole: savedRole ?? AppConstants.roleCustomer,
-            savedPic: savedPic,
-          ),
-        ),
-      );
-      return;
-    }
-
-    // 3. Onboarding was previously completed -> Role Selection
+    // 2. Onboarding was previously completed -> Role Selection
     if (isOnboardingCompleted) {
       Navigator.pushReplacement(
         context,
@@ -128,7 +111,7 @@ class _SplashScreenState extends State<SplashScreen>
       return;
     }
 
-    // 4. Fresh Install -> Onboarding Screen
+    // 3. Fresh Install -> Onboarding Screen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const OnboardingScreen()),

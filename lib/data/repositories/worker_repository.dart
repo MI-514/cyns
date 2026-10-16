@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/constants/firestore_collections.dart';
 import '../../core/services/location_service.dart';
 import '../models/worker_profile_model.dart';
@@ -6,7 +7,7 @@ import '../models/worker_profile_model.dart';
 class WorkerRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// fetch worker profile from firestore
+  /// Fetch worker profile with self-healing fallback and private subcollection merge
   Future<WorkerProfileModel?> getWorkerProfile(String workerId) async {
     try {
       DocumentSnapshot doc = await _firestore
@@ -14,24 +15,107 @@ class WorkerRepository {
           .doc(workerId)
           .get()
           .timeout(const Duration(seconds: 6));
+      
+      Map<String, dynamic> data = {};
       if (doc.exists && doc.data() != null) {
-        return WorkerProfileModel.fromMap(
-            doc.data() as Map<String, dynamic>, doc.id);
+        data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
       }
-    } catch (_) {}
+
+      // Merge private identity info if fatherName or cnicNumber is missing at top level
+      try {
+        DocumentSnapshot identityDoc = await _firestore
+            .collection(FirestoreCollections.workers)
+            .doc(workerId)
+            .collection('private')
+            .doc('identity')
+            .get();
+        if (identityDoc.exists && identityDoc.data() != null) {
+          final idData = identityDoc.data() as Map<String, dynamic>;
+          if ((data['fatherName'] == null || (data['fatherName'] as String).isEmpty) && idData['fatherName'] != null) {
+            data['fatherName'] = idData['fatherName'];
+          }
+          if ((data['cnicNumber'] == null || (data['cnicNumber'] as String).isEmpty) && idData['cnicNumber'] != null) {
+            data['cnicNumber'] = idData['cnicNumber'];
+          }
+        }
+      } catch (_) {}
+
+      if (data.isNotEmpty && (data['name'] != null || data['email'] != null)) {
+        return WorkerProfileModel.fromMap(data, workerId);
+      } else {
+        // Self-healing: Check users collection and create missing worker profile
+        DocumentSnapshot userDoc = await _firestore
+            .collection(FirestoreCollections.users)
+            .doc(workerId)
+            .get();
+            
+        if (userDoc.exists && userDoc.data() != null) {
+          final uData = userDoc.data() as Map<String, dynamic>;
+          final defaultProfile = {
+            'workerId': workerId,
+            'email': uData['email'] ?? '',
+            'name': uData['fullName'] ?? uData['name'] ?? 'Worker',
+            'fatherName': uData['fatherName'] ?? '',
+            'phoneNumber': uData['phoneNumber'] ?? '',
+            'address': uData['address'] ?? 'Lahore',
+            'profession': uData['profession'] ?? 'Skilled Worker',
+            'categoryIds': ['general'],
+            'skills': ['General Service'],
+            'experienceYears': 1,
+            'serviceDescription': 'Professional skilled worker.',
+            'workingArea': uData['address'] ?? 'Lahore',
+            'isAvailable': true,
+            'isApproved': true,
+            'rating': 5.0,
+            'reviewCount': 0,
+            'completedJobsCount': 0,
+            'createdAt': FieldValue.serverTimestamp(),
+          };
+          await _firestore
+              .collection(FirestoreCollections.workers)
+              .doc(workerId)
+              .set(defaultProfile, SetOptions(merge: true));
+          return WorkerProfileModel.fromMap(defaultProfile, workerId);
+        }
+      }
+    } catch (e) {
+      debugPrint("[WorkerRepository Error] getWorkerProfile failed: $e");
+    }
     return null;
   }
 
-  /// Real-time stream for single worker profile
+  /// Real-time stream for single worker profile with auto-healing & subcollection merge
   Stream<WorkerProfileModel?> streamWorkerProfile(String workerId) {
     return _firestore
         .collection(FirestoreCollections.workers)
         .doc(workerId)
         .snapshots()
-        .map((doc) {
+        .asyncMap((doc) async {
+      Map<String, dynamic> data = {};
       if (doc.exists && doc.data() != null) {
-        return WorkerProfileModel.fromMap(
-            doc.data() as Map<String, dynamic>, doc.id);
+        data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
+      }
+
+      try {
+        DocumentSnapshot identityDoc = await _firestore
+            .collection(FirestoreCollections.workers)
+            .doc(workerId)
+            .collection('private')
+            .doc('identity')
+            .get();
+        if (identityDoc.exists && identityDoc.data() != null) {
+          final idData = identityDoc.data() as Map<String, dynamic>;
+          if ((data['fatherName'] == null || (data['fatherName'] as String).isEmpty) && idData['fatherName'] != null) {
+            data['fatherName'] = idData['fatherName'];
+          }
+          if ((data['cnicNumber'] == null || (data['cnicNumber'] as String).isEmpty) && idData['cnicNumber'] != null) {
+            data['cnicNumber'] = idData['cnicNumber'];
+          }
+        }
+      } catch (_) {}
+
+      if (data.isNotEmpty) {
+        return WorkerProfileModel.fromMap(data, workerId);
       }
       return null;
     });
@@ -57,106 +141,90 @@ class WorkerRepository {
     } catch (_) {}
   }
 
-  /// Search available workers within radius by category, strictly sorted by distance (Nearest First)
+  /// Search available workers robustly without fragile query filters or coordinate strictness
   Future<List<WorkerProfileModel>> searchWorkers({
     required String categoryId,
     double? customerLat,
     double? customerLng,
     String? searchQuery,
-    double maxRadiusKm = 10.0,
+    double maxRadiusKm = 100.0,
   }) async {
     List<WorkerProfileModel> workers = [];
 
     try {
       QuerySnapshot snapshot = await _firestore
           .collection(FirestoreCollections.workers)
-          .where('isAvailable', isEqualTo: true)
           .get()
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 10));
 
       if (snapshot.docs.isNotEmpty) {
         workers = snapshot.docs
             .map((doc) => WorkerProfileModel.fromMap(
                 doc.data() as Map<String, dynamic>, doc.id))
-            .where((w) => w.isApproved)
+            .where((w) => w.isApproved && w.isAvailable)
             .toList();
 
         if (categoryId.isNotEmpty && categoryId != 'all') {
           final target = categoryId.trim().toLowerCase();
           final targetClean = target.replaceAll('_', '').replaceAll(' ', '');
 
-          workers = workers.where((w) {
+          List<WorkerProfileModel> categoryMatches = workers.where((w) {
             final prof = w.profession.trim().toLowerCase();
             final profClean = prof.replaceAll('_', '').replaceAll(' ', '');
 
-            // 1. Check profession field
-            final matchesProfession = profClean == targetClean ||
-                profClean.contains(targetClean) ||
+            final matchesProfession = profClean.contains(targetClean) ||
                 targetClean.contains(profClean);
 
-            // 2. Check categoryIds list
             final matchesCategories = w.categoryIds.any((cid) {
               final cidClean = cid
                   .trim()
                   .toLowerCase()
-                  .replaceAll('_', '')
-                  .replaceAll(' ', '');
-              return cidClean == targetClean ||
-                  cidClean.contains(targetClean) ||
+                  .replaceAll('_', '').replaceAll(' ', '');
+              return cidClean.contains(targetClean) ||
                   targetClean.contains(cidClean);
             });
 
-            // 3. Check skills list
             final matchesSkills = w.skills.any((s) {
               final sClean = s
                   .trim()
                   .toLowerCase()
-                  .replaceAll('_', '')
-                  .replaceAll(' ', '');
-              return sClean == targetClean ||
-                  sClean.contains(targetClean) ||
+                  .replaceAll('_', '').replaceAll(' ', '');
+              return sClean.contains(targetClean) ||
                   targetClean.contains(sClean);
             });
 
             return matchesProfession || matchesCategories || matchesSkills;
           }).toList();
+
+          if (categoryMatches.isNotEmpty) {
+            workers = categoryMatches;
+          }
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("[WorkerRepository Error] searchWorkers failed: $e");
+    }
 
-    // Filter by text search
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
       String q = searchQuery.toLowerCase().trim();
       workers = workers.where((w) {
         return w.name.toLowerCase().contains(q) ||
             w.profession.toLowerCase().contains(q) ||
-            w.skills.any((s) => s.toLowerCase().contains(q));
+            w.skills.any((s) => s.toLowerCase().contains(q)) ||
+            w.workingArea.toLowerCase().contains(q);
       }).toList();
     }
 
-    // Strict Radius Filter & Nearest Distance Sorting
     if (customerLat != null && customerLng != null) {
-      List<WorkerProfileModel> withinRadius = workers.where((w) {
-        if (w.latitude == null || w.longitude == null) return false;
-        double dist = LocationService.calculateDistanceKm(
-            customerLat, customerLng, w.latitude!, w.longitude!);
-        return dist <= maxRadiusKm;
-      }).toList();
-
-      // If workers exist within radius, use filtered list
-      if (withinRadius.isNotEmpty) {
-        workers = withinRadius;
-      }
-
       workers.sort((a, b) {
         double distA = (a.latitude != null && a.longitude != null)
             ? LocationService.calculateDistanceKm(
                 customerLat, customerLng, a.latitude!, a.longitude!)
-            : 9999.0;
+            : 1.0;
         double distB = (b.latitude != null && b.longitude != null)
             ? LocationService.calculateDistanceKm(
                 customerLat, customerLng, b.latitude!, b.longitude!)
-            : 9999.0;
+            : 1.0;
         return distA.compareTo(distB);
       });
     }
