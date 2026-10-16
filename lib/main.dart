@@ -15,6 +15,8 @@ import 'screens/splash/splash_screen.dart';
 import 'dart:ui';
 import 'core/widgets/call_listener_wrapper.dart';
 import 'core/services/worker_background_service.dart';
+import 'core/services/notification_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +42,11 @@ void main() async {
       await Firebase.initializeApp();
     } catch (_) {}
   }
+
+  // Register Background FCM Handler
+  try {
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  } catch (_) {}
 
   try {
     await WorkerBackgroundService.instance.initialize();
