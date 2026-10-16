@@ -3,11 +3,13 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../constants/firestore_collections.dart';
 import 'audio_alert_service.dart';
+import 'location_service.dart';
 
 class WorkerBackgroundService with WidgetsBindingObserver {
   static final WorkerBackgroundService instance = WorkerBackgroundService._();
@@ -18,6 +20,7 @@ class WorkerBackgroundService with WidgetsBindingObserver {
 
   StreamSubscription<QuerySnapshot>? _requestsSubscription;
   StreamSubscription<DocumentSnapshot>? _workerDocSubscription;
+  StreamSubscription<Position>? _locationSubscription;
 
   String? _workerId;
   bool _isOnline = false;
@@ -163,6 +166,21 @@ class WorkerBackgroundService with WidgetsBindingObserver {
     // Show ongoing status notification so system knows worker is actively waiting
     _showOnlinePresenceNotification();
 
+    // Start streaming worker's live location to Firestore while online
+    _locationSubscription?.cancel();
+    _locationSubscription = LocationService.getLocationStream(distanceFilterMeters: 50).listen((position) {
+      if (_isOnline) {
+        FirebaseFirestore.instance
+            .collection(FirestoreCollections.workers)
+            .doc(workerId)
+            .update({
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        }).catchError((_) {});
+      }
+    });
+
     // Listen to incoming Pending requests for this worker in real-time
     _requestsSubscription?.cancel();
     _requestsSubscription = FirebaseFirestore.instance
@@ -199,6 +217,8 @@ class WorkerBackgroundService with WidgetsBindingObserver {
     _isOnline = false;
     _requestsSubscription?.cancel();
     _requestsSubscription = null;
+    _locationSubscription?.cancel();
+    _locationSubscription = null;
     _knownRequestIds.clear();
 
     // Silence any ringing alarm
