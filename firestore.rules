@@ -1,9 +1,82 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to all collections for smooth real-time communication & testing
-    match /{document=**} {
-      allow read, write: if true;
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    // Customers Collection
+    match /customers/{customerId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(customerId);
+    }
+
+    // Workers Collection
+    match /workers/{workerId} {
+      allow read: if true;
+      allow write: if isOwner(workerId);
+
+      // Private Identity Subcollection
+      match /private/{document=**} {
+        allow read, write: if isOwner(workerId);
+      }
+    }
+
+    // Categories Collection
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Service Requests Collection
+    match /service_requests/{requestId} {
+      allow read, create, update, delete: if isAuthenticated();
+    }
+
+    // Chats & Messages
+    match /chats/{chatId} {
+      allow read, write: if isAuthenticated();
+
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // Calls Collection
+    match /calls/{callId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Call Signals Collection
+    match /call_signals/{signalId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Reviews Collection
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    // Notifications Collection
+    match /notifications/{notifId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Reports Collection
+    match /reports/{reportId} {
+      allow read, write: if isAuthenticated();
     }
   }
 }
