@@ -425,7 +425,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                     label: Text(
                       _isAutoDispatching
                           ? 'Dispatching Nearest Worker...'
-                          : 'Instant Auto-Dispatch (Find Nearest)',
+                          : 'Instant Auto-Dispatch',
                       style: const TextStyle(
                           fontWeight: FontWeight.w800, fontSize: 15),
                     ),

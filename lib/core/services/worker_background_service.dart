@@ -47,6 +47,12 @@ class WorkerBackgroundService with WidgetsBindingObserver {
       android: androidSettings,
     );
 
+    // FIX: Await local notifications permission request directly for Android 13+
+    final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
+        _localNotifications.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    await androidPlugin?.requestNotificationsPermission();
+
     await _localNotifications.initialize(
       settings: initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
