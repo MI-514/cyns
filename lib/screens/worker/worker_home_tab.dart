@@ -11,7 +11,6 @@ import '../../providers/worker_provider.dart';
 import '../shared/chat_screen.dart';
 import '../shared/map_tracking_screen.dart';
 import '../../core/services/audio_alert_service.dart';
-import 'edit_worker_profile_screen.dart';
 
 class WorkerHomeTab extends StatefulWidget {
   const WorkerHomeTab({super.key});
@@ -493,16 +492,16 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
           ),
         );
       }
-      return Center(
+      return const Center(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.person_outline_rounded,
+              Icon(Icons.person_outline_rounded,
                   size: 64, color: AppColors.primaryNavy),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: 16),
+              Text(
                 'Worker Profile Incomplete',
                 style: TextStyle(
                   fontSize: 20,
@@ -510,29 +509,11 @@ class _WorkerHomeTabState extends State<WorkerHomeTab> {
                   color: AppColors.primaryNavy,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Please set up your profile skills and working area to start receiving nearby customer requests.',
+              SizedBox(height: 8),
+              Text(
+                'Toggle your online availability switch in your profile or stay online here to receive nearby customer requests.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryNavy,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-                icon: const Icon(Icons.edit_note_rounded),
-                label: const Text('Set Up Profile Now'),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const EditWorkerProfileScreen(),
-                    ),
-                  );
-                },
               ),
             ],
           ),
