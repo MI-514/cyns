@@ -13,23 +13,26 @@ service cloud.firestore {
     // Users Collection
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+      allow write: if isAuthenticated();
     }
 
     // Customers Collection
     match /customers/{customerId} {
       allow read: if isAuthenticated();
-      allow write: if isOwner(customerId);
+      allow write: if isAuthenticated();
     }
 
     // Workers Collection
     match /workers/{workerId} {
       allow read: if true;
-      allow write: if isOwner(workerId);
+      allow write: if isAuthenticated();
 
       // Private Identity Subcollection
-      match /private/{document=**} {
-        allow read, write: if isOwner(workerId);
+      match /private/{docId} {
+        allow read, write: if isAuthenticated();
+      }
+      match /private/{path=**} {
+        allow read, write: if isAuthenticated();
       }
     }
 
