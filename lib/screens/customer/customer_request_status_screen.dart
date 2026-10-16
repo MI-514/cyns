@@ -636,7 +636,7 @@ class _CustomerRequestStatusScreenState
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.map_outlined),
-                      label: const Text('Track Location / View Map'),
+                      label: const Text('Track Location'),
                       onPressed: () {
                         Navigator.push(
                           context,

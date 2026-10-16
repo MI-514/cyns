@@ -140,6 +140,16 @@ class WorkerBackgroundService with WidgetsBindingObserver {
     _workerId = null;
   }
 
+  /// Check if the incoming request is new and alert if needed
+  void processIncomingBackgroundRequest(Map<String, dynamic> data, String requestId) {
+    if (_isOnline) {
+      if (!_knownRequestIds.contains(requestId)) {
+        _knownRequestIds.add(requestId);
+        _handleIncomingRequestAlert(data, requestId);
+      }
+    }
+  }
+
   /// Worker went ONLINE: Start background request listener & show presence notification
   void _enableOnlineBackgroundMode(String workerId) {
     _isOnline = true;

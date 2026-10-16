@@ -352,7 +352,7 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                           (hasValidGps && dist != null)
                                               ? LocationService.formatDistance(
                                                   dist)
-                                              : 'GPS Location Off',
+                                              : '',
                                           style: const TextStyle(
                                             fontSize: 19,
                                             fontWeight: FontWeight.w800,
@@ -415,7 +415,7 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                                         vertical: 12),
                                   ),
                                   icon: const Icon(Icons.map_rounded, size: 18),
-                                  label: const Text('View Worker on Live Map'),
+                                  label: const Text('View Worker on Map'),
                                   onPressed: () {
                                     double cLat =
                                         location.currentPosition?.latitude ??
@@ -746,7 +746,7 @@ class _WorkerProfileViewScreenState extends State<WorkerProfileViewScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   icon: const Icon(Icons.near_me_rounded, size: 20),
-                  label: const Text('Hire / Send Request (30s Timer)'),
+                  label: const Text('Send Request'),
                   onPressed: _worker!.isAvailable ? _directHireWorker : null,
                 ),
               ),

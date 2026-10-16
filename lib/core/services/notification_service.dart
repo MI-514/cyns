@@ -4,13 +4,22 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import '../constants/firestore_collections.dart';
 
 import 'audio_alert_service.dart';
+import 'worker_background_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Handles high-priority FCM background notifications when screen is locked/off
   try {
-    if (message.data['type'] == 'job_offer' ||
-        message.data['type'] == 'request') {
+    if (message.data['type'] == 'job_offer') {
+      await AudioAlertService.initialize();
+      await AudioAlertService.playAlarmAlert();
+
+      // Trigger the local notification banner with vibration directly
+      WorkerBackgroundService.instance.processIncomingBackgroundRequest(
+        message.data, 
+        message.data['relatedId'] ?? 'job_${DateTime.now().millisecondsSinceEpoch}',
+      );
+    } else if (message.data['type'] == 'request') {
       await AudioAlertService.initialize();
       await AudioAlertService.playAlarmAlert();
     }

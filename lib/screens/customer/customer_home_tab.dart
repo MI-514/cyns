@@ -189,7 +189,7 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
                 });
               },
               decoration: InputDecoration(
-                hintText: 'Search service categories (Plumber, Electrician...)',
+                hintText: 'Search Technician',
                 prefixIcon: const Icon(Icons.search_rounded,
                     color: AppColors.primaryNavy),
                 suffixIcon: _searchQuery.isNotEmpty
