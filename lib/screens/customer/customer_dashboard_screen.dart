@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 
 import '../../core/constants/app_colors.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/location_provider.dart';
 import '../shared/notification_center_screen.dart';
 import 'customer_home_tab.dart';
@@ -18,14 +21,18 @@ class CustomerDashboardScreen extends StatefulWidget {
 
 class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   int _currentIndex = 0;
+  bool _isInit = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<LocationProvider>(context, listen: false)
-          .fetchCurrentLocation();
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInit) {
+      _isInit = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Provider.of<LocationProvider>(context, listen: false)
+            .fetchCurrentLocation();
+      });
+    }
   }
 
   final List<Widget> _tabs = const [

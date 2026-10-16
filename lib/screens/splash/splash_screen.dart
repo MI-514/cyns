@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
@@ -62,14 +63,24 @@ class _SplashScreenState extends State<SplashScreen>
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
-    // Give Firebase a small window to resolve auth state if initializing
+    // Give Firebase a window to resolve auth state if initializing
     int waitLoops = 0;
-    while (waitLoops < 8 &&
+    while (waitLoops < 15 &&
         (auth.state == AuthState.uninitialized ||
             auth.state == AuthState.loading)) {
       await Future.delayed(const Duration(milliseconds: 200));
       waitLoops++;
       if (!mounted) return;
+    }
+    
+    // If still null but we have a firebase user, wait a bit more for userModel to load
+    if (FirebaseAuth.instance.currentUser != null && auth.userModel == null) {
+      waitLoops = 0;
+      while (waitLoops < 15 && auth.userModel == null) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        waitLoops++;
+        if (!mounted) return;
+      }
     }
 
     SharedPreferences prefs = await SharedPreferences.getInstance();

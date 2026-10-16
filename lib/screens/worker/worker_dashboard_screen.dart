@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
@@ -18,18 +20,36 @@ class WorkerDashboardScreen extends StatefulWidget {
 
 class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
   int _currentIndex = 0;
+  bool _isInit = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      if (auth.userModel != null) {
-        final wp = Provider.of<WorkerProvider>(context, listen: false);
-        wp.fetchWorkerProfile(auth.userModel!.uid);
-        wp.listenToWorkerProfile(auth.userModel!.uid);
-      }
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInit) {
+      _isInit = true;
+      _initializeWorkerData();
+    }
+  }
+
+  Future<void> _initializeWorkerData() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final wp = Provider.of<WorkerProvider>(context, listen: false);
+    
+    String? uid = auth.userModel?.uid;
+    
+    if (uid == null) {
+      uid = FirebaseAuth.instance.currentUser?.uid;
+    }
+    
+    if (uid == null) {
+      final prefs = await SharedPreferences.getInstance();
+      uid = prefs.getString('saved_user_id');
+    }
+
+    if (uid != null && uid.isNotEmpty) {
+      wp.fetchWorkerProfile(uid);
+      wp.listenToWorkerProfile(uid);
+    }
   }
 
   final List<Widget> _tabs = const [

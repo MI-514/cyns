@@ -28,8 +28,12 @@ class _CustomerHomeTabState extends State<CustomerHomeTab> {
 
   String _getFirstName(AuthProvider auth) {
     String full = auth.userModel?.fullName.trim() ?? '';
-    if (full.isNotEmpty) {
+    if (full.isNotEmpty && full.toLowerCase() != 'customer' && full.toLowerCase() != 'user') {
       return full.split(' ').first;
+    }
+    String username = auth.userModel?.username.trim() ?? '';
+    if (username.isNotEmpty) {
+      return username;
     }
     String email = auth.userModel?.email.trim() ?? '';
     if (email.isNotEmpty) {

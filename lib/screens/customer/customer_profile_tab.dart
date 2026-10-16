@@ -95,9 +95,9 @@ class CustomerProfileTab extends StatelessWidget {
                         backgroundColor:
                             AppColors.primaryNavy.withValues(alpha: 0.1),
                         child: Text(
-                          user?.fullName.isNotEmpty == true
-                              ? user!.fullName[0].toUpperCase()
-                              : 'C',
+                          (user?.fullName.isNotEmpty == true && user!.fullName.toLowerCase() != 'customer' && user.fullName.toLowerCase() != 'user')
+                              ? user.fullName[0].toUpperCase()
+                              : (user?.username.isNotEmpty == true ? user!.username[0].toUpperCase() : 'C'),
                           style: const TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.w800,
@@ -125,7 +125,9 @@ class CustomerProfileTab extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      user?.fullName ?? 'Employer Name',
+                      (user?.fullName.isNotEmpty == true && user!.fullName.toLowerCase() != 'customer' && user.fullName.toLowerCase() != 'user') 
+                          ? user.fullName 
+                          : (user?.username.isNotEmpty == true ? user!.username : 'Employer Name'),
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -193,7 +195,9 @@ class CustomerProfileTab extends StatelessWidget {
                   _ProfileDetailRow(
                     icon: Icons.person_outline_rounded,
                     label: 'Full Name',
-                    value: user?.fullName ?? 'N/A',
+                    value: (user?.fullName.isNotEmpty == true && user!.fullName.toLowerCase() != 'customer' && user.fullName.toLowerCase() != 'user') 
+                        ? user.fullName 
+                        : (user?.username.isNotEmpty == true ? user!.username : 'N/A'),
                   ),
                   _ProfileDetailRow(
                     icon: Icons.alternate_email_rounded,
@@ -205,12 +209,12 @@ class CustomerProfileTab extends StatelessWidget {
                   _ProfileDetailRow(
                     icon: Icons.email_outlined,
                     label: 'Email Address',
-                    value: user?.email ?? 'N/A',
+                    value: user?.email.isNotEmpty == true ? user!.email : 'N/A',
                   ),
                   _ProfileDetailRow(
                     icon: Icons.phone_outlined,
                     label: 'Mobile Number',
-                    value: user?.phoneNumber ?? 'N/A',
+                    value: user?.phoneNumber.isNotEmpty == true ? user!.phoneNumber : 'N/A',
                   ),
                   const _ProfileDetailRow(
                     icon: Icons.shield_outlined,
