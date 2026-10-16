@@ -19,9 +19,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         message.data, 
         message.data['relatedId'] ?? 'job_${DateTime.now().millisecondsSinceEpoch}',
       );
-    } else if (message.data['type'] == 'request') {
+    } else if (message.data['type'] == 'request' || message.data['type'] == 'chat') {
       await AudioAlertService.initialize();
-      await AudioAlertService.playAlarmAlert();
+      await AudioAlertService.playMessageBeep(); // Short beep for chat instead of loud alarm
     }
   } catch (_) {}
 }

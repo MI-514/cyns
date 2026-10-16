@@ -409,7 +409,7 @@ class _ChatScreenState extends State<ChatScreen> {
       attachmentUrl: attachmentUrl,
     );
 
-    // Background Chat Notification Alert
+    // Background Chat Notification Alert (Uses FCM standard structure)
     await NotificationService.sendNotification(
       userId: widget.peerId,
       title: 'New Message from ${auth.userModel?.fullName ?? 'User'}',
