@@ -1,17 +1,36 @@
-# cyns
+# CYN - Chase Your Needs
 
-A new Flutter project.
+CYN (Chase Your Needs) is a Flutter-based mobile application designed to connect customers with skilled workers and local service providers.
+
+## Overview
+
+The platform supports two primary user roles:
+- **Customer**: Browse service categories, find nearby skilled workers, send job requests, track real-time worker status, and communicate via in-app chat and voice calls.
+- **Worker**: Manage availability, receive and respond to incoming service requests, navigate to customer locations, and track completed jobs and ratings.
+
+## Tech Stack
+
+- **Framework**: Flutter (Dart)
+- **State Management**: Provider
+- **Backend & Database**: Firebase Authentication, Cloud Firestore, Firebase Storage, Firebase Cloud Messaging, SQLite (local storage)
+- **Maps & Location**: Flutter Map, Geolocator
+- **Real-Time Communication**: Agora RTC Engine
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+### Prerequisites
 
-A few resources to get you started if this is your first Flutter project:
+- Flutter SDK (`>=3.0.0 <4.0.0`)
+- Configured Firebase project (`firebase_options.dart` / platform configurations)
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### Installation
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Install dependencies:
+   ```bash
+   flutter pub get
+   ```
+
+2. Run the application:
+   ```bash
+   flutter run
+   ```
